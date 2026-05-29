@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrafficSpeed AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
+      </div>
+      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
+    </header>
+
+    <section class="input-section">
+      <div class="card input-card">
+        <h2>Load Video</h2>
+
+        <div class="input-row">
+          <label for="videoUrl">YouTube or direct video URL</label>
+          <div class="url-row">
+            <input
+              id="videoUrl"
+              type="text"
+              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
+          </div>
+          <p class="hint" id="urlHint"></p>
+        </div>
+
+        <div class="divider"><span>or</span></div>
+
+        <div class="input-row">
+          <label for="videoFile">Upload a video file</label>
+          <label class="file-label" for="videoFile">
+            <span id="fileLabel">Choose file…</span>
+            <input id="videoFile" type="file" accept="video/*" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card settings-card">
+        <h2>Settings</h2>
+        <div class="setting">
+          <label for="scaleFactor">
+            Scale calibration
+            <span class="setting-value" id="scaleValue">15 px/m</span>
+          </label>
+          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
+          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
+        </div>
+        <div class="setting">
+          <label for="confidence">
+            Min confidence
+            <span class="setting-value" id="confValue">45%</span>
+          </label>
+          <input type="range" id="confidence" min="20" max="90" value="45" />
+        </div>
+      </div>
+    </section>
+
+    <section class="video-section" id="videoSection">
+      <div class="video-wrapper" id="videoWrapper">
+        <video id="video" playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="model-status" id="modelStatus">Loading AI model…</div>
+      </div>
+
+      <div class="controls">
+        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
+        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
+        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
+      </div>
+    </section>
+
+    <section class="stats-section" id="statsSection">
+      <div class="stat-card">
+        <div class="stat-label">Vehicles tracked</div>
+        <div class="stat-value" id="statCount">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg speed</div>
+        <div class="stat-value" id="statAvg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Max speed</div>
+        <div class="stat-value" id="statMax">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">FPS</div>
+        <div class="stat-value" id="statFps">—</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
