@@ -1,8 +1,50 @@
 'use strict';
 
+// ── API key setup ──────────────────────────────────────────────────────────────
+const modalOverlay = document.getElementById('modalOverlay');
+const apiKeyInput  = document.getElementById('apiKeyInput');
+const modalSaveBtn = document.getElementById('modalSaveBtn');
+const modalError   = document.getElementById('modalError');
+const changeKeyBtn = document.getElementById('changeKeyBtn');
+
+let API_KEY = localStorage.getItem('den_api_key') || '';
+
+function showModal() {
+  modalOverlay.classList.remove('hidden');
+  apiKeyInput.value = '';
+  apiKeyInput.focus();
+}
+function hideModal() {
+  modalOverlay.classList.add('hidden');
+}
+
+if (!API_KEY) {
+  showModal();
+} else {
+  hideModal();
+}
+
+modalSaveBtn.addEventListener('click', saveKey);
+apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+changeKeyBtn.addEventListener('click', showModal);
+
+function saveKey() {
+  const key = apiKeyInput.value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    modalError.textContent = 'Key should start with sk-ant-';
+    return;
+  }
+  API_KEY = key;
+  localStorage.setItem('den_api_key', key);
+  modalError.textContent = '';
+  hideModal();
+  userInput.focus();
+}
+
 // ── State ──────────────────────────────────────────────────────────────────────
-const sessions = [];   // [{id, title, messages:[{role,content}]}]
-let activeId   = null;
+let sessions  = [];   // [{id, title, messages:[{role,content}]}]
+let activeId  = null;
+let isBusy    = false;
 
 // ── DOM ────────────────────────────────────────────────────────────────────────
 const welcome     = document.getElementById('welcome');
@@ -12,206 +54,208 @@ const sendBtn     = document.getElementById('sendBtn');
 const newChatBtn  = document.getElementById('newChatBtn');
 const historyList = document.getElementById('historyList');
 
-// ── Auto-grow textarea ─────────────────────────────────────────────────────────
+// ── Textarea auto-grow ─────────────────────────────────────────────────────────
 userInput.addEventListener('input', () => {
   userInput.style.height = 'auto';
-  userInput.style.height = Math.min(userInput.scrollHeight, 220) + 'px';
-  sendBtn.disabled = !userInput.value.trim();
+  userInput.style.height = Math.min(userInput.scrollHeight, 200) + 'px';
 });
 
 userInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    if (!sendBtn.disabled) submit();
+    if (!isBusy) submit();
   }
 });
 
-sendBtn.addEventListener('click', submit);
+sendBtn.addEventListener('click', () => { if (!isBusy) submit(); });
+newChatBtn.addEventListener('click', newChat);
 
 // ── Suggestion pills ───────────────────────────────────────────────────────────
-document.querySelectorAll('.suggestion-pill').forEach(btn => {
+document.querySelectorAll('.pill').forEach(btn => {
   btn.addEventListener('click', () => {
-    userInput.value = btn.dataset.text;
+    userInput.value = btn.dataset.q;
     userInput.dispatchEvent(new Event('input'));
     submit();
   });
 });
 
-// ── New chat ───────────────────────────────────────────────────────────────────
-newChatBtn.addEventListener('click', () => startSession());
-
-// ── Session management ─────────────────────────────────────────────────────────
-function startSession() {
-  const id = Date.now().toString();
-  sessions.push({ id, title: 'New chat', messages: [] });
+// ── Session helpers ────────────────────────────────────────────────────────────
+function newChat() {
+  const id = String(Date.now());
+  sessions.unshift({ id, title: 'New chat', messages: [] });
   activeId = id;
   renderHistory();
-  clearThread();
+  showWelcome();
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  userInput.focus();
 }
 
-function activeSession() {
+function getActive() {
   return sessions.find(s => s.id === activeId);
 }
 
-function clearThread() {
-  messagesEl.innerHTML = '';
-  messagesEl.classList.remove('visible');
-  welcome.style.display = 'flex';
-  userInput.value = '';
-  userInput.style.height = 'auto';
-  sendBtn.disabled = true;
-  userInput.focus();
+function showWelcome() {
+  welcome.style.display  = 'flex';
+  messagesEl.className   = 'messages';
+  messagesEl.innerHTML   = '';
+}
+
+function showThread() {
+  welcome.style.display = 'none';
+  messagesEl.classList.add('show');
 }
 
 function renderHistory() {
   historyList.innerHTML = '';
-  [...sessions].reverse().forEach(s => {
+  sessions.forEach(s => {
     const el = document.createElement('div');
-    el.className = 'history-item' + (s.id === activeId ? ' active' : '');
+    el.className   = 'history-item' + (s.id === activeId ? ' active' : '');
     el.textContent = s.title;
-    el.addEventListener('click', () => switchSession(s.id));
+    el.addEventListener('click', () => loadSession(s.id));
     historyList.appendChild(el);
   });
 }
 
-function switchSession(id) {
+function loadSession(id) {
   activeId = id;
   renderHistory();
-  const s = activeSession();
+  const s = getActive();
   messagesEl.innerHTML = '';
-  if (s.messages.length === 0) {
-    clearThread();
-    return;
-  }
-  welcome.style.display = 'none';
-  messagesEl.classList.add('visible');
-  s.messages.forEach(m => appendMessage(m.role, m.content, false));
+  if (!s.messages.length) { showWelcome(); return; }
+  showThread();
+  s.messages.forEach(m => addBubble(m.role, m.content));
   scrollBottom();
 }
 
-// ── Main submit ────────────────────────────────────────────────────────────────
+// ── Submit ─────────────────────────────────────────────────────────────────────
 async function submit() {
   const text = userInput.value.trim();
-  if (!text) return;
+  if (!text || isBusy) return;
 
-  if (!activeId) startSession();
+  if (!API_KEY) { showModal(); return; }
+  if (!activeId) newChat();
 
-  const session = activeSession();
+  const session = getActive();
+  showThread();
 
-  // Show thread, hide welcome
-  welcome.style.display = 'none';
-  messagesEl.classList.add('visible');
-
-  // Add user message
   session.messages.push({ role: 'user', content: text });
-  appendMessage('user', text);
+  addBubble('user', text);
 
-  // Update sidebar title
   if (session.title === 'New chat') {
-    session.title = text.slice(0, 40) + (text.length > 40 ? '…' : '');
+    session.title = text.slice(0, 42) + (text.length > 42 ? '…' : '');
     renderHistory();
   }
 
-  // Reset input
   userInput.value = '';
   userInput.style.height = 'auto';
-  sendBtn.disabled = true;
+  scrollBottom();
 
-  // Typing indicator
-  const typingRow = appendTyping();
+  isBusy = true;
+  sendBtn.classList.add('loading');
+
+  const typingEl = addTyping();
   scrollBottom();
 
   try {
-    const reply = await fetchReply(session.messages);
-    typingRow.remove();
+    const reply = await callAPI(session.messages);
+    typingEl.remove();
     session.messages.push({ role: 'assistant', content: reply });
-    appendMessage('assistant', reply);
+    addBubble('assistant', reply);
     scrollBottom();
   } catch (err) {
-    typingRow.remove();
-    appendMessage('assistant', `**Error:** ${err.message}`);
+    typingEl.remove();
+    addBubble('assistant', `**Error:** ${err.message}\n\nIf this is an auth error, click **Change API key** in the sidebar.`);
     scrollBottom();
+  } finally {
+    isBusy = false;
+    sendBtn.classList.remove('loading');
+    userInput.focus();
   }
 }
 
-// ── API call ───────────────────────────────────────────────────────────────────
-async function fetchReply(messages) {
-  const res = await fetch('/api/chat', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ messages }),
+// ── Anthropic API call (direct from browser) ───────────────────────────────────
+async function callAPI(messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type':                        'application/json',
+      'x-api-key':                           API_KEY,
+      'anthropic-version':                   '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model:      'claude-opus-4-8',
+      max_tokens: 8096,
+      system: `You are DEN, a highly intelligent and helpful AI assistant. Be clear, thorough, and well-structured. Use markdown formatting — headers, bullet points, and code blocks — to make responses easy to read. Never mention Claude or Anthropic.`,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    }),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    const msg  = body?.error?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
   }
 
   const data = await res.json();
-  return data.reply;
+  return data.content?.[0]?.text ?? '(empty response)';
 }
 
 // ── Render helpers ─────────────────────────────────────────────────────────────
-function appendMessage(role, content, addToDOM = true) {
-  const row = document.createElement('div');
+function addBubble(role, content) {
+  const row    = document.createElement('div');
   row.className = `msg-row ${role}`;
 
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = role === 'assistant' ? 'D' : 'U';
+  const av = document.createElement('div');
+  av.className   = 'avatar';
+  av.textContent = role === 'assistant' ? 'D' : 'U';
 
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
 
   if (role === 'assistant') {
-    bubble.innerHTML = renderMarkdown(content);
+    bub.innerHTML = md(content);
     // Add copy buttons to code blocks
-    bubble.querySelectorAll('pre').forEach(pre => {
+    bub.querySelectorAll('pre').forEach(pre => {
       const wrap = document.createElement('div');
       wrap.className = 'code-wrap';
       pre.replaceWith(wrap);
       wrap.appendChild(pre);
-
-      const btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.textContent = 'Copy';
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(pre.querySelector('code')?.innerText ?? pre.innerText);
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-      });
-      wrap.appendChild(btn);
+      const cp = document.createElement('button');
+      cp.className   = 'copy-btn';
+      cp.textContent = 'Copy';
+      cp.onclick = () => {
+        const txt = pre.querySelector('code')?.innerText ?? pre.innerText;
+        navigator.clipboard.writeText(txt).then(() => {
+          cp.textContent = 'Copied!';
+          setTimeout(() => { cp.textContent = 'Copy'; }, 1600);
+        });
+      };
+      wrap.appendChild(cp);
     });
   } else {
-    bubble.textContent = content;
+    bub.textContent = content;
   }
 
-  if (role === 'assistant') {
-    row.appendChild(avatar);
-    row.appendChild(bubble);
-  } else {
-    row.appendChild(bubble);
-    row.appendChild(avatar);
-  }
+  if (role === 'assistant') { row.appendChild(av); row.appendChild(bub); }
+  else                       { row.appendChild(bub); row.appendChild(av); }
 
-  if (addToDOM) messagesEl.appendChild(row);
+  messagesEl.appendChild(row);
   return row;
 }
 
-function appendTyping() {
-  const row = document.createElement('div');
+function addTyping() {
+  const row    = document.createElement('div');
   row.className = 'msg-row assistant';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = 'D';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-  bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-
-  row.appendChild(avatar);
-  row.appendChild(bubble);
+  const av = document.createElement('div');
+  av.className   = 'avatar';
+  av.textContent = 'D';
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  row.appendChild(av);
+  row.appendChild(bub);
   messagesEl.appendChild(row);
   return row;
 }
@@ -221,65 +265,60 @@ function scrollBottom() {
 }
 
 // ── Minimal markdown renderer ──────────────────────────────────────────────────
-function renderMarkdown(text) {
-  let html = escapeHtml(text);
+function md(raw) {
+  let s = esc(raw);
 
-  // Fenced code blocks (``` lang\n...\n```)
-  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code class="language-${lang}">${code.trimEnd()}</code></pre>`;
-  });
+  // Fenced code blocks
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code>${code.trimEnd()}</code></pre>`);
 
   // Inline code
-  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
-  // Bold **text**
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-  // Italic *text* or _text_
-  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-  html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+  // Bold & italic
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g,     '<em>$1</em>');
+  s = s.replace(/_([^_\n]+)_/g,       '<em>$1</em>');
 
   // Headings
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
+  s = s.replace(/^# (.+)$/gm,   '<h1>$1</h1>');
 
   // Blockquote
-  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  s = s.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
 
-  // Horizontal rule
-  html = html.replace(/^---$/gm, '<hr>');
+  // HR
+  s = s.replace(/^---$/gm, '<hr>');
 
-  // Unordered list items
-  html = html.replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>[\s\S]*?<\/li>)(?=\n<li>|$)/g, '<ul>$1</ul>');
+  // Lists
+  s = s.replace(/^[ \t]*[-*] (.+)$/gm, '<li>$1</li>');
+  s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li>$1</li>');
+  s = s.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
-  // Ordered list items
-  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Links
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-  // Links [text](url)
-  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
-  // Paragraphs: split on double newlines
-  const blocks = html.split(/\n\n+/);
-  html = blocks.map(block => {
+  // Paragraphs
+  s = s.split(/\n{2,}/).map(block => {
     block = block.trim();
     if (!block) return '';
     if (/^<(h[1-3]|ul|ol|li|pre|blockquote|hr)/.test(block)) return block;
     return `<p>${block.replace(/\n/g, '<br>')}</p>`;
   }).join('\n');
 
-  return html;
+  return s;
 }
 
-function escapeHtml(str) {
-  return str
+function esc(s) {
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────────
-startSession();
-userInput.focus();
+// ── Boot ───────────────────────────────────────────────────────────────────────
+newChat();

@@ -7,9 +7,22 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="layout">
 
-    <!-- Sidebar -->
+  <!-- API Key Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-icon">D</div>
+      <h2>Welcome to DEN</h2>
+      <p>Enter your Anthropic API key to get started. It's saved in your browser only.</p>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." spellcheck="false" />
+      <p class="modal-error" id="modalError"></p>
+      <button class="modal-btn" id="modalSaveBtn">Start chatting</button>
+      <p class="modal-hint">Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div class="layout" id="app">
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="brand">
@@ -17,54 +30,46 @@
           <span class="brand-name">DEN</span>
         </div>
         <button class="new-chat-btn" id="newChatBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           New chat
         </button>
       </div>
       <div class="history-list" id="historyList"></div>
+      <button class="change-key-btn" id="changeKeyBtn">Change API key</button>
     </aside>
 
-    <!-- Main -->
     <main class="main">
       <header class="topbar">
         <span class="model-badge">DEN AI</span>
       </header>
 
-      <!-- Welcome screen (shown when no messages) -->
       <div class="welcome" id="welcome">
         <div class="welcome-icon">D</div>
-        <h1>How can I help you today?</h1>
-        <p>DEN is here to assist with writing, analysis, coding, math, and more.</p>
+        <h1>How can I help you?</h1>
+        <p>Ask me anything — writing, coding, math, analysis, ideas.</p>
         <div class="suggestions">
-          <button class="suggestion-pill" data-text="Explain quantum entanglement in simple terms">Explain quantum entanglement</button>
-          <button class="suggestion-pill" data-text="Write a Python function that sorts a list of dictionaries by a given key">Python sort dictionaries</button>
-          <button class="suggestion-pill" data-text="What are the pros and cons of microservices architecture?">Microservices pros & cons</button>
-          <button class="suggestion-pill" data-text="Help me write a professional email declining a job offer politely">Decline a job offer</button>
+          <button class="pill" data-q="Explain quantum entanglement simply">Explain quantum entanglement</button>
+          <button class="pill" data-q="Write a Python function to sort a list of dicts by key">Sort dicts in Python</button>
+          <button class="pill" data-q="What are pros and cons of microservices?">Microservices pros & cons</button>
+          <button class="pill" data-q="Help me write a professional email declining a job offer">Decline a job offer</button>
         </div>
       </div>
 
-      <!-- Message thread -->
       <div class="messages" id="messages"></div>
 
-      <!-- Input area -->
       <div class="input-area">
-        <div class="input-box">
-          <textarea
-            id="userInput"
-            placeholder="Message DEN…"
-            rows="1"
-            maxlength="32000"
-          ></textarea>
-          <button class="send-btn" id="sendBtn" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="input-box" id="inputBox">
+          <textarea id="userInput" placeholder="Message DEN…" rows="1"></textarea>
+          <button class="send-btn" id="sendBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"/>
               <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
         </div>
-        <p class="disclaimer">DEN can make mistakes. Verify important information.</p>
+        <p class="disclaimer">DEN can make mistakes. Verify important info.</p>
       </div>
     </main>
   </div>
