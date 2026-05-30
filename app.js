@@ -30,8 +30,8 @@ changeKeyBtn.addEventListener('click', showModal);
 
 function saveKey() {
   const key = apiKeyInput.value.trim();
-  if (!key.startsWith('sk-ant-')) {
-    modalError.textContent = 'Key should start with sk-ant-';
+  if (!key) {
+    modalError.textContent = 'Please enter your API key';
     return;
   }
   API_KEY = key;
@@ -174,21 +174,23 @@ async function submit() {
   }
 }
 
-// ── Anthropic API call (direct from browser) ───────────────────────────────────
+// ── Groq API call (direct from browser) ───────────────────────────────────────
 async function callAPI(messages) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type':                        'application/json',
-      'x-api-key':                           API_KEY,
-      'anthropic-version':                   '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model:      'claude-opus-4-8',
-      max_tokens: 8096,
-      system: `You are DEN, a highly intelligent and helpful AI assistant. Be clear, thorough, and well-structured. Use markdown formatting — headers, bullet points, and code blocks — to make responses easy to read. Never mention Claude or Anthropic.`,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are DEN, a highly intelligent and helpful AI assistant. Be clear, thorough, and well-structured. Use markdown formatting — headers, bullet points, and code blocks — to make responses easy to read.',
+        },
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+      ],
     }),
   });
 
@@ -199,7 +201,7 @@ async function callAPI(messages) {
   }
 
   const data = await res.json();
-  return data.content?.[0]?.text ?? '(empty response)';
+  return data.choices?.[0]?.message?.content ?? '(empty response)';
 }
 
 // ── Render helpers ─────────────────────────────────────────────────────────────
