@@ -1063,19 +1063,24 @@ async function generateImage() {
   genBtn.disabled = true;
   usedEl.textContent = '';
 
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=${imgStyle}&width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true`;
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=${imgStyle}&width=${w}&height=${h}&seed=${seed}&nologo=true`;
   lastImgUrl = url;
 
   const img = new Image();
-  img.crossOrigin = 'anonymous';
 
   img.onload = () => {
     canvas.innerHTML = '';
-    img.style.borderRadius = '17px';
+    img.style.cssText = 'width:100%;border-radius:17px;display:block';
     canvas.appendChild(img);
     usedEl.textContent = `"${prompt}"`;
     genBtn.disabled = false;
-    dlBtn.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = `den-image-${seed}.jpg`; a.target = '_blank'; a.click(); };
+    dlBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `den-image-${seed}.jpg`;
+      a.target = '_blank';
+      a.click();
+    };
     toast('Image ready! ✨', 'success');
   };
 
@@ -1085,6 +1090,7 @@ async function generateImage() {
     toast('Generation failed — try a different prompt');
   };
 
+  // Set src last — no crossOrigin flag so browser loads it as a normal image
   img.src = url;
 }
 
