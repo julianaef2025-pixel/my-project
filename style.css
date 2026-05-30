@@ -80,19 +80,17 @@ body:has(button:hover) .cursor-trail { width: 56px; height: 56px; border-color: 
 }
 
 /* ── Scroll Reveal Animations ──────────────────────────────── */
-.reveal-up, .reveal-left, .reveal-right {
-  opacity: 0;
-  will-change: transform, opacity;
-}
-.reveal-up    { transform: translateY(40px); }
-.reveal-left  { transform: translateX(-40px); }
-.reveal-right { transform: translateX(40px); }
+/* Only hide elements when JS has loaded (html.js class added by app.js).
+   This ensures content is always visible even if JS fails or is slow. */
+html.js .reveal-up    { opacity: 0; transform: translateY(40px); will-change: transform, opacity; }
+html.js .reveal-left  { opacity: 0; transform: translateX(-40px); will-change: transform, opacity; }
+html.js .reveal-right { opacity: 0; transform: translateX(40px); will-change: transform, opacity; }
 
 .reveal-up.in-view,
 .reveal-left.in-view,
 .reveal-right.in-view {
-  opacity: 1;
-  transform: translate(0,0);
+  opacity: 1 !important;
+  transform: translate(0,0) !important;
   transition: opacity .8s cubic-bezier(.16,1,.3,1),
               transform .8s cubic-bezier(.16,1,.3,1);
 }
