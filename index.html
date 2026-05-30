@@ -15,14 +15,6 @@
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
 
-  <!-- Preloader -->
-  <div class="preloader" id="preloader">
-    <div class="preloader-logo">
-      <div class="preloader-p">P</div>
-      <div class="preloader-bar"></div>
-    </div>
-  </div>
-
   <!-- Navbar -->
   <nav class="navbar" id="navbar">
     <div class="nav-container">
@@ -61,8 +53,9 @@
   <!-- ── HERO ── -->
   <section class="hero" id="hero">
     <canvas id="particleCanvas"></canvas>
-    <div class="hero-glow-1"></div>
-    <div class="hero-glow-2"></div>
+    <div class="hero-blob-1"></div>
+    <div class="hero-blob-2"></div>
+    <div class="hero-blob-3"></div>
 
     <div class="hero-container">
       <div class="hero-content">
@@ -96,11 +89,11 @@
         </div>
 
         <div class="hero-trust animate-in delay-4">
-          <div class="trust-item"><span class="trust-icon">✦</span><span>32,000+ expert tutors</span></div>
+          <div class="trust-item"><span class="trust-check">✓</span><span>32,000+ expert tutors</span></div>
           <div class="trust-divider"></div>
-          <div class="trust-item"><span class="trust-icon">✦</span><span>Free trial lesson</span></div>
+          <div class="trust-item"><span class="trust-check">✓</span><span>Free trial lesson</span></div>
           <div class="trust-divider"></div>
-          <div class="trust-item"><span class="trust-icon">✦</span><span>Money-back guarantee</span></div>
+          <div class="trust-item"><span class="trust-check">✓</span><span>Money-back guarantee</span></div>
         </div>
       </div>
 
@@ -169,18 +162,18 @@
         <p class="section-subtitle">From the world's most spoken languages to niche specialties — we have an expert tutor for every goal.</p>
       </div>
       <div class="languages-grid">
-        <div class="lang-card reveal" style="--delay:0s"><div class="lang-flag">🇬🇧</div><div><div class="lang-name">English</div><div class="lang-tutors">8,230 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.05s"><div class="lang-flag">🇪🇸</div><div><div class="lang-name">Spanish</div><div class="lang-tutors">6,140 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.1s"><div class="lang-flag">🇫🇷</div><div><div class="lang-name">French</div><div class="lang-tutors">3,890 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.15s"><div class="lang-flag">🇩🇪</div><div><div class="lang-name">German</div><div class="lang-tutors">2,740 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.2s"><div class="lang-flag">🇮🇹</div><div><div class="lang-name">Italian</div><div class="lang-tutors">2,110 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.25s"><div class="lang-flag">🇵🇹</div><div><div class="lang-name">Portuguese</div><div class="lang-tutors">1,890 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.3s"><div class="lang-flag">🇯🇵</div><div><div class="lang-name">Japanese</div><div class="lang-tutors">1,650 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.35s"><div class="lang-flag">🇨🇳</div><div><div class="lang-name">Chinese</div><div class="lang-tutors">1,430 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.4s"><div class="lang-flag">🇰🇷</div><div><div class="lang-name">Korean</div><div class="lang-tutors">980 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.45s"><div class="lang-flag">🇸🇦</div><div><div class="lang-name">Arabic</div><div class="lang-tutors">1,240 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card reveal" style="--delay:0.5s"><div class="lang-flag">🇷🇺</div><div><div class="lang-name">Russian</div><div class="lang-tutors">1,560 tutors</div></div><div class="lang-arrow">→</div></div>
-        <div class="lang-card lang-card-more reveal" style="--delay:0.55s"><div class="lang-flag">🌐</div><div><div class="lang-name">40+ more</div><div class="lang-tutors">languages</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0s;--card-color:#6440FB"><div class="lang-flag">🇬🇧</div><div><div class="lang-name">English</div><div class="lang-tutors">8,230 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.05s;--card-color:#FF6B35"><div class="lang-flag">🇪🇸</div><div><div class="lang-name">Spanish</div><div class="lang-tutors">6,140 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.1s;--card-color:#00D4A8"><div class="lang-flag">🇫🇷</div><div><div class="lang-name">French</div><div class="lang-tutors">3,890 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.15s;--card-color:#F59E0B"><div class="lang-flag">🇩🇪</div><div><div class="lang-name">German</div><div class="lang-tutors">2,740 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.2s;--card-color:#EF4444"><div class="lang-flag">🇮🇹</div><div><div class="lang-name">Italian</div><div class="lang-tutors">2,110 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.25s;--card-color:#10B981"><div class="lang-flag">🇵🇹</div><div><div class="lang-name">Portuguese</div><div class="lang-tutors">1,890 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.3s;--card-color:#8B5CF6"><div class="lang-flag">🇯🇵</div><div><div class="lang-name">Japanese</div><div class="lang-tutors">1,650 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.35s;--card-color:#EC4899"><div class="lang-flag">🇨🇳</div><div><div class="lang-name">Chinese</div><div class="lang-tutors">1,430 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.4s;--card-color:#06B6D4"><div class="lang-flag">🇰🇷</div><div><div class="lang-name">Korean</div><div class="lang-tutors">980 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.45s;--card-color:#F97316"><div class="lang-flag">🇸🇦</div><div><div class="lang-name">Arabic</div><div class="lang-tutors">1,240 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card reveal" style="--delay:0.5s;--card-color:#14B8A6"><div class="lang-flag">🇷🇺</div><div><div class="lang-name">Russian</div><div class="lang-tutors">1,560 tutors</div></div><div class="lang-arrow">→</div></div>
+        <div class="lang-card lang-card-more reveal" style="--delay:0.55s;--card-color:#6440FB"><div class="lang-flag">🌐</div><div><div class="lang-name">40+ more</div><div class="lang-tutors">languages</div></div><div class="lang-arrow">→</div></div>
       </div>
     </div>
   </section>
@@ -194,21 +187,21 @@
         <p class="section-subtitle">Getting started with Preply is simple, fast, and completely risk-free.</p>
       </div>
       <div class="steps-container">
-        <div class="step-item reveal">
+        <div class="step-item reveal" style="--step-color:#6440FB">
           <div class="step-number">01</div>
           <div class="step-icon-wrap"><div class="step-icon">🔍</div></div>
           <h3>Find your tutor</h3>
           <p>Browse thousands of verified tutors filtered by language, price, schedule, and specialty. Read real student reviews.</p>
         </div>
         <div class="step-connector reveal delay-1"><div class="connector-arrow">→</div></div>
-        <div class="step-item reveal delay-1">
+        <div class="step-item reveal delay-1" style="--step-color:#FF6B35">
           <div class="step-number">02</div>
           <div class="step-icon-wrap"><div class="step-icon">📅</div></div>
           <h3>Book a trial lesson</h3>
           <p>Schedule your first lesson at a time that works for you. Pay only if you love it — money-back guarantee included.</p>
         </div>
         <div class="step-connector reveal delay-2"><div class="connector-arrow">→</div></div>
-        <div class="step-item reveal delay-2">
+        <div class="step-item reveal delay-2" style="--step-color:#00D4A8">
           <div class="step-number">03</div>
           <div class="step-icon-wrap"><div class="step-icon">🚀</div></div>
           <h3>Start learning</h3>
@@ -229,7 +222,7 @@
       <div class="tutors-grid">
         <div class="tutor-card reveal" style="--delay:0s">
           <div class="tutor-card-inner">
-            <div class="tutor-card-header"><img src="https://i.pravatar.cc/150?img=47" alt="Maria" class="tutor-photo"><div class="tutor-badge-super">Super Tutor</div></div>
+            <div class="tutor-card-header tutor-header-purple"><img src="https://i.pravatar.cc/150?img=47" alt="Maria" class="tutor-photo"><div class="tutor-badge-super">Super Tutor</div></div>
             <div class="tutor-card-body">
               <h3 class="tutor-name">Maria González</h3>
               <div class="tutor-lang">🇬🇧 English · 🇪🇸 Spanish</div>
@@ -242,41 +235,41 @@
         </div>
         <div class="tutor-card reveal" style="--delay:0.1s">
           <div class="tutor-card-inner">
-            <div class="tutor-card-header"><img src="https://i.pravatar.cc/150?img=12" alt="Kenji" class="tutor-photo"><div class="tutor-badge-pro">Professional</div></div>
+            <div class="tutor-card-header tutor-header-orange"><img src="https://i.pravatar.cc/150?img=12" alt="Kenji" class="tutor-photo"><div class="tutor-badge-pro">Professional</div></div>
             <div class="tutor-card-body">
               <h3 class="tutor-name">Kenji Tanaka</h3>
               <div class="tutor-lang">🇯🇵 Japanese · 🇬🇧 English</div>
               <div class="tutor-rating"><span class="stars">★★★★★</span><span class="rating-val">4.96</span><span class="review-count">(892 reviews)</span></div>
               <p class="tutor-bio">Native Japanese speaker with a passion for helping beginners master hiragana, katakana, and kanji in a fun, structured way.</p>
-              <div class="tutor-tags"><span class="tag">JLPT Prep</span><span class="tag">Anime Japanese</span><span class="tag">Business</span></div>
+              <div class="tutor-tags"><span class="tag tag-orange">JLPT Prep</span><span class="tag tag-orange">Anime Japanese</span><span class="tag tag-orange">Business</span></div>
             </div>
-            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$22</strong>/hr</div><button class="btn-book magnetic">Book trial</button></div>
+            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$22</strong>/hr</div><button class="btn-book btn-book-orange magnetic">Book trial</button></div>
           </div>
         </div>
         <div class="tutor-card reveal" style="--delay:0.2s">
           <div class="tutor-card-inner">
-            <div class="tutor-card-header"><img src="https://i.pravatar.cc/150?img=32" alt="Sophie" class="tutor-photo"><div class="tutor-badge-super">Super Tutor</div></div>
+            <div class="tutor-card-header tutor-header-teal"><img src="https://i.pravatar.cc/150?img=32" alt="Sophie" class="tutor-photo"><div class="tutor-badge-super">Super Tutor</div></div>
             <div class="tutor-card-body">
               <h3 class="tutor-name">Sophie Dubois</h3>
               <div class="tutor-lang">🇫🇷 French · 🇬🇧 English</div>
               <div class="tutor-rating"><span class="stars">★★★★★</span><span class="rating-val">5.00</span><span class="review-count">(678 reviews)</span></div>
               <p class="tutor-bio">Parisian French teacher with a degree in linguistics. Makes learning French delightful with culture, music, and authentic conversations.</p>
-              <div class="tutor-tags"><span class="tag">DELF/DALF</span><span class="tag">Culture</span><span class="tag">Pronunciation</span></div>
+              <div class="tutor-tags"><span class="tag tag-teal">DELF/DALF</span><span class="tag tag-teal">Culture</span><span class="tag tag-teal">Pronunciation</span></div>
             </div>
-            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$25</strong>/hr</div><button class="btn-book magnetic">Book trial</button></div>
+            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$25</strong>/hr</div><button class="btn-book btn-book-teal magnetic">Book trial</button></div>
           </div>
         </div>
         <div class="tutor-card reveal" style="--delay:0.3s">
           <div class="tutor-card-inner">
-            <div class="tutor-card-header"><img src="https://i.pravatar.cc/150?img=59" alt="Carlos" class="tutor-photo"><div class="tutor-badge-pro">Professional</div></div>
+            <div class="tutor-card-header tutor-header-pink"><img src="https://i.pravatar.cc/150?img=59" alt="Carlos" class="tutor-photo"><div class="tutor-badge-pro">Professional</div></div>
             <div class="tutor-card-body">
               <h3 class="tutor-name">Carlos Mendes</h3>
               <div class="tutor-lang">🇧🇷 Portuguese · 🇪🇸 Spanish</div>
               <div class="tutor-rating"><span class="stars">★★★★★</span><span class="rating-val">4.94</span><span class="review-count">(543 reviews)</span></div>
               <p class="tutor-bio">Brazilian Portuguese specialist with experience teaching all levels. Passionate about helping students speak naturally from day one.</p>
-              <div class="tutor-tags"><span class="tag">Conversation</span><span class="tag">Business</span><span class="tag">Travel</span></div>
+              <div class="tutor-tags"><span class="tag tag-pink">Conversation</span><span class="tag tag-pink">Business</span><span class="tag tag-pink">Travel</span></div>
             </div>
-            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$15</strong>/hr</div><button class="btn-book magnetic">Book trial</button></div>
+            <div class="tutor-card-footer"><div class="tutor-price">From <strong>$15</strong>/hr</div><button class="btn-book btn-book-pink magnetic">Book trial</button></div>
           </div>
         </div>
       </div>
@@ -286,7 +279,6 @@
 
   <!-- ── WHY PREPLY ── -->
   <section class="why-section" id="why">
-    <div class="why-bg-glow"></div>
     <div class="section-container">
       <div class="section-header reveal">
         <span class="section-tag">Why Preply</span>
@@ -294,12 +286,12 @@
         <p class="section-subtitle">We combine world-class tutors with cutting-edge tools to make language learning effective and enjoyable.</p>
       </div>
       <div class="why-grid">
-        <div class="why-card reveal" style="--delay:0s"><div class="why-icon">🎯</div><h3>Personalized learning</h3><p>Your tutor tailors every lesson to your goals, level, and learning style — no one-size-fits-all curriculum.</p></div>
-        <div class="why-card reveal" style="--delay:0.1s"><div class="why-icon">⏰</div><h3>Total flexibility</h3><p>Learn on your schedule. Book lessons 24/7, cancel anytime, and choose tutors in any timezone worldwide.</p></div>
-        <div class="why-card reveal" style="--delay:0.2s"><div class="why-icon">✅</div><h3>Verified experts</h3><p>Every tutor is vetted and reviewed. Only the top tutors stay — so you always get quality instruction.</p></div>
-        <div class="why-card reveal" style="--delay:0.3s"><div class="why-icon">💰</div><h3>Money-back guarantee</h3><p>Not happy with your trial lesson? We'll refund you or find you a better match, no questions asked.</p></div>
-        <div class="why-card reveal" style="--delay:0.4s"><div class="why-icon">📊</div><h3>Track your progress</h3><p>Built-in progress tracking, lesson reports, and vocabulary tools help you see exactly how far you've come.</p></div>
-        <div class="why-card reveal" style="--delay:0.5s"><div class="why-icon">🤝</div><h3>1-on-1 attention</h3><p>No classes, no crowds. Every lesson is a private session focused entirely on your growth and improvement.</p></div>
+        <div class="why-card reveal" style="--delay:0s;--wc:#6440FB"><div class="why-icon">🎯</div><h3>Personalized learning</h3><p>Your tutor tailors every lesson to your goals, level, and learning style — no one-size-fits-all curriculum.</p></div>
+        <div class="why-card reveal" style="--delay:0.1s;--wc:#FF6B35"><div class="why-icon">⏰</div><h3>Total flexibility</h3><p>Learn on your schedule. Book lessons 24/7, cancel anytime, and choose tutors in any timezone worldwide.</p></div>
+        <div class="why-card reveal" style="--delay:0.2s;--wc:#00D4A8"><div class="why-icon">✅</div><h3>Verified experts</h3><p>Every tutor is vetted and reviewed. Only the top tutors stay — so you always get quality instruction.</p></div>
+        <div class="why-card reveal" style="--delay:0.3s;--wc:#F59E0B"><div class="why-icon">💰</div><h3>Money-back guarantee</h3><p>Not happy with your trial lesson? We'll refund you or find you a better match, no questions asked.</p></div>
+        <div class="why-card reveal" style="--delay:0.4s;--wc:#EC4899"><div class="why-icon">📊</div><h3>Track your progress</h3><p>Built-in progress tracking, lesson reports, and vocabulary tools help you see exactly how far you've come.</p></div>
+        <div class="why-card reveal" style="--delay:0.5s;--wc:#8B5CF6"><div class="why-icon">🤝</div><h3>1-on-1 attention</h3><p>No classes, no crowds. Every lesson is a private session focused entirely on your growth and improvement.</p></div>
       </div>
     </div>
   </section>
@@ -314,22 +306,21 @@
     </div>
     <div class="testimonials-track-wrapper">
       <div class="testimonials-track" id="testimonialsTrack">
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"I went from zero Spanish to having full conversations in just 4 months. My tutor Maria is incredible — patient, fun, and so effective. Preply changed my life!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=5" alt="Emma"><div><div class="author-name">Emma Thompson</div><div class="author-detail">Learning Spanish · London, UK</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"I needed to pass JLPT N3 for my job in Tokyo. Kenji's structured approach and endless patience made it possible. Passed with flying colors!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=8" alt="James"><div><div class="author-name">James Wilson</div><div class="author-detail">Learning Japanese · New York, USA</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"The flexibility is unmatched. I travel constantly for work, and Preply lets me keep learning French no matter where I am. Sophie is absolutely brilliant."</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=25" alt="Priya"><div><div class="author-name">Priya Sharma</div><div class="author-detail">Learning French · Mumbai, India</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"As someone who tried apps for years with no success, 1-on-1 tutoring on Preply was a game-changer. Worth every penny — I'm now confidently speaking German!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=33" alt="Lucas"><div><div class="author-name">Lucas Fernández</div><div class="author-detail">Learning German · Buenos Aires, AR</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"I booked a trial not expecting much, but Carlos completely blew me away. His teaching style is so natural and engaging. I'm hooked on Portuguese now!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=41" alt="Yuki"><div><div class="author-name">Yuki Nakamura</div><div class="author-detail">Learning Portuguese · Tokyo, Japan</div></div></div></div>
+        <div class="testimonial-card tc-purple"><div class="testimonial-stars">★★★★★</div><p>"I went from zero Spanish to having full conversations in just 4 months. My tutor Maria is incredible — patient, fun, and so effective. Preply changed my life!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=5" alt="Emma"><div><div class="author-name">Emma Thompson</div><div class="author-detail">Learning Spanish · London, UK</div></div></div></div>
+        <div class="testimonial-card tc-orange"><div class="testimonial-stars">★★★★★</div><p>"I needed to pass JLPT N3 for my job in Tokyo. Kenji's structured approach and endless patience made it possible. Passed with flying colors!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=8" alt="James"><div><div class="author-name">James Wilson</div><div class="author-detail">Learning Japanese · New York, USA</div></div></div></div>
+        <div class="testimonial-card tc-teal"><div class="testimonial-stars">★★★★★</div><p>"The flexibility is unmatched. I travel constantly for work, and Preply lets me keep learning French no matter where I am. Sophie is absolutely brilliant."</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=25" alt="Priya"><div><div class="author-name">Priya Sharma</div><div class="author-detail">Learning French · Mumbai, India</div></div></div></div>
+        <div class="testimonial-card tc-pink"><div class="testimonial-stars">★★★★★</div><p>"As someone who tried apps for years with no success, 1-on-1 tutoring on Preply was a game-changer. Worth every penny — I'm now confidently speaking German!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=33" alt="Lucas"><div><div class="author-name">Lucas Fernández</div><div class="author-detail">Learning German · Buenos Aires, AR</div></div></div></div>
+        <div class="testimonial-card tc-amber"><div class="testimonial-stars">★★★★★</div><p>"I booked a trial not expecting much, but Carlos completely blew me away. His teaching style is so natural and engaging. I'm hooked on Portuguese now!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=41" alt="Yuki"><div><div class="author-name">Yuki Nakamura</div><div class="author-detail">Learning Portuguese · Tokyo, Japan</div></div></div></div>
         <!-- duplicates for seamless loop -->
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"I went from zero Spanish to having full conversations in just 4 months. My tutor Maria is incredible — patient, fun, and so effective. Preply changed my life!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=5" alt="Emma"><div><div class="author-name">Emma Thompson</div><div class="author-detail">Learning Spanish · London, UK</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"I needed to pass JLPT N3 for my job in Tokyo. Kenji's structured approach and endless patience made it possible. Passed with flying colors!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=8" alt="James"><div><div class="author-name">James Wilson</div><div class="author-detail">Learning Japanese · New York, USA</div></div></div></div>
-        <div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><p>"The flexibility is unmatched. I travel constantly for work, and Preply lets me keep learning French no matter where I am. Sophie is absolutely brilliant."</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=25" alt="Priya"><div><div class="author-name">Priya Sharma</div><div class="author-detail">Learning French · Mumbai, India</div></div></div></div>
+        <div class="testimonial-card tc-purple"><div class="testimonial-stars">★★★★★</div><p>"I went from zero Spanish to having full conversations in just 4 months. My tutor Maria is incredible — patient, fun, and so effective. Preply changed my life!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=5" alt="Emma"><div><div class="author-name">Emma Thompson</div><div class="author-detail">Learning Spanish · London, UK</div></div></div></div>
+        <div class="testimonial-card tc-orange"><div class="testimonial-stars">★★★★★</div><p>"I needed to pass JLPT N3 for my job in Tokyo. Kenji's structured approach and endless patience made it possible. Passed with flying colors!"</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=8" alt="James"><div><div class="author-name">James Wilson</div><div class="author-detail">Learning Japanese · New York, USA</div></div></div></div>
+        <div class="testimonial-card tc-teal"><div class="testimonial-stars">★★★★★</div><p>"The flexibility is unmatched. I travel constantly for work, and Preply lets me keep learning French no matter where I am. Sophie is absolutely brilliant."</p><div class="testimonial-author"><img src="https://i.pravatar.cc/40?img=25" alt="Priya"><div><div class="author-name">Priya Sharma</div><div class="author-detail">Learning French · Mumbai, India</div></div></div></div>
       </div>
     </div>
   </section>
 
   <!-- ── BUSINESS ── -->
   <section class="business-section" id="business">
-    <div class="business-glow"></div>
     <div class="section-container">
       <div class="business-grid">
         <div class="business-content reveal">
@@ -363,13 +354,13 @@
             <div class="biz-dash-content">
               <div class="biz-stat-row">
                 <div class="biz-stat"><div class="biz-stat-label">Active learners</div><div class="biz-stat-val">248</div><div class="biz-stat-bar"><div class="biz-bar-fill" style="width:82%"></div></div></div>
-                <div class="biz-stat"><div class="biz-stat-label">Avg hrs/month</div><div class="biz-stat-val">12.4</div><div class="biz-stat-bar"><div class="biz-bar-fill" style="width:65%"></div></div></div>
+                <div class="biz-stat"><div class="biz-stat-label">Avg hrs/month</div><div class="biz-stat-val">12.4</div><div class="biz-stat-bar"><div class="biz-bar-fill biz-bar-orange" style="width:65%"></div></div></div>
               </div>
               <div class="biz-progress-section">
                 <div class="biz-prog-label">Team progress</div>
                 <div class="biz-member"><img src="https://i.pravatar.cc/30?img=3" alt=""><div class="biz-member-info"><div class="biz-member-name">Sarah K.</div><div class="biz-member-bar"><div class="biz-fill" style="width:78%"></div></div></div><span class="biz-percent">78%</span></div>
-                <div class="biz-member"><img src="https://i.pravatar.cc/30?img=15" alt=""><div class="biz-member-info"><div class="biz-member-name">Tom R.</div><div class="biz-member-bar"><div class="biz-fill" style="width:62%"></div></div></div><span class="biz-percent">62%</span></div>
-                <div class="biz-member"><img src="https://i.pravatar.cc/30?img=20" alt=""><div class="biz-member-info"><div class="biz-member-name">Aisha M.</div><div class="biz-member-bar"><div class="biz-fill" style="width:91%"></div></div></div><span class="biz-percent">91%</span></div>
+                <div class="biz-member"><img src="https://i.pravatar.cc/30?img=15" alt=""><div class="biz-member-info"><div class="biz-member-name">Tom R.</div><div class="biz-member-bar"><div class="biz-fill biz-fill-orange" style="width:62%"></div></div></div><span class="biz-percent biz-percent-orange">62%</span></div>
+                <div class="biz-member"><img src="https://i.pravatar.cc/30?img=20" alt=""><div class="biz-member-info"><div class="biz-member-name">Aisha M.</div><div class="biz-member-bar"><div class="biz-fill biz-fill-teal" style="width:91%"></div></div></div><span class="biz-percent biz-percent-teal">91%</span></div>
               </div>
             </div>
           </div>
@@ -380,14 +371,14 @@
 
   <!-- ── CTA ── -->
   <section class="cta-section">
-    <div class="cta-glow-1"></div><div class="cta-glow-2"></div>
+    <div class="cta-blob-1"></div><div class="cta-blob-2"></div>
     <div class="section-container">
       <div class="cta-content reveal">
         <h2>Ready to start your language journey?</h2>
         <p>Join 15 million+ learners who found their perfect tutor on Preply. Your first lesson comes with a money-back guarantee.</p>
         <div class="cta-buttons">
-          <button class="btn-primary-large magnetic">Find my tutor →</button>
-          <button class="btn-ghost-large">Browse all languages</button>
+          <button class="btn-cta-primary magnetic">Find my tutor →</button>
+          <button class="btn-cta-ghost">Browse all languages</button>
         </div>
         <div class="cta-guarantee"><span>🛡️</span> 100% satisfaction guarantee — full refund if you're not happy</div>
       </div>
@@ -399,7 +390,7 @@
     <div class="footer-container">
       <div class="footer-top">
         <div class="footer-brand">
-          <a href="#" class="nav-logo footer-logo"><div class="logo-mark">P</div><span>preply</span></a>
+          <a href="#" class="nav-logo footer-logo"><div class="logo-mark logo-mark-light">P</div><span>preply</span></a>
           <p>The world's leading language learning marketplace. Find your perfect tutor today.</p>
           <div class="social-links">
             <a href="#" class="social-link">f</a>
