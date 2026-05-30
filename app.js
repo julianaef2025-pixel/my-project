@@ -1,26 +1,23 @@
 'use strict';
 
-/* ── Custom Cursor ─────────────────────────────────────────── */
-const cursor     = document.getElementById('cursor');
+/* ── Decorative cursor ring (real cursor stays visible) ────── */
 const cursorRing = document.getElementById('cursorRing');
 let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
 
-document.addEventListener('mousemove', e => {
-  mouseX = e.clientX; mouseY = e.clientY;
-  cursor.style.left = mouseX + 'px';
-  cursor.style.top  = mouseY + 'px';
-});
-(function animateRing() {
-  ringX += (mouseX - ringX) * 0.12;
-  ringY += (mouseY - ringY) * 0.12;
-  cursorRing.style.left = ringX + 'px';
-  cursorRing.style.top  = ringY + 'px';
-  requestAnimationFrame(animateRing);
-})();
-document.querySelectorAll('a, button, .lang-card, .tutor-card, .why-card, .testimonial-card').forEach(el => {
-  el.addEventListener('mouseenter', () => { cursor.classList.add('hovered'); cursorRing.classList.add('hovered'); });
-  el.addEventListener('mouseleave', () => { cursor.classList.remove('hovered'); cursorRing.classList.remove('hovered'); });
-});
+if (cursorRing) {
+  document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+  (function animateRing() {
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    cursorRing.style.left = ringX + 'px';
+    cursorRing.style.top  = ringY + 'px';
+    requestAnimationFrame(animateRing);
+  })();
+  document.querySelectorAll('a, button, .lang-card, .tutor-card, .why-card, .testimonial-card').forEach(el => {
+    el.addEventListener('mouseenter', () => cursorRing.classList.add('hovered'));
+    el.addEventListener('mouseleave', () => cursorRing.classList.remove('hovered'));
+  });
+}
 
 /* ── Navbar ────────────────────────────────────────────────── */
 const navbar = document.getElementById('navbar');
@@ -84,7 +81,7 @@ try {
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-        const d = Math.sqrt(dx*dx + dy*dy);
+        const d  = Math.sqrt(dx*dx + dy*dy);
         if (d < 110) {
           ctx.beginPath();
           ctx.moveTo(pts[i].x, pts[i].y);
@@ -112,19 +109,15 @@ try {
 /* ── Scroll reveal ─────────────────────────────────────────── */
 const reveals = document.querySelectorAll('.reveal');
 
-// Immediate fallback: show everything visible in viewport on load
 function checkVisible() {
   reveals.forEach(el => {
     const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 1.1) {
-      el.classList.add('visible');
-    }
+    if (rect.top < window.innerHeight * 1.1) el.classList.add('visible');
   });
 }
 checkVisible();
 window.addEventListener('scroll', checkVisible, { passive: true });
 
-// Also use IntersectionObserver for smoother staggered reveals
 if ('IntersectionObserver' in window) {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
@@ -196,5 +189,99 @@ document.querySelectorAll('a[href^="#"]').forEach(link => {
   link.addEventListener('click', e => {
     const t = document.querySelector(link.getAttribute('href'));
     if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+
+/* ── Modal system ──────────────────────────────────────────── */
+function openModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* Open modals via [data-modal] */
+document.querySelectorAll('[data-modal]').forEach(el => {
+  el.addEventListener('click', e => {
+    const closeTarget = el.dataset.close;
+    if (closeTarget) closeModal(closeTarget);
+    e.preventDefault();
+    openModal(el.dataset.modal);
+  });
+});
+
+/* Close modals via [data-close] without [data-modal] */
+document.querySelectorAll('[data-close]:not([data-modal])').forEach(el => {
+  el.addEventListener('click', () => closeModal(el.dataset.close));
+});
+
+/* Close modal when clicking overlay background */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+/* Close on Escape */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(overlay => closeModal(overlay.id));
+  }
+});
+
+/* ── Toast ─────────────────────────────────────────────────── */
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  if (!toast) return;
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ── Form submissions ──────────────────────────────────────── */
+[
+  { id: 'signupForm',  modal: 'signupModal', msg: 'Account created! Welcome to Preply 🎉' },
+  { id: 'loginForm',   modal: 'loginModal',  msg: 'Logged in successfully! Welcome back.'  },
+  { id: 'bookForm',    modal: 'bookModal',   msg: 'Trial lesson booked! Check your email.' },
+  { id: 'demoForm',    modal: 'demoModal',   msg: 'Demo requested! We\'ll be in touch soon.' },
+].forEach(({ id, modal, msg }) => {
+  const form = document.getElementById(id);
+  if (!form) return;
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    closeModal(modal);
+    setTimeout(() => showToast(msg), 350);
+  });
+});
+
+/* ── Time slot selection (book modal) ──────────────────────── */
+document.querySelectorAll('.slot').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.slot').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ── Search button → scroll to tutors ─────────────────────── */
+const searchBtn = document.getElementById('searchBtn');
+if (searchBtn) {
+  searchBtn.addEventListener('click', () => {
+    const tutors = document.getElementById('tutors');
+    if (tutors) tutors.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+/* ── Language card click → scroll to tutors ───────────────── */
+document.querySelectorAll('.lang-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const tutors = document.getElementById('tutors');
+    if (tutors) tutors.scrollIntoView({ behavior: 'smooth' });
   });
 });
