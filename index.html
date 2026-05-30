@@ -3,106 +3,254 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
+  <title>AI Engineering</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="nav-logo" href="#">⚙ AI Engineering</a>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#pillars">Pillars</a></li>
+        <li><a href="#tools">Tools</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#newsletter" class="btn-nav">Get started</a></li>
+      </ul>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <span class="badge" id="typingBadge"></span>
+      <h1 class="hero-title">Build the Future<br>with <span class="gradient-text">AI Engineering</span></h1>
+      <p class="hero-sub">Design, train, deploy, and scale intelligent systems that learn from data and adapt to the real world.</p>
+      <div class="hero-cta">
+        <a href="#pillars" class="btn btn-primary">Explore the Field</a>
+        <a href="#tools" class="btn btn-ghost">View Toolstack</a>
       </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num" data-target="4200">0</span><span class="stat-label">Open AI roles / week</span></div>
+        <div class="stat"><span class="stat-num" data-target="312">0</span><span class="stat-label">Frameworks tracked</span></div>
+        <div class="stat"><span class="stat-num" data-target="97">0</span><span class="stat-label">% model accuracy gain</span></div>
+      </div>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <canvas id="neuralCanvas"></canvas>
+    </div>
+  </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
+  <!-- ABOUT -->
+  <section class="section" id="about">
+    <div class="container">
+      <div class="section-label">What is it?</div>
+      <h2 class="section-title">AI Engineering defined</h2>
+      <p class="section-desc">AI Engineering bridges software engineering, data science, and machine learning operations. It is the discipline of building production-grade AI systems — not just research prototypes, but reliable, maintainable, and scalable applications powered by intelligent models.</p>
+      <div class="about-grid">
+        <div class="about-card" data-delay="0">
+          <div class="about-icon">🧠</div>
+          <h3>Model-Centric</h3>
+          <p>Design and fine-tune large language models, vision transformers, and domain-specific architectures to solve real problems.</p>
+        </div>
+        <div class="about-card" data-delay="100">
+          <div class="about-icon">🔗</div>
+          <h3>Systems Thinking</h3>
+          <p>Connect models to data pipelines, APIs, vector stores, and feedback loops that keep systems accurate over time.</p>
+        </div>
+        <div class="about-card" data-delay="200">
+          <div class="about-icon">📦</div>
+          <h3>Production Ready</h3>
+          <p>Ship models as low-latency services with monitoring, versioning, rollback, and CI/CD built in from day one.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
+  <!-- PILLARS -->
+  <section class="section section-dark" id="pillars">
+    <div class="container">
+      <div class="section-label">Core disciplines</div>
+      <h2 class="section-title">The Four Pillars</h2>
+      <div class="pillars-grid">
+
+        <div class="pillar-card" data-pillar="1">
+          <div class="pillar-number">01</div>
+          <div class="pillar-icon">📊</div>
+          <h3>Data Engineering</h3>
+          <p>Curate, clean, and version datasets. Build feature stores, streaming pipelines, and annotation workflows that feed hungry models.</p>
+          <ul class="pillar-skills">
+            <li>ETL & ELT pipelines</li>
+            <li>Feature stores</li>
+            <li>Data versioning (DVC)</li>
+            <li>Synthetic data generation</li>
+          </ul>
+        </div>
+
+        <div class="pillar-card" data-pillar="2">
+          <div class="pillar-number">02</div>
+          <div class="pillar-icon">🔬</div>
+          <h3>Model Development</h3>
+          <p>Train, evaluate, and iterate on models. From classical ML to foundation model fine-tuning, experimentation is at the core.</p>
+          <ul class="pillar-skills">
+            <li>Supervised & unsupervised learning</li>
+            <li>Fine-tuning & RLHF</li>
+            <li>Hyperparameter search</li>
+            <li>Experiment tracking (MLflow)</li>
+          </ul>
+        </div>
+
+        <div class="pillar-card" data-pillar="3">
+          <div class="pillar-number">03</div>
+          <div class="pillar-icon">🚀</div>
+          <h3>MLOps & Deployment</h3>
+          <p>Operationalize models at scale. Containerise, serve, monitor, and continuously improve them in production environments.</p>
+          <ul class="pillar-skills">
+            <li>Model serving (Triton, TorchServe)</li>
+            <li>Docker & Kubernetes</li>
+            <li>A/B testing & canary deploys</li>
+            <li>Drift detection</li>
+          </ul>
+        </div>
+
+        <div class="pillar-card" data-pillar="4">
+          <div class="pillar-number">04</div>
+          <div class="pillar-icon">🛡</div>
+          <h3>AI Safety & Ethics</h3>
+          <p>Build systems people can trust. Apply interpretability methods, fairness audits, and responsible-AI frameworks by default.</p>
+          <ul class="pillar-skills">
+            <li>Model explainability (SHAP, LIME)</li>
+            <li>Bias & fairness auditing</li>
+            <li>Red-teaming & adversarial testing</li>
+            <li>Governance & compliance</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section class="section" id="tools">
+    <div class="container">
+      <div class="section-label">Ecosystem</div>
+      <h2 class="section-title">Essential Toolstack</h2>
+      <p class="section-desc">The AI engineering landscape moves fast. These are the battle-tested tools found in production pipelines worldwide.</p>
+
+      <div class="tools-filter" id="toolsFilter">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="frameworks">Frameworks</button>
+        <button class="filter-btn" data-filter="infra">Infrastructure</button>
+        <button class="filter-btn" data-filter="data">Data</button>
+        <button class="filter-btn" data-filter="monitoring">Monitoring</button>
+      </div>
+
+      <div class="tools-grid" id="toolsGrid">
+        <div class="tool-card" data-category="frameworks"><span class="tool-icon">🔥</span><strong>PyTorch</strong><span class="tool-tag">Frameworks</span></div>
+        <div class="tool-card" data-category="frameworks"><span class="tool-icon">🌊</span><strong>TensorFlow</strong><span class="tool-tag">Frameworks</span></div>
+        <div class="tool-card" data-category="frameworks"><span class="tool-icon">🤗</span><strong>Hugging Face</strong><span class="tool-tag">Frameworks</span></div>
+        <div class="tool-card" data-category="frameworks"><span class="tool-icon">⚡</span><strong>JAX</strong><span class="tool-tag">Frameworks</span></div>
+        <div class="tool-card" data-category="frameworks"><span class="tool-icon">🦜</span><strong>LangChain</strong><span class="tool-tag">Frameworks</span></div>
+        <div class="tool-card" data-category="infra"><span class="tool-icon">🐳</span><strong>Docker</strong><span class="tool-tag">Infrastructure</span></div>
+        <div class="tool-card" data-category="infra"><span class="tool-icon">☸</span><strong>Kubernetes</strong><span class="tool-tag">Infrastructure</span></div>
+        <div class="tool-card" data-category="infra"><span class="tool-icon">☁</span><strong>AWS SageMaker</strong><span class="tool-tag">Infrastructure</span></div>
+        <div class="tool-card" data-category="infra"><span class="tool-icon">🟢</span><strong>Vertex AI</strong><span class="tool-tag">Infrastructure</span></div>
+        <div class="tool-card" data-category="data"><span class="tool-icon">🗄</span><strong>DVC</strong><span class="tool-tag">Data</span></div>
+        <div class="tool-card" data-category="data"><span class="tool-icon">🔍</span><strong>Pinecone</strong><span class="tool-tag">Data</span></div>
+        <div class="tool-card" data-category="data"><span class="tool-icon">🐘</span><strong>PostgreSQL</strong><span class="tool-tag">Data</span></div>
+        <div class="tool-card" data-category="monitoring"><span class="tool-icon">📈</span><strong>MLflow</strong><span class="tool-tag">Monitoring</span></div>
+        <div class="tool-card" data-category="monitoring"><span class="tool-icon">🔭</span><strong>Weights & Biases</strong><span class="tool-tag">Monitoring</span></div>
+        <div class="tool-card" data-category="monitoring"><span class="tool-icon">📡</span><strong>Prometheus</strong><span class="tool-tag">Monitoring</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="section section-dark" id="roadmap">
+    <div class="container">
+      <div class="section-label">Learning path</div>
+      <h2 class="section-title">Your Roadmap</h2>
+      <div class="timeline">
+        <div class="timeline-item" data-step="1">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <span class="timeline-phase">Phase 1 — Foundations</span>
+            <h3>Math, Code & Data</h3>
+            <p>Linear algebra, calculus, probability, Python fluency, pandas, NumPy, and SQL. Everything downstream relies on these.</p>
           </div>
-          <p class="hint" id="urlHint"></p>
         </div>
-
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
+        <div class="timeline-item" data-step="2">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <span class="timeline-phase">Phase 2 — Core ML</span>
+            <h3>Classical Machine Learning</h3>
+            <p>Regression, classification, clustering, and ensemble methods. Understand the bias-variance tradeoff and model evaluation rigorously.</p>
+          </div>
+        </div>
+        <div class="timeline-item" data-step="3">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <span class="timeline-phase">Phase 3 — Deep Learning</span>
+            <h3>Neural Networks & Modern Architectures</h3>
+            <p>CNNs, RNNs, Transformers, and attention. Build and train models with PyTorch. Understand backpropagation from scratch.</p>
+          </div>
+        </div>
+        <div class="timeline-item" data-step="4">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <span class="timeline-phase">Phase 4 — Specialise</span>
+            <h3>NLP, Vision, or Reinforcement Learning</h3>
+            <p>Go deep in one domain. Fine-tune LLMs, build RAG systems, train vision models, or design RL environments.</p>
+          </div>
+        </div>
+        <div class="timeline-item" data-step="5">
+          <div class="timeline-dot active-dot"></div>
+          <div class="timeline-content">
+            <span class="timeline-phase">Phase 5 — Production</span>
+            <h3>MLOps & Systems Design</h3>
+            <p>Deploy with confidence. Learn model serving, monitoring, retraining pipelines, and cost-optimised inference.</p>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
+  <!-- NEWSLETTER -->
+  <section class="section" id="newsletter">
+    <div class="container">
+      <div class="newsletter-box">
+        <div class="newsletter-text">
+          <div class="section-label">Stay sharp</div>
+          <h2>Weekly AI Engineering digest</h2>
+          <p>Papers, tools, job opportunities, and tutorials — curated every Friday.</p>
         </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
+        <form class="newsletter-form" id="newsletterForm">
+          <input type="email" id="emailInput" placeholder="your@email.com" required autocomplete="email" />
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+        <p class="form-msg" id="formMsg"></p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span class="footer-logo">⚙ AI Engineering</span>
+      <span class="footer-copy">Built with curiosity &amp; caffeine · 2026</span>
+      <div class="footer-links">
+        <a href="#about">About</a>
+        <a href="#pillars">Pillars</a>
+        <a href="#tools">Tools</a>
+        <a href="#roadmap">Roadmap</a>
       </div>
+    </div>
+  </footer>
 
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
-  </div>
-
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
