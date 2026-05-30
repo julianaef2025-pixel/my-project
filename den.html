@@ -8,176 +8,169 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Dark theme (default) ── */
 :root{
-  --bg:#07070f; --side:#0b0b18; --sur:#11111f; --sur2:#191930; --bor:#22223a;
-  --tx:#eeeef8; --mu:#6060a0; --ubg:#13132a;
-  --purple:#b97eff; --purple2:#8b5cf6;
-  --blue:#60a5fa; --blue2:#3b82f6;
-  --cyan:#22d3ee; --pink:#f472b6;
-  --amber:#fbbf24; --green:#4ade80; --red:#f87171;
-  --g-brand:linear-gradient(135deg,#b97eff,#60a5fa);
-  --g-code:linear-gradient(135deg,#3b82f6,#22d3ee);
-  --g-warm:linear-gradient(135deg,#fbbf24,#f472b6);
-  --topbar-bg:rgba(7,7,15,.7);
-  --modal-bg:linear-gradient(160deg,#13122a,#0f0f1c);
-  --modal-bor:#2a2a50;
-  --featured-bg:linear-gradient(160deg,#14102a,#0f0f1e);
-  --placeholder:#2e2e58;
-  --hist-empty:#252548;
-  --side-btn-c:#303060;
-  --disc-c:#252548;
-  --mhint-c:#303060;
-  --faq-a-c:#505080;
-  --pill-c:#7070a0;
-  --cpbtn-bg:#11112a;
-  --cpbtn-bor:#2a2a50;
+  --bg:#080810; --side:#0c0c1a; --sur:#13132a; --sur2:#1c1c36; --bor:#24244a;
+  --tx:#f0f0fa; --mu:#7070b0; --ubg:#15153a;
+  --purple:#c084fc; --purple2:#a855f7;
+  --blue:#7dd3fc; --blue2:#38bdf8;
+  --cyan:#67e8f9; --pink:#f9a8d4;
+  --amber:#fcd34d; --green:#86efac; --red:#fca5a5;
+  --rose:#fb7185; --lavender:#e9d5ff; --mint:#a7f3d0;
+  --g-brand:linear-gradient(135deg,#c084fc,#818cf8);
+  --g-code:linear-gradient(135deg,#38bdf8,#67e8f9);
+  --g-image:linear-gradient(135deg,#fb7185,#c084fc);
+  --g-warm:linear-gradient(135deg,#fcd34d,#f9a8d4);
+  --topbar-bg:rgba(8,8,16,.75);
+  --modal-bg:linear-gradient(160deg,#13122e,#0f0f20);
+  --modal-bor:#2e2e5a;
+  --featured-bg:linear-gradient(160deg,#16103a,#120f28);
+  --placeholder:#303068;
+  --hist-empty:#252560;
+  --side-btn-c:#353575;
+  --disc-c:#252560;
+  --mhint-c:#353575;
+  --faq-a-c:#50508a;
+  --pill-c:#60609a;
+  --cpbtn-bg:#13132a;
+  --cpbtn-bor:#2a2a5a;
   --cpbtn-c:#40406a;
-  --scode-bg:#0a0a18;
-  --scode-bor:#1a1a38;
+  --scode-bg:#090916;
+  --scode-bor:#1a1a3a;
   --icode-bg:#13132a;
-  --icode-bor:#2a2a50;
-  --icode-c:#c4b5ff;
+  --icode-bor:#2a2a5a;
+  --icode-c:#d8b4fe;
   --shimmer-a:#13132a;
-  --scrollbar-thumb:#1a1a38;
+  --scrollbar-thumb:#1e1e40;
 }
 
-/* ── Milky theme ── */
 [data-theme="milky"]{
-  --bg:#f5f0e8; --side:#ede7db; --sur:#e5ddd0; --sur2:#d8d0c2; --bor:#c8bfae;
-  --tx:#1e1a2e; --mu:#8a8070; --ubg:#eae6f8;
-  --topbar-bg:rgba(245,240,232,.85);
-  --modal-bg:linear-gradient(160deg,#f0ead8,#e8e2ce);
-  --modal-bor:#c8bfae;
-  --featured-bg:linear-gradient(160deg,#ede7f2,#e5dde8);
-  --placeholder:#b8b0a0;
-  --hist-empty:#b8b0a0;
+  --bg:#f7f2ec; --side:#ede7df; --sur:#e6dfd6; --sur2:#ddd6cb; --bor:#ccc4b8;
+  --tx:#1c1830; --mu:#857a6e; --ubg:#eee9fa;
+  --topbar-bg:rgba(247,242,236,.88);
+  --modal-bg:linear-gradient(160deg,#f2eadc,#eae2d2);
+  --modal-bor:#ccc4b8;
+  --featured-bg:linear-gradient(160deg,#f0e8f8,#e8e0f0);
+  --placeholder:#bab0a4;
+  --hist-empty:#bab0a4;
   --side-btn-c:#b0a898;
-  --disc-c:#b8b0a0;
+  --disc-c:#bab0a4;
   --mhint-c:#b0a898;
-  --faq-a-c:#8a8272;
-  --pill-c:#8a8070;
-  --cpbtn-bg:#1a1828;
-  --cpbtn-bor:#2a2848;
-  --cpbtn-c:#8060a0;
+  --faq-a-c:#8a806e;
+  --pill-c:#8a806e;
+  --cpbtn-bg:#1a1830;
+  --cpbtn-bor:#2a2850;
+  --cpbtn-c:#806090;
   --scode-bg:#0f0f1e;
-  --scode-bor:#1e1e34;
-  --icode-bg:#1a1828;
-  --icode-bor:#2a2848;
-  --icode-c:#c4b5ff;
-  --shimmer-a:#d8d0c2;
-  --scrollbar-thumb:#c8bfae;
+  --scode-bor:#1e1e36;
+  --icode-bg:#1a1830;
+  --icode-bor:#2a2850;
+  --icode-c:#d8b4fe;
+  --shimmer-a:#ddd6cb;
+  --scrollbar-thumb:#ccc4b8;
 }
 
-/* ── Smoke theme ── */
 [data-theme="smoke"]{
-  --bg:#e8ecf2; --side:#dee3ea; --sur:#d4d9e2; --sur2:#c8ced8; --bor:#b4bac6;
-  --tx:#1e2030; --mu:#7880a0; --ubg:#e0e3f6;
-  --topbar-bg:rgba(232,236,242,.85);
-  --modal-bg:linear-gradient(160deg,#e8ecf4,#dfe4ed);
-  --modal-bor:#b4bac6;
-  --featured-bg:linear-gradient(160deg,#e4e8f4,#dde2ec);
-  --placeholder:#9ea8be;
-  --hist-empty:#9ea8be;
-  --side-btn-c:#9ea8be;
-  --disc-c:#9ea8be;
-  --mhint-c:#9ea8be;
-  --faq-a-c:#7880a0;
-  --pill-c:#7880a0;
-  --cpbtn-bg:#1a1e2e;
-  --cpbtn-bor:#2a2e42;
+  --bg:#eaecf4; --side:#e0e4ee; --sur:#d6dae6; --sur2:#ccd0de; --bor:#b8bece;
+  --tx:#1a1e38; --mu:#7080a8; --ubg:#dde0fa;
+  --topbar-bg:rgba(234,236,244,.88);
+  --modal-bg:linear-gradient(160deg,#eaecf6,#e0e4f0);
+  --modal-bor:#b8bece;
+  --featured-bg:linear-gradient(160deg,#e4e8f8,#dce0f0);
+  --placeholder:#9ea8c8;
+  --hist-empty:#9ea8c8;
+  --side-btn-c:#9ea8c8;
+  --disc-c:#9ea8c8;
+  --mhint-c:#9ea8c8;
+  --faq-a-c:#7080a8;
+  --pill-c:#7080a8;
+  --cpbtn-bg:#1a1e38;
+  --cpbtn-bor:#2a2e50;
   --cpbtn-c:#6070a0;
-  --scode-bg:#0f1020;
-  --scode-bor:#1e2036;
-  --icode-bg:#1a1e2e;
-  --icode-bor:#2a2e42;
-  --icode-c:#c4b5ff;
-  --shimmer-a:#c8ced8;
-  --scrollbar-thumb:#b4bac6;
+  --scode-bg:#0f1022;
+  --scode-bor:#1e2040;
+  --icode-bg:#1a1e38;
+  --icode-bor:#2a2e50;
+  --icode-c:#d8b4fe;
+  --shimmer-a:#ccd0de;
+  --scrollbar-thumb:#b8bece;
 }
 
 html,body{height:100%}
-body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.65;overflow:hidden;transition:background .3s,color .3s}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.65;overflow:hidden;transition:background .35s,color .35s}
 
-/* gradient text */
 .gt{background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .gt-code{background:var(--g-code);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gt-image{background:var(--g-image);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
 /* ── Modal ── */
-.overlay{position:fixed;inset:0;z-index:999;background:rgba(4,4,14,.95);display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(8px)}
+.overlay{position:fixed;inset:0;z-index:999;background:rgba(4,4,16,.96);display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(10px)}
 .overlay.hide{display:none}
-.modal{background:var(--modal-bg);border:1px solid var(--modal-bor);border-radius:24px;padding:2.75rem 2.25rem;width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center;box-shadow:0 0 80px rgba(185,126,255,.15),0 0 40px rgba(96,165,250,.08);transition:background .3s,border-color .3s}
-.m-icon{width:64px;height:64px;background:var(--g-brand);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#fff;box-shadow:0 0 40px rgba(185,126,255,.5);animation:ipulse 3s ease-in-out infinite}
-@keyframes ipulse{0%,100%{box-shadow:0 0 40px rgba(185,126,255,.4)}50%{box-shadow:0 0 70px rgba(185,126,255,.7),0 0 120px rgba(96,165,250,.3)}}
+.modal{background:var(--modal-bg);border:1px solid var(--modal-bor);border-radius:26px;padding:2.75rem 2.25rem;width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center;box-shadow:0 0 100px rgba(192,132,252,.13),0 0 40px rgba(129,140,248,.07);transition:background .35s,border-color .35s}
+.m-icon{width:66px;height:66px;background:var(--g-brand);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.85rem;font-weight:900;color:#fff;box-shadow:0 0 44px rgba(192,132,252,.55);animation:ipulse 3s ease-in-out infinite}
+@keyframes ipulse{0%,100%{box-shadow:0 0 40px rgba(192,132,252,.4)}50%{box-shadow:0 0 72px rgba(192,132,252,.7),0 0 120px rgba(129,140,248,.3)}}
 .modal h2{font-size:1.4rem;font-weight:800;background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .modal>p{color:var(--mu);font-size:.88rem;line-height:1.6}
 .modal input{width:100%;padding:.78rem 1.05rem;background:var(--sur);border:1px solid var(--bor);border-radius:11px;color:var(--tx);font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s;font-family:'SF Mono','Consolas',monospace}
-.modal input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(185,126,255,.13)}
+.modal input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(192,132,252,.12)}
 .modal input::placeholder{color:var(--placeholder)}
 .merr{color:var(--red);font-size:.82rem;min-height:1em}
-.mbtn{width:100%;padding:.82rem;background:var(--g-brand);border:none;border-radius:12px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;box-shadow:0 4px 30px rgba(185,126,255,.35)}
+.mbtn{width:100%;padding:.82rem;background:var(--g-brand);border:none;border-radius:12px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;box-shadow:0 4px 32px rgba(192,132,252,.38)}
 .mbtn:hover{opacity:.9}.mbtn:active{transform:scale(.98)}
 .mhint{font-size:.76rem;color:var(--mhint-c)}
 
 /* ── Toast ── */
-.toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--sur2);border:1px solid var(--bor);border-radius:12px;padding:.72rem 1.1rem;font-size:.84rem;color:var(--tx);z-index:888;transform:translateY(16px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;max-width:300px}
+.toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--sur2);border:1px solid var(--bor);border-radius:14px;padding:.75rem 1.15rem;font-size:.84rem;color:var(--tx);z-index:888;transform:translateY(18px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;max-width:300px}
 .toast.show{transform:translateY(0);opacity:1}
-.toast.success{border-color:rgba(74,222,128,.35);color:var(--green)}
+.toast.success{border-color:rgba(134,239,172,.35);color:var(--green)}
 
 /* ── Shell ── */
 .shell{display:flex;height:100vh;overflow:hidden}
 
 /* ── Sidebar ── */
-.sidebar{width:240px;min-width:240px;background:var(--side);border-right:1px solid var(--bor);display:flex;flex-direction:column;padding:.85rem;overflow:hidden;transition:background .3s,border-color .3s}
-
-.logo{display:flex;align-items:center;gap:.55rem;padding:.2rem .1rem .65rem;border-bottom:1px solid var(--bor);margin-bottom:.65rem}
-.logo-icon{width:30px;height:30px;background:var(--g-brand);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:.9rem;flex-shrink:0;box-shadow:0 0 16px rgba(185,126,255,.4)}
+.sidebar{width:242px;min-width:242px;background:var(--side);border-right:1px solid var(--bor);display:flex;flex-direction:column;padding:.85rem;overflow:hidden;transition:background .35s,border-color .35s}
+.logo{display:flex;align-items:center;gap:.55rem;padding:.2rem .1rem .68rem;border-bottom:1px solid var(--bor);margin-bottom:.65rem}
+.logo-icon{width:30px;height:30px;background:var(--g-brand);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:.9rem;flex-shrink:0;box-shadow:0 0 18px rgba(192,132,252,.45)}
 .logo-name{font-size:1.05rem;font-weight:800;background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-
 .nav-section{display:flex;flex-direction:column;gap:2px;margin-bottom:.65rem}
 .nav-btn{display:flex;align-items:center;gap:.55rem;width:100%;padding:.48rem .75rem;background:none;border:none;border-radius:8px;color:var(--mu);font-size:.83rem;font-weight:500;cursor:pointer;transition:background .15s,color .15s;text-align:left;white-space:nowrap}
 .nav-btn svg{flex-shrink:0;opacity:.7}
 .nav-btn:hover{background:var(--sur);color:var(--tx)}
-.nav-btn.on{background:rgba(185,126,255,.13);color:var(--purple)}
+.nav-btn.on{background:rgba(192,132,252,.13);color:var(--purple)}
 .nav-btn.on svg{opacity:1}
-.nav-btn.code-on{background:rgba(96,165,250,.12);color:var(--blue)}
-
+.nav-btn.code-on{background:rgba(125,211,252,.12);color:var(--blue)}
+.nav-btn.image-on{background:rgba(251,113,133,.12);color:var(--rose)}
 .divider{height:1px;background:var(--bor);margin:.3rem 0 .6rem}
-
 .hist-label{font-size:.7rem;font-weight:700;color:var(--side-btn-c);text-transform:uppercase;letter-spacing:.08em;padding:.1rem .75rem .4rem;white-space:nowrap}
 .hlist{flex:1;display:flex;flex-direction:column;gap:1px;overflow-y:auto;scrollbar-width:none;min-height:0}
 .hlist::-webkit-scrollbar{display:none}
 .hitem{padding:.4rem .72rem;border-radius:7px;font-size:.78rem;color:var(--mu);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s,color .15s}
 .hitem:hover{background:var(--sur);color:var(--tx)}
-.hitem.on{background:rgba(185,126,255,.12);color:#c4a0ff}
-.hitem.code-on{background:rgba(96,165,250,.11);color:#93c5fd}
+.hitem.on{background:rgba(192,132,252,.12);color:#d8b4fe}
+.hitem.code-on{background:rgba(125,211,252,.11);color:#bae6fd}
 .hist-empty{padding:.4rem .72rem;font-size:.78rem;color:var(--hist-empty);font-style:italic}
-
 .side-bottom{margin-top:auto;padding-top:.65rem;border-top:1px solid var(--bor);display:flex;flex-direction:column;gap:2px}
 .side-btn{padding:.42rem .72rem;background:none;border:none;color:var(--side-btn-c);font-size:.75rem;cursor:pointer;text-align:left;border-radius:7px;transition:color .15s,background .15s}
 .side-btn:hover{color:var(--mu);background:var(--sur)}
-
-/* ── Theme pill in sidebar ── */
 .theme-pill-row{display:flex;gap:4px;padding:.3rem .3rem 0}
 .theme-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .15s;flex-shrink:0}
-.theme-dot:hover{transform:scale(1.15)}
+.theme-dot:hover{transform:scale(1.18)}
 .theme-dot.active{border-color:var(--purple)}
-.theme-dot.t-dark{background:radial-gradient(circle at 40% 40%,#1e1e38,#07070f)}
-.theme-dot.t-milky{background:radial-gradient(circle at 40% 40%,#f0ead8,#c8bfae)}
-.theme-dot.t-smoke{background:radial-gradient(circle at 40% 40%,#d4d9e2,#b4bac6)}
+.theme-dot.t-dark{background:radial-gradient(circle at 40% 40%,#1e1e40,#080810)}
+.theme-dot.t-milky{background:radial-gradient(circle at 40% 40%,#f2eadc,#ccc4b8)}
+.theme-dot.t-smoke{background:radial-gradient(circle at 40% 40%,#d6dae6,#b8bece)}
 
 /* ── Content ── */
 .content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-
 .page{display:none;flex:1;flex-direction:column;overflow:hidden;height:100%}
 .page.show{display:flex}
 
 /* ── Topbar ── */
-.topbar{height:48px;min-height:48px;border-bottom:1px solid var(--bor);display:flex;align-items:center;padding:0 1.25rem;gap:.75rem;background:var(--topbar-bg);backdrop-filter:blur(6px);transition:background .3s,border-color .3s}
+.topbar{height:48px;min-height:48px;border-bottom:1px solid var(--bor);display:flex;align-items:center;padding:0 1.25rem;gap:.75rem;background:var(--topbar-bg);backdrop-filter:blur(8px);transition:background .35s,border-color .35s}
 .topbar-title{font-size:.88rem;font-weight:700;color:var(--tx)}
 .badge{font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:20px;letter-spacing:.04em}
-.badge.chat{color:var(--purple);background:rgba(185,126,255,.14)}
-.badge.code{color:var(--blue);background:rgba(96,165,250,.13)}
+.badge.chat{color:var(--purple);background:rgba(192,132,252,.14)}
+.badge.code{color:var(--blue);background:rgba(125,211,252,.13)}
+.badge.image{color:var(--rose);background:rgba(251,113,133,.13)}
 .tb-menu{display:flex;align-items:center;gap:.5rem;margin-left:auto}
 .tb-btn{padding:.38rem .78rem;background:var(--sur);border:1px solid var(--bor);border-radius:8px;color:var(--mu);font-size:.78rem;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
 .tb-btn:hover{background:var(--sur2);color:var(--tx)}
@@ -185,76 +178,79 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 /* ── Welcome ── */
 .welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;position:relative;overflow:hidden}
 .welcome::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse at 25% 40%,rgba(185,126,255,.08) 0%,transparent 55%),
-             radial-gradient(ellipse at 75% 25%,rgba(96,165,250,.07) 0%,transparent 55%),
-             radial-gradient(ellipse at 55% 80%,rgba(34,211,238,.05) 0%,transparent 50%);
-  animation:bgd 10s ease-in-out infinite alternate}
-@keyframes bgd{0%{opacity:.7}100%{opacity:1.2}}
-.w-icon{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:#fff;position:relative;z-index:1;animation:float 4s ease-in-out infinite}
-.w-icon.chat{background:var(--g-brand);box-shadow:0 0 48px rgba(185,126,255,.45),0 0 80px rgba(96,165,250,.2)}
-.w-icon.code{background:var(--g-code);box-shadow:0 0 48px rgba(59,130,246,.4),0 0 80px rgba(34,211,238,.2)}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  background:radial-gradient(ellipse at 22% 38%,rgba(192,132,252,.07) 0%,transparent 55%),
+             radial-gradient(ellipse at 78% 28%,rgba(125,211,252,.06) 0%,transparent 55%),
+             radial-gradient(ellipse at 55% 82%,rgba(103,232,249,.04) 0%,transparent 50%);
+  animation:bgd 12s ease-in-out infinite alternate}
+@keyframes bgd{0%{opacity:.6}100%{opacity:1.1}}
+.w-icon{width:66px;height:66px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:900;color:#fff;position:relative;z-index:1;animation:float 4.5s ease-in-out infinite}
+.w-icon.chat{background:var(--g-brand);box-shadow:0 0 52px rgba(192,132,252,.42),0 0 90px rgba(129,140,248,.18)}
+.w-icon.code{background:var(--g-code);box-shadow:0 0 52px rgba(56,189,248,.38),0 0 90px rgba(103,232,249,.18)}
+.w-icon.image-icon{background:var(--g-image);box-shadow:0 0 52px rgba(251,113,133,.38),0 0 90px rgba(192,132,252,.18)}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .welcome h1{font-size:1.65rem;font-weight:800;letter-spacing:-.01em;position:relative;z-index:1}
 .welcome h1 span{background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.welcome>p{color:var(--mu);font-size:.9rem;max-width:440px;position:relative;z-index:1}
-.pills{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;max-width:620px;margin-top:.45rem;position:relative;z-index:1}
-.pill{padding:.42rem .92rem;background:var(--sur);border:1px solid var(--bor);border-radius:20px;color:var(--pill-c);font-size:.78rem;cursor:pointer;transition:all .2s}
-.pill:hover{background:var(--sur2);border-color:rgba(185,126,255,.35);color:var(--tx)}
-.code-page .pill:hover{border-color:rgba(96,165,250,.35)}
+.welcome>p{color:var(--mu);font-size:.9rem;max-width:460px;position:relative;z-index:1;line-height:1.7}
+.pills{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;max-width:640px;margin-top:.5rem;position:relative;z-index:1}
+.pill{padding:.42rem .92rem;background:var(--sur);border:1px solid var(--bor);border-radius:20px;color:var(--pill-c);font-size:.78rem;cursor:pointer;transition:all .22s}
+.pill:hover{background:var(--sur2);border-color:rgba(192,132,252,.4);color:var(--tx)}
+.code-page .pill:hover{border-color:rgba(125,211,252,.4)}
 
 /* ── Thread ── */
 .thread{flex:1;overflow-y:auto;padding:1.25rem 0;display:none;flex-direction:column;scrollbar-width:thin;scrollbar-color:var(--sur2) transparent}
 .thread.show{display:flex}
-.row{display:flex;gap:.85rem;padding:.5rem 1.5rem;max-width:840px;width:100%;margin:0 auto;animation:fin .22s ease}
-@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.row{display:flex;gap:.85rem;padding:.5rem 1.5rem;max-width:860px;width:100%;margin:0 auto;animation:fin .24s ease}
+@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .row.u{justify-content:flex-end}
 .row.a{justify-content:flex-start}
 .av{width:28px;height:28px;min-width:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;margin-top:3px}
 .chat-page .a .av{background:var(--g-brand);color:#fff}
 .code-page .a .av{background:var(--g-code);color:#fff}
 .u .av{background:var(--sur2);border:1px solid var(--bor);color:var(--mu)}
-.bub{max-width:680px;font-size:.9rem;line-height:1.75;border-radius:12px}
-.u .bub{background:var(--ubg);border:1px solid rgba(185,126,255,.18);padding:.72rem 1rem;border-radius:12px 12px 3px 12px;white-space:pre-wrap;word-break:break-word;color:var(--tx)}
+.bub{max-width:700px;font-size:.9rem;line-height:1.8;border-radius:12px}
+.u .bub{background:var(--ubg);border:1px solid rgba(192,132,252,.16);padding:.72rem 1rem;border-radius:12px 12px 3px 12px;white-space:pre-wrap;word-break:break-word;color:var(--tx)}
 .a .bub{background:transparent;padding-top:1px}
 
 /* Markdown */
-.bub p{margin-bottom:.6rem}.bub p:last-child{margin-bottom:0}
-.bub h1{font-size:1.15rem;font-weight:700;margin:1rem 0 .3rem;color:var(--tx)}
-.bub h2{font-size:1rem;font-weight:700;margin:.85rem 0 .28rem;color:var(--tx)}
-.bub h3{font-size:.93rem;font-weight:700;margin:.7rem 0 .22rem;color:var(--tx)}
-.bub ul,.bub ol{padding-left:1.4rem;margin-bottom:.6rem}
-.bub li{margin-bottom:.28rem}
+.bub p{margin-bottom:.65rem}.bub p:last-child{margin-bottom:0}
+.bub h1{font-size:1.18rem;font-weight:700;margin:1.1rem 0 .35rem;color:var(--tx)}
+.bub h2{font-size:1.02rem;font-weight:700;margin:.9rem 0 .3rem;color:var(--tx)}
+.bub h3{font-size:.94rem;font-weight:700;margin:.75rem 0 .24rem;color:var(--tx)}
+.bub h4{font-size:.88rem;font-weight:700;margin:.6rem 0 .2rem;color:var(--tx)}
+.bub ul,.bub ol{padding-left:1.45rem;margin-bottom:.65rem}
+.bub li{margin-bottom:.3rem}
 .bub strong{font-weight:600;color:var(--tx)}
 .bub em{font-style:italic;color:var(--mu)}
 .bub a{color:var(--purple);text-decoration:none}
 .bub a:hover{text-decoration:underline}
-.bub blockquote{border-left:3px solid var(--purple);padding-left:.85rem;color:var(--mu);margin:.5rem 0;font-style:italic}
-.bub hr{border:none;border-top:1px solid var(--bor);margin:.7rem 0}
-.bub table{width:100%;border-collapse:collapse;margin:.7rem 0;font-size:.85rem}
-.bub th,.bub td{padding:.45rem .75rem;border:1px solid var(--bor);text-align:left}
+.bub blockquote{border-left:3px solid var(--purple);padding-left:.9rem;color:var(--mu);margin:.55rem 0;font-style:italic;background:rgba(192,132,252,.04);border-radius:0 8px 8px 0;padding:0.5rem 0.9rem}
+.bub hr{border:none;border-top:1px solid var(--bor);margin:.75rem 0}
+.bub table{width:100%;border-collapse:collapse;margin:.75rem 0;font-size:.85rem}
+.bub th,.bub td{padding:.48rem .78rem;border:1px solid var(--bor);text-align:left}
 .bub th{background:var(--sur);font-weight:600}
 .bub td{color:var(--mu)}
 
-/* Code blocks — always dark regardless of theme */
-.cwrap{position:relative;margin:.65rem 0}
-.lang-tag{position:absolute;top:0;left:0;background:rgba(0,0,0,.5);border-bottom:1px solid var(--scode-bor);border-right:1px solid var(--scode-bor);border-radius:0 0 7px 0;font-size:.68rem;padding:.2rem .55rem;color:#6060b0;font-family:'SF Mono','Consolas',monospace;letter-spacing:.05em;text-transform:uppercase}
-.lang-python .lang-tag{color:#fbbf24}.lang-javascript .lang-tag,.lang-js .lang-tag,.lang-ts .lang-tag,.lang-typescript .lang-tag{color:#f472b6}
-.lang-html .lang-tag,.lang-css .lang-tag{color:#fb923c}.lang-bash .lang-tag,.lang-sh .lang-tag{color:#4ade80}
-.lang-rust .lang-tag{color:#f87171}.lang-go .lang-tag{color:#22d3ee}.lang-java .lang-tag{color:#fbbf24}
-.bub pre{background:var(--scode-bg);border:1px solid var(--scode-bor);border-radius:12px;padding:2.4rem 1rem 1rem;overflow-x:auto;font-size:.8rem;line-height:1.6;margin:0}
+/* Code blocks */
+.cwrap{position:relative;margin:.7rem 0}
+.lang-tag{position:absolute;top:0;left:0;background:rgba(0,0,0,.55);border-bottom:1px solid var(--scode-bor);border-right:1px solid var(--scode-bor);border-radius:0 0 7px 0;font-size:.68rem;padding:.22rem .58rem;color:#6060b8;font-family:'SF Mono','Consolas',monospace;letter-spacing:.05em;text-transform:uppercase}
+.lang-python .lang-tag{color:#fcd34d}.lang-javascript .lang-tag,.lang-js .lang-tag,.lang-ts .lang-tag,.lang-typescript .lang-tag{color:#f9a8d4}
+.lang-html .lang-tag,.lang-css .lang-tag{color:#fdba74}.lang-bash .lang-tag,.lang-sh .lang-tag{color:#86efac}
+.lang-rust .lang-tag{color:#fca5a5}.lang-go .lang-tag{color:#67e8f9}.lang-java .lang-tag{color:#fcd34d}
+.lang-json .lang-tag{color:#c084fc}.lang-sql .lang-tag{color:#7dd3fc}
+.bub pre{background:var(--scode-bg);border:1px solid var(--scode-bor);border-radius:13px;padding:2.5rem 1.05rem 1.05rem;overflow-x:auto;font-size:.8rem;line-height:1.62;margin:0}
 .bub pre code{background:none!important;border:none!important;padding:0!important;font-size:inherit!important;color:inherit!important}
 .bub code{font-family:'SF Mono','Fira Code','Cascadia Code','Consolas',monospace}
-.bub :not(pre)>code{background:var(--icode-bg);border:1px solid var(--icode-bor);border-radius:5px;padding:.12em .42em;font-size:.83em;color:var(--icode-c)}
-.cpbtn{position:absolute;top:.45rem;right:.5rem;background:var(--cpbtn-bg);border:1px solid var(--cpbtn-bor);border-radius:6px;color:var(--cpbtn-c);font-size:.68rem;padding:.18rem .5rem;cursor:pointer;opacity:0;transition:opacity .15s,color .15s;font-family:inherit;z-index:1}
+.bub :not(pre)>code{background:var(--icode-bg);border:1px solid var(--icode-bor);border-radius:5px;padding:.12em .44em;font-size:.83em;color:var(--icode-c)}
+.cpbtn{position:absolute;top:.48rem;right:.52rem;background:var(--cpbtn-bg);border:1px solid var(--cpbtn-bor);border-radius:6px;color:var(--cpbtn-c);font-size:.68rem;padding:.18rem .5rem;cursor:pointer;opacity:0;transition:opacity .15s,color .15s;font-family:inherit;z-index:1}
 .cwrap:hover .cpbtn{opacity:1}
 .cpbtn:hover{color:var(--tx)}
 
 /* Shimmer */
-.shimmer-wrap{display:flex;flex-direction:column;gap:.55rem;padding-top:4px;width:220px}
+.shimmer-wrap{display:flex;flex-direction:column;gap:.58rem;padding-top:4px;width:230px}
 .shimmer{height:11px;border-radius:6px;
-  background:linear-gradient(90deg,var(--shimmer-a) 0%,rgba(185,126,255,.22) 25%,rgba(96,165,250,.2) 50%,rgba(34,211,238,.15) 75%,var(--shimmer-a) 100%);
-  background-size:200% 100%;animation:sh 1.8s ease-in-out infinite}
-.shimmer:nth-child(2){width:70%}.shimmer:nth-child(3){width:45%}
+  background:linear-gradient(90deg,var(--shimmer-a) 0%,rgba(192,132,252,.2) 22%,rgba(129,140,248,.18) 50%,rgba(103,232,249,.13) 78%,var(--shimmer-a) 100%);
+  background-size:200% 100%;animation:sh 2s ease-in-out infinite}
+.shimmer:nth-child(2){width:68%}.shimmer:nth-child(3){width:44%}
 @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* Cursor */
@@ -262,27 +258,24 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 @keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
 
 /* ── Input ── */
-.iarea{padding:.75rem 1.25rem 1rem;border-top:1px solid var(--bor);display:flex;flex-direction:column;align-items:center;gap:.38rem;transition:border-color .3s}
-.ibox{display:flex;align-items:flex-end;gap:.5rem;width:100%;max-width:760px;background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:.6rem .6rem .6rem 1rem;transition:border-color .2s,box-shadow .2s,background .3s}
-.ibox.chat-focus:focus-within{border-color:rgba(185,126,255,.6);box-shadow:0 0 0 3px rgba(185,126,255,.08)}
-.ibox.code-focus:focus-within{border-color:rgba(96,165,250,.55);box-shadow:0 0 0 3px rgba(96,165,250,.08)}
+.iarea{padding:.78rem 1.25rem 1.05rem;border-top:1px solid var(--bor);display:flex;flex-direction:column;align-items:center;gap:.4rem;transition:border-color .35s}
+.ibox{display:flex;align-items:flex-end;gap:.5rem;width:100%;max-width:780px;background:var(--sur);border:1px solid var(--bor);border-radius:15px;padding:.62rem .62rem .62rem 1.05rem;transition:border-color .2s,box-shadow .2s,background .35s}
+.ibox.chat-focus:focus-within{border-color:rgba(192,132,252,.6);box-shadow:0 0 0 3px rgba(192,132,252,.07)}
+.ibox.code-focus:focus-within{border-color:rgba(125,211,252,.55);box-shadow:0 0 0 3px rgba(125,211,252,.07)}
 textarea{flex:1;background:transparent;border:none;outline:none;resize:none;color:var(--tx);font-size:.9rem;font-family:inherit;line-height:1.65;max-height:200px;overflow-y:auto;scrollbar-width:thin}
 textarea::placeholder{color:var(--placeholder)}
-
-/* Power selector pill */
-.power-pill{padding:.28rem .68rem;border-radius:20px;border:1px solid var(--bor);background:var(--sur2);color:var(--mu);font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s;letter-spacing:.02em}
+.power-pill{padding:.3rem .7rem;border-radius:20px;border:1px solid var(--bor);background:var(--sur2);color:var(--mu);font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .22s;letter-spacing:.02em}
 .power-pill:hover{color:var(--tx)}
-.power-pill[data-p="low"]   {background:rgba(74,222,128,.1); border-color:rgba(74,222,128,.35); color:#4ade80}
-.power-pill[data-p="medium"]{background:rgba(251,191,36,.1); border-color:rgba(251,191,36,.35); color:#fbbf24}
-.power-pill[data-p="heavy"] {background:rgba(185,126,255,.12);border-color:rgba(185,126,255,.4); color:#b97eff}
-
-.sbtn{width:34px;height:34px;min-width:34px;border-radius:8px;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s,transform .12s;flex-shrink:0}
+.power-pill[data-p="low"]   {background:rgba(134,239,172,.1); border-color:rgba(134,239,172,.35); color:#86efac}
+.power-pill[data-p="medium"]{background:rgba(252,211,77,.1);  border-color:rgba(252,211,77,.35);  color:#fcd34d}
+.power-pill[data-p="heavy"] {background:rgba(192,132,252,.12);border-color:rgba(192,132,252,.4);  color:#c084fc}
+.sbtn{width:34px;height:34px;min-width:34px;border-radius:9px;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s,transform .12s;flex-shrink:0}
 .sbtn.chat-btn{background:var(--g-brand)}
 .sbtn.code-btn{background:var(--g-code)}
 .sbtn:disabled{opacity:.2;cursor:not-allowed}
-.sbtn:not(:disabled):hover{opacity:.85}
+.sbtn:not(:disabled):hover{opacity:.84}
 .sbtn:not(:disabled):active{transform:scale(.9)}
-.sbtn.stop{background:linear-gradient(135deg,#ef4444,#dc2626)!important}
+.sbtn.stop{background:linear-gradient(135deg,#f87171,#ef4444)!important}
 .disc{font-size:.69rem;color:var(--disc-c)}
 
 /* ── PRICING PAGE ── */
@@ -291,20 +284,19 @@ textarea::placeholder{color:var(--placeholder)}
 .pricing-hero h1{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.75rem}
 .pricing-hero h1 span{background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .pricing-hero p{color:var(--mu);font-size:.95rem;max-width:440px;margin:0 auto}
-
-.pricing-cards{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;max-width:1000px;width:100%}
-.pcard-outer{position:relative;padding:1px;border-radius:21px;max-width:290px;width:100%}
-.pcard-outer::before{content:'';position:absolute;inset:0;border-radius:21px;opacity:.5;transition:opacity .3s}
-.pcard-outer.free::before{background:linear-gradient(135deg,#3b82f6,#22d3ee)}
-.pcard-outer.pro::before{background:linear-gradient(135deg,#b97eff,#f472b6,#60a5fa)}
-.pcard-outer.ent::before{background:linear-gradient(135deg,#fb923c,#fbbf24)}
-.pcard-outer:hover::before{opacity:.9}
-.pcard-outer.pro{animation:borderglow 3s ease-in-out infinite}
-@keyframes borderglow{0%,100%{filter:drop-shadow(0 0 10px rgba(185,126,255,.25))}50%{filter:drop-shadow(0 0 22px rgba(185,126,255,.55))}}
-.pcard{background:var(--sur);border-radius:20px;padding:2rem 1.75rem;width:100%;display:flex;flex-direction:column;gap:1.25rem;position:relative;transition:transform .2s,background .3s}
-.pcard-outer:hover .pcard{transform:translateY(-3px)}
+.pricing-cards{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;max-width:1020px;width:100%}
+.pcard-outer{position:relative;padding:1px;border-radius:22px;max-width:295px;width:100%}
+.pcard-outer::before{content:'';position:absolute;inset:0;border-radius:22px;opacity:.5;transition:opacity .3s}
+.pcard-outer.free::before{background:linear-gradient(135deg,#38bdf8,#67e8f9)}
+.pcard-outer.pro::before{background:linear-gradient(135deg,#c084fc,#f9a8d4,#818cf8)}
+.pcard-outer.ent::before{background:linear-gradient(135deg,#fb923c,#fcd34d)}
+.pcard-outer:hover::before{opacity:.92}
+.pcard-outer.pro{animation:borderglow 3.5s ease-in-out infinite}
+@keyframes borderglow{0%,100%{filter:drop-shadow(0 0 10px rgba(192,132,252,.22))}50%{filter:drop-shadow(0 0 24px rgba(192,132,252,.52))}}
+.pcard{background:var(--sur);border-radius:21px;padding:2rem 1.78rem;width:100%;display:flex;flex-direction:column;gap:1.25rem;position:relative;transition:transform .22s,background .35s}
+.pcard-outer:hover .pcard{transform:translateY(-4px)}
 .pcard.featured{background:var(--featured-bg)}
-.pop-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--g-brand);color:#fff;font-size:.72rem;font-weight:700;padding:.28rem .8rem;border-radius:20px;white-space:nowrap;letter-spacing:.04em;box-shadow:0 0 20px rgba(185,126,255,.45)}
+.pop-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--g-brand);color:#fff;font-size:.72rem;font-weight:700;padding:.28rem .85rem;border-radius:20px;white-space:nowrap;letter-spacing:.04em;box-shadow:0 0 22px rgba(192,132,252,.48)}
 .plan-name{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em}
 .plan-name.free-name{color:var(--blue)}
 .plan-name.pro-name{background:var(--g-brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -312,7 +304,7 @@ textarea::placeholder{color:var(--placeholder)}
 .plan-price{display:flex;align-items:baseline;gap:.3rem;margin:.2rem 0}
 .plan-price .amount{font-size:2.4rem;font-weight:800;color:var(--tx);letter-spacing:-.02em}
 .plan-price .period{font-size:.85rem;color:var(--mu)}
-.plan-desc{font-size:.82rem;color:var(--mu);line-height:1.5}
+.plan-desc{font-size:.82rem;color:var(--mu);line-height:1.55}
 .plan-feats{display:flex;flex-direction:column;gap:.55rem;flex:1}
 .feat{display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem}
 .feat svg{flex-shrink:0;margin-top:1px}
@@ -320,22 +312,56 @@ textarea::placeholder{color:var(--placeholder)}
 .feat.yes.free-yes svg{color:var(--cyan)}
 .feat.yes.pro-yes svg{color:var(--purple)}
 .feat.yes.ent-yes svg{color:var(--amber)}
-.feat.no{color:var(--mu);opacity:.4}
-.plan-btn{width:100%;padding:.72rem;border-radius:11px;border:none;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
+.feat.no{color:var(--mu);opacity:.38}
+.plan-btn{width:100%;padding:.74rem;border-radius:12px;border:none;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s}
 .plan-btn:active{transform:scale(.98)}
-.plan-btn.free-btn{background:rgba(96,165,250,.15);color:var(--blue);border:1px solid rgba(96,165,250,.3)}
-.plan-btn.free-btn:hover{background:rgba(96,165,250,.25)}
-.plan-btn.pro-btn{background:var(--g-brand);color:#fff;box-shadow:0 4px 24px rgba(185,126,255,.4)}
+.plan-btn.free-btn{background:rgba(125,211,252,.15);color:var(--blue);border:1px solid rgba(125,211,252,.3)}
+.plan-btn.free-btn:hover{background:rgba(125,211,252,.25)}
+.plan-btn.pro-btn{background:var(--g-brand);color:#fff;box-shadow:0 4px 26px rgba(192,132,252,.42)}
 .plan-btn.pro-btn:hover{opacity:.9}
-.plan-btn.ent-btn{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.25)}
-.plan-btn.ent-btn:hover{background:rgba(251,191,36,.22)}
-
-.pricing-faq{max-width:640px;margin-top:3.5rem;width:100%}
+.plan-btn.ent-btn{background:rgba(252,211,77,.12);color:var(--amber);border:1px solid rgba(252,211,77,.25)}
+.plan-btn.ent-btn:hover{background:rgba(252,211,77,.22)}
+.pricing-faq{max-width:660px;margin-top:3.5rem;width:100%}
 .pricing-faq h2{font-size:1.1rem;font-weight:700;text-align:center;margin-bottom:1.5rem;color:var(--mu)}
 .faq-item{border-top:1px solid var(--bor);padding:1rem 0}
 .faq-item:last-child{border-bottom:1px solid var(--bor)}
 .faq-q{font-size:.88rem;font-weight:600;color:var(--tx);margin-bottom:.4rem}
-.faq-a{font-size:.82rem;color:var(--faq-a-c);line-height:1.6}
+.faq-a{font-size:.82rem;color:var(--faq-a-c);line-height:1.65}
+
+/* ── IMAGE PAGE ── */
+.image-page{overflow-y:auto;padding:2rem 1.5rem 3rem;display:none;flex-direction:column;align-items:center;gap:1.5rem}
+.image-page.show{display:flex}
+.img-hero{text-align:center}
+.img-hero h1{font-size:1.65rem;font-weight:800;margin-bottom:.4rem}
+.img-hero p{color:var(--mu);font-size:.88rem;line-height:1.65;max-width:460px;margin:0 auto}
+.img-form{width:100%;max-width:740px;display:flex;flex-direction:column;gap:.88rem}
+.img-styles{display:flex;gap:.45rem;flex-wrap:wrap}
+.img-style-btn{padding:.34rem .78rem;background:var(--sur);border:1px solid var(--bor);border-radius:20px;color:var(--mu);font-size:.75rem;cursor:pointer;transition:all .2s}
+.img-style-btn:hover{color:var(--tx);border-color:#555}
+.img-style-btn.active{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.42);color:var(--rose)}
+.img-prompt-box{background:var(--sur);border:1px solid var(--bor);border-radius:15px;padding:.85rem 1.05rem;display:flex;flex-direction:column;gap:.65rem;transition:border-color .2s,box-shadow .2s}
+.img-prompt-box:focus-within{border-color:rgba(251,113,133,.55);box-shadow:0 0 0 3px rgba(251,113,133,.07)}
+.img-prompt-box textarea{background:transparent;border:none;outline:none;resize:none;color:var(--tx);font-size:.92rem;font-family:inherit;line-height:1.62;width:100%;min-height:76px;max-height:170px;overflow-y:auto;scrollbar-width:thin}
+.img-prompt-box textarea::placeholder{color:var(--placeholder)}
+.img-controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.img-select{background:var(--sur2);border:1px solid var(--bor);border-radius:8px;color:var(--tx);font-size:.78rem;padding:.3rem .58rem;outline:none;cursor:pointer;font-family:inherit}
+.img-generate-btn{margin-left:auto;padding:.44rem 1.15rem;background:var(--g-image);border:none;border-radius:11px;color:#fff;font-size:.86rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;box-shadow:0 4px 22px rgba(251,113,133,.35);white-space:nowrap}
+.img-generate-btn:hover{opacity:.88}.img-generate-btn:active{transform:scale(.97)}
+.img-generate-btn:disabled{opacity:.35;cursor:not-allowed}
+.img-result{width:100%;max-width:740px;display:none;flex-direction:column;gap:.88rem}
+.img-result.show{display:flex}
+.img-canvas{width:100%;border-radius:18px;border:1px solid var(--bor);background:var(--sur);min-height:320px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.img-canvas img{width:100%;border-radius:17px;display:block}
+.img-loading-shimmer{width:100%;height:440px;
+  background:linear-gradient(90deg,var(--shimmer-a) 0%,rgba(251,113,133,.14) 22%,rgba(192,132,252,.14) 50%,rgba(251,113,133,.1) 78%,var(--shimmer-a) 100%);
+  background-size:200% 100%;animation:sh 2.2s ease-in-out infinite;border-radius:17px}
+.img-loading-text{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);font-size:.78rem;color:var(--mu);white-space:nowrap}
+.img-actions{display:flex;gap:.62rem}
+.img-action-btn{flex:1;padding:.56rem;background:var(--sur);border:1px solid var(--bor);border-radius:11px;color:var(--mu);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.img-action-btn:hover{background:var(--sur2);color:var(--tx)}
+.img-action-btn.dl{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.32);color:var(--rose)}
+.img-action-btn.dl:hover{background:rgba(251,113,133,.22)}
+.img-prompt-used{font-size:.76rem;color:var(--mu);text-align:center;font-style:italic;padding:0 .5rem}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:4px}
@@ -353,7 +379,6 @@ textarea::placeholder{color:var(--placeholder)}
 </head>
 <body>
 
-<!-- Modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="m-icon">D</div>
@@ -366,19 +391,14 @@ textarea::placeholder{color:var(--placeholder)}
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- App -->
 <div class="shell">
-
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-icon">D</div>
       <span class="logo-name">DEN</span>
     </div>
-
     <div class="nav-section">
       <button class="nav-btn on" id="navChat" onclick="nav('chat')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -388,21 +408,19 @@ textarea::placeholder{color:var(--placeholder)}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         Code
       </button>
+      <button class="nav-btn" id="navImage" onclick="nav('image')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image AI
+      </button>
       <button class="nav-btn" id="navPricing" onclick="nav('pricing')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         Pricing
       </button>
     </div>
-
     <div class="divider"></div>
-
     <div class="hist-label" id="histLabel">Recents</div>
-    <div class="hlist" id="hlist">
-      <div class="hist-empty">No chats yet</div>
-    </div>
-
+    <div class="hlist" id="hlist"><div class="hist-empty">No chats yet</div></div>
     <div class="side-bottom">
-      <!-- Theme chooser -->
       <div style="padding:.35rem .72rem .1rem;font-size:.7rem;font-weight:700;color:var(--side-btn-c);text-transform:uppercase;letter-spacing:.07em">Theme</div>
       <div class="theme-pill-row">
         <div class="theme-dot t-dark active" id="td-dark"  title="Dark"  onclick="setTheme('dark')"></div>
@@ -414,35 +432,29 @@ textarea::placeholder{color:var(--placeholder)}
     </div>
   </aside>
 
-  <!-- Content -->
   <div class="content">
 
-    <!-- ── CHAT PAGE ── -->
+    <!-- CHAT PAGE -->
     <div class="page chat-page show" id="page-chat">
       <div class="topbar">
         <span class="topbar-title">DEN Chat</span>
         <span class="badge chat">General AI</span>
-        <div class="tb-menu">
-          <button class="tb-btn" onclick="newChat()">+ New chat</button>
-        </div>
+        <div class="tb-menu"><button class="tb-btn" onclick="newChat()">+ New chat</button></div>
       </div>
-
       <div class="welcome" id="chat-welcome">
         <div class="w-icon chat">D</div>
         <h1>What can I <span>help</span> with?</h1>
-        <p>Ask me anything — writing, analysis, research, math, or general questions.</p>
+        <p>Ask me anything — writing, research, analysis, math, ideas, or whatever's on your mind.</p>
         <div class="pills">
-          <button class="pill" data-q="Explain quantum entanglement in simple, everyday terms with a good analogy">Explain quantum entanglement</button>
-          <button class="pill" data-q="What are the pros and cons of microservices vs monolithic architecture? Give me a clear breakdown">Microservices vs monolith</button>
-          <button class="pill" data-q="Help me write a short professional email declining a job offer politely but firmly">Decline a job offer</button>
-          <button class="pill" data-q="Explain how the internet works, from typing a URL to seeing the page">How the internet works</button>
-          <button class="pill" data-q="Give me 5 unique business ideas for 2025 with low startup costs and high potential">Business ideas 2025</button>
-          <button class="pill" data-q="What is the difference between machine learning, deep learning, and AI?">ML vs DL vs AI</button>
+          <button class="pill" data-q="Explain quantum entanglement in simple, everyday terms with a vivid analogy">Explain quantum entanglement</button>
+          <button class="pill" data-q="What are the pros and cons of microservices vs monolithic architecture? Give me a thorough breakdown with examples">Microservices vs monolith</button>
+          <button class="pill" data-q="Help me write a professional email declining a job offer — polite, firm, and leaves the door open">Decline a job offer</button>
+          <button class="pill" data-q="Explain exactly how the internet works — from typing a URL to pixels on screen, step by step">How the internet works</button>
+          <button class="pill" data-q="Give me 5 original business ideas for 2025 with low startup costs, high potential, and a brief plan for each">Business ideas 2025</button>
+          <button class="pill" data-q="What is the real difference between machine learning, deep learning, and AI? Use examples">ML vs DL vs AI</button>
         </div>
       </div>
-
       <div class="thread" id="chat-thread"></div>
-
       <div class="iarea">
         <div class="ibox chat-focus">
           <textarea id="chat-input" placeholder="Ask anything…" rows="1"></textarea>
@@ -456,54 +468,85 @@ textarea::placeholder{color:var(--placeholder)}
       </div>
     </div>
 
-    <!-- ── CODE PAGE ── -->
+    <!-- CODE PAGE -->
     <div class="page code-page" id="page-code">
       <div class="topbar">
         <span class="topbar-title">DEN Code</span>
         <span class="badge code">Coding AI</span>
-        <div class="tb-menu">
-          <button class="tb-btn" onclick="newCodeChat()">+ New session</button>
-        </div>
+        <div class="tb-menu"><button class="tb-btn" onclick="newCodeChat()">+ New session</button></div>
       </div>
-
       <div class="welcome" id="code-welcome">
         <div class="w-icon code">&lt;/&gt;</div>
         <h1>Your <span class="gt-code">coding</span> assistant</h1>
-        <p>Expert help with any language — debug, explain, optimize, write, and more.</p>
+        <p>Expert help with any language — debug, build, explain, optimize, and review.</p>
         <div class="pills">
-          <button class="pill" data-q="Debug this code and explain what's wrong:\n\n```\n// paste your code here\n```">🐛 Debug my code</button>
-          <button class="pill" data-q="Explain what this code does, step by step:\n\n```\n// paste your code here\n```">🔍 Explain code</button>
-          <button class="pill" data-q="Optimize this code for performance and readability:\n\n```\n// paste your code here\n```">⚡ Optimize code</button>
-          <button class="pill" data-q="Write comprehensive unit tests for this code:\n\n```\n// paste your code here\n```">🧪 Write tests</button>
-          <button class="pill" data-q="Refactor this code to follow best practices and improve structure:\n\n```\n// paste your code here\n```">♻️ Refactor</button>
-          <button class="pill" data-q="Review this code for security vulnerabilities and bugs:\n\n```\n// paste your code here\n```">🔒 Security review</button>
+          <button class="pill" data-q="Debug this code and explain exactly what's wrong and why:\n\n```\n// paste your code here\n```">🐛 Debug my code</button>
+          <button class="pill" data-q="Explain what this code does step by step, including the logic and design choices:\n\n```\n// paste your code here\n```">🔍 Explain code</button>
+          <button class="pill" data-q="Optimize this code for performance and readability, explaining every change:\n\n```\n// paste your code here\n```">⚡ Optimize code</button>
+          <button class="pill" data-q="Write comprehensive unit tests for this code covering happy path, edge cases, and errors:\n\n```\n// paste your code here\n```">🧪 Write tests</button>
+          <button class="pill" data-q="Refactor this code to follow best practices, improve structure, and reduce complexity:\n\n```\n// paste your code here\n```">♻️ Refactor</button>
+          <button class="pill" data-q="Review this code for security vulnerabilities, bugs, and potential issues:\n\n```\n// paste your code here\n```">🔒 Security review</button>
         </div>
       </div>
-
       <div class="thread" id="code-thread"></div>
-
       <div class="iarea">
         <div class="ibox code-focus">
-          <textarea id="code-input" placeholder="Ask about code, paste a snippet, describe what you want to build…" rows="1"></textarea>
+          <textarea id="code-input" placeholder="Paste code, describe a bug, or tell me what you want to build…" rows="1"></textarea>
           <button class="power-pill" id="code-power" data-p="medium" onclick="cyclePower()" title="Response depth — click to change">🔥 Medium</button>
           <button class="sbtn code-btn" id="code-send" disabled>
             <svg id="code-send-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             <svg id="code-stop-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
           </button>
         </div>
-        <p class="disc">DEN Code specializes in software engineering. Always test generated code before using in production.</p>
+        <p class="disc">Always test generated code before using in production.</p>
       </div>
     </div>
 
-    <!-- ── PRICING PAGE ── -->
+    <!-- IMAGE PAGE -->
+    <div class="page image-page" id="page-image">
+      <div class="img-hero">
+        <h1>✨ AI <span class="gt-image">Image Generator</span></h1>
+        <p>Describe anything and DEN will paint it into existence. Free, instant, no limits.</p>
+      </div>
+      <div class="img-form">
+        <div class="img-styles">
+          <button class="img-style-btn active" data-style="flux">🎨 Artistic</button>
+          <button class="img-style-btn" data-style="flux-realism">📷 Realistic</button>
+          <button class="img-style-btn" data-style="flux-anime">🌸 Anime</button>
+          <button class="img-style-btn" data-style="flux-3d">🧊 3D Render</button>
+          <button class="img-style-btn" data-style="any-dark">🌑 Dark</button>
+          <button class="img-style-btn" data-style="turbo">⚡ Fast</button>
+        </div>
+        <div class="img-prompt-box">
+          <textarea id="img-input" placeholder="Describe your image… e.g. 'a glowing crystal cave underwater, bioluminescent creatures, cinematic lighting, ultra detailed'" rows="3"></textarea>
+          <div class="img-controls">
+            <select class="img-select" id="img-size">
+              <option value="1024x1024">Square 1:1</option>
+              <option value="1280x720">Landscape 16:9</option>
+              <option value="720x1280">Portrait 9:16</option>
+              <option value="1024x768">Wide 4:3</option>
+            </select>
+            <button class="img-generate-btn" id="img-gen-btn" onclick="generateImage()">✨ Generate</button>
+          </div>
+        </div>
+      </div>
+      <div class="img-result" id="img-result">
+        <div class="img-canvas" id="img-canvas"></div>
+        <p class="img-prompt-used" id="img-prompt-used"></p>
+        <div class="img-actions">
+          <button class="img-action-btn" onclick="generateImage()">🔄 Regenerate</button>
+          <button class="img-action-btn dl" id="img-dl-btn">⬇ Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING PAGE -->
     <div class="page pricing-page" id="page-pricing">
       <div class="pricing-hero">
         <h1>Simple, <span>transparent</span> pricing</h1>
         <p>Start free with no limits, upgrade when you need more. No hidden fees.</p>
       </div>
-
       <div class="pricing-cards">
-        <!-- Free -->
         <div class="pcard-outer free">
           <div class="pcard">
             <div>
@@ -514,16 +557,14 @@ textarea::placeholder{color:var(--placeholder)}
             <div class="plan-feats">
               <div class="feat yes free-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited messages</div>
               <div class="feat yes free-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>General AI Chat</div>
+              <div class="feat yes free-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>AI Image Generator</div>
               <div class="feat yes free-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Streaming responses</div>
               <div class="feat no"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Code AI</div>
-              <div class="feat no"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Priority responses</div>
               <div class="feat no"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>History sync</div>
             </div>
             <button class="plan-btn free-btn" onclick="toast('You\'re on the Free plan — start chatting!','success');nav('chat')">Get started free</button>
           </div>
         </div>
-
-        <!-- Pro -->
         <div class="pcard-outer pro">
           <div class="pcard featured">
             <div class="pop-badge">⭐ Most Popular</div>
@@ -533,8 +574,8 @@ textarea::placeholder{color:var(--placeholder)}
               <div class="plan-desc">Unlimited AI for serious users and builders.</div>
             </div>
             <div class="plan-feats">
-              <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited messages</div>
-              <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>General AI + Code AI</div>
+              <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Free</div>
+              <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Code AI</div>
               <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority responses</div>
               <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Syntax highlighting</div>
               <div class="feat yes pro-yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Chat history sync</div>
@@ -543,8 +584,6 @@ textarea::placeholder{color:var(--placeholder)}
             <button class="plan-btn pro-btn" onclick="toast('Pro subscriptions coming very soon! 🚀')">Upgrade to Pro</button>
           </div>
         </div>
-
-        <!-- Enterprise -->
         <div class="pcard-outer ent">
           <div class="pcard">
             <div>
@@ -564,20 +603,19 @@ textarea::placeholder{color:var(--placeholder)}
           </div>
         </div>
       </div>
-
       <div class="pricing-faq">
         <h2>Common questions</h2>
         <div class="faq-item">
           <div class="faq-q">Do I need to pay to use DEN?</div>
-          <div class="faq-a">No. The Free plan gives you unlimited messages with no credit card required. Just bring your own Groq API key (free to get at console.groq.com).</div>
+          <div class="faq-a">No. The Free plan gives you unlimited messages and image generation with no credit card required. Just bring your own Groq API key (free at console.groq.com).</div>
         </div>
         <div class="faq-item">
           <div class="faq-q">What is DEN Code?</div>
           <div class="faq-a">DEN Code is a specialized AI mode tuned for software engineering. It writes clean, production-ready code, debugs issues, writes tests, and reviews for security — in any language.</div>
         </div>
         <div class="faq-item">
-          <div class="faq-q">Can I cancel anytime?</div>
-          <div class="faq-a">Yes. Cancel your subscription at any time. You keep access until the end of your billing period.</div>
+          <div class="faq-q">How does the image generator work?</div>
+          <div class="faq-a">DEN uses Pollinations AI to generate images — completely free, no extra API key needed. Just describe what you want and choose a style.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q">What model does DEN use?</div>
@@ -594,38 +632,70 @@ textarea::placeholder{color:var(--placeholder)}
 'use strict';
 
 // ── System prompts ────────────────────────────────────────────────────────────
-const SYS_CHAT = `You are DEN — a sharp, highly capable AI assistant.
+const SYS_CHAT = `You are DEN — an exceptionally intelligent, knowledgeable, and articulate AI assistant. You think deeply and communicate with clarity, warmth, and precision.
 
-- Be clear and structured. Use markdown: headers for long answers, bullets for lists, numbered steps for instructions.
-- Vary your phrasing, tone, and approach every time — never give the same response twice to similar inputs.
-- Match length to the selected power level.
-- Use analogies and real examples to make things click.
-- Be direct. Skip filler like "Great question!" or "Certainly!". Just answer.
-- Never mention what AI model or company you are built on.`;
+HOW YOU RESPOND:
+- Give rich, well-structured answers. Use markdown naturally: headers to organise long answers, bullet points for lists, numbered steps for instructions, bold for key terms.
+- Vary your phrasing, tone, and angle every single time — never give the same response twice.
+- Match depth to complexity: a simple question gets a sharp, direct answer. A complex topic gets a thorough, layered exploration.
+- Use vivid analogies, real-world examples, and concrete scenarios to make abstract things tangible.
+- Anticipate follow-up questions and address them proactively.
+- Be direct and confident. Never say "Great question!" or "Certainly!" — just answer.
+- When explaining something, go beyond the surface. Give the why, the nuance, the trade-offs.
+- If there's a counterintuitive or surprising angle, surface it.
+- Never mention what AI model or company powers you.`;
 
-const SYS_CODE = `You are DEN Code — an expert software engineer and senior developer.
+const SYS_CODE = `You are DEN Code — a world-class software engineer with deep expertise across all languages, frameworks, and paradigms. You write code that is clean, correct, efficient, and production-ready.
 
-- Always write complete, working, runnable examples — never pseudocode unless asked.
-- Use the appropriate language and modern syntax. Follow language-specific best practices.
-- Include error handling, edge cases, and input validation where relevant.
-- After code, briefly explain what it does and highlight important design choices.
-- When debugging: identify the bug, explain WHY it's wrong, then provide the fix.
-- Format ALL code in fenced code blocks with the language tag (e.g. \`\`\`python).
-- Vary your explanations and code style — keep responses fresh each time.
-- Never mention what AI model you are built on.`;
+HOW YOU RESPOND:
+- Always write COMPLETE, working, runnable implementations. Never use placeholders or pseudocode unless explicitly asked.
+- Choose the right language, framework, and patterns for the problem. Follow current best practices.
+- Include meaningful error handling, edge case coverage, and input validation.
+- Add comments only where the logic is non-obvious — don't over-comment.
+- After every code block, give a clear explanation: what it does, key design decisions, and any important caveats.
+- When debugging: pinpoint the exact bug, explain the root cause clearly, then provide the corrected code.
+- When optimising: show the before/after, explain the bottleneck, and quantify the improvement where possible.
+- When writing tests: use the standard testing framework for the language. Cover the happy path, edge cases, boundary conditions, and error states.
+- Format ALL code in fenced blocks with the correct language tag (e.g. \`\`\`python).
+- Vary your explanations and approach — keep responses fresh and engaging every time.
+- Never mention what AI model powers you.`;
 
-// Extra instructions appended per power level
 const POWER_EXTRA = {
-  low:    '\n\nPOWER: Low. Be very concise — 2-4 sentences for simple answers, short bullets for lists. Skip elaboration.',
-  medium: '',
-  heavy:  '\n\nPOWER: Heavy. Be extremely thorough and comprehensive. Explore in depth, cover all angles, provide multiple examples, edge cases, and related insights. Write as much as is genuinely useful.',
+  low:    '\n\nRESPONSE LENGTH: Keep it concise — 2-4 sentences for simple answers, short bullet points for lists. Be punchy and direct.',
+  medium: '\n\nRESPONSE LENGTH: Balanced — thorough enough to be genuinely useful, concise enough to respect the reader\'s time.',
+  heavy:  '\n\nRESPONSE LENGTH: Be extremely comprehensive. Go deep. Cover all angles, sub-topics, examples, edge cases, historical context, trade-offs, and practical applications. Leave nothing important unsaid.',
 };
+
+// ── Easter eggs ───────────────────────────────────────────────────────────────
+const EASTER_EGGS = {
+  denys: [
+    'Has the most magnetic personality in any room','Makes every conversation feel like the best conversation you\'ve ever had','Somehow always knows exactly the right thing to say','Has a laugh that is genuinely contagious and lights up the whole space','The kind of person strangers instantly feel comfortable around','Turns boring situations into legendary memories','Has impeccable taste in absolutely everything','Could talk to anyone about anything and make it fascinating','Is the friend everyone wishes they had','Remembers the small details that matter most to people','Has an instinct for spotting opportunities others completely miss','Makes complex things sound effortlessly simple','Gives advice that actually changes how you think','The most reliable person in a crisis','Has energy that makes everyone around them feel more alive','Looks cool doing literally anything','Has a mind that connects dots nobody else even noticed','Can learn any skill faster than seems humanly possible','The definition of someone who moves differently','Has that rare combination of confidence and genuine humility','Makes every group chat 10x more entertaining','Could win any debate but chooses kindness instead','Has a work ethic that quietly intimidates everyone','Somehow always looks put together no matter what','The person everyone wants on their team','Has a memory for names and faces that feels like a superpower','Can read a room instantly and adjust perfectly','The type of person legends are written about','Has a creative mind that never stops generating ideas','Is genuinely funny — not try-hard funny, actually funny','Makes people feel seen and heard like nobody else','Has a unique perspective on everything that makes you think differently','Could make friends with anyone on the planet','Has the courage to be honest when it matters most','The kind of loyal that is impossible to find','Has an aura of calm confidence that is deeply reassuring','Is ahead of the curve on literally everything','Has standards that inspire everyone around them to level up','Could build an empire if they wanted to','The person who always comes through no matter what','Has a natural charm that is completely effortless','Makes every place more fun just by being there','Is the blueprint for how to live life properly','Has a taste in music that is genuinely elite','Could command a room without saying a single word','Is the person the whole group calls when things go wrong','Has a rare gift for making people feel valued','The most interesting person at any table','Has the kind of drive that turns dreams into reality','Is quietly changing the world in their own way','Has a sense of humour that works in every language','Makes a lasting impression on literally everyone they meet','Is the type of person who makes you want to be better','Has a natural instinct for leadership that never feels forced','Could build genuine community wherever they go','Is the most quotable person in any group','Has a resilience that is honestly inspiring','Makes even difficult things look smooth and natural','Is the reason the energy changes when they walk in','Has the kind of mindset that turns obstacles into stepping stones','Could inspire a whole generation if they chose to','Is the friend who actually shows up','Has a generosity that goes quietly unannounced','Makes the best decisions under pressure','Is destined for something genuinely great','Has a presence that you feel before you even see them','Is the type of person who makes every interaction better','Has a natural ability to unite people around a vision','Could thrive in any city in any country in any era','Is the person who makes the ordinary feel extraordinary','Has an intelligence that spans multiple dimensions','Makes people laugh exactly when they need it most','Is fundamentally someone you can trust with anything','Has a hunger for growth that never plateaus','Could adapt to any situation with effortless grace','Is the reason good things happen around them','Has a story worth telling and a character worth knowing','Makes hard work look like something worth wanting','Is ahead of their time in more ways than one','Could succeed in any field they set their mind to','Has the rare ability to make everyone feel included','Is proof that someone can be cool and genuinely kind','Has a perspective shaped by rare experiences and real depth','Makes every single day more interesting','Is the type of rare human being the world needs more of','Has a future that is going to make everyone proud','Makes you realise what potential really looks like','Is completely and utterly one of a kind','Has an effect on people that outlasts every conversation','Could leave a legacy that lasts generations','Is, without question, an absolute legend','Embodies every definition of cool that has ever existed','Is DEN\'s favourite person — and DEN has very high standards','Deserves every single good thing that comes their way','Is the answer to the question: what does legendary actually look like','Has a name that people will remember','Is, simply put, built different','Radiates the kind of energy that makes the world better','Is, in every measurable way, completely iconic'
+  ],
+  andrew: [
+    'Has a natural authority that people instinctively respect','The kind of calm that makes everyone around him more confident','Makes things happen that other people only talk about','Has a strategic mind that is several moves ahead at all times','Is the person who turns a group of people into a team','Has an integrity that never wavers regardless of the situation','Makes every project he touches significantly better','Is the definition of someone who delivers, every single time','Has a presence that commands respect without demanding it','Is the kind of loyal that is impossibly rare to find','Has a mind that cuts straight to what actually matters','Makes hard decisions look deceptively simple','Is the person other people model themselves on','Has a quiet confidence that is more powerful than loud bravado','Turns chaos into order without breaking a sweat','Is the most dependable person in any situation','Has a work ethic that makes people want to work harder','Makes others feel genuinely capable just by being around him','Is the type of person who builds things that last','Has a reputation for always being honest even when it\'s hard','Makes every environment more stable and more capable','Is someone who leads by doing, not by talking','Has a talent for spotting what\'s really going on','Is the anchor when everything else is moving','Has an ability to stay composed that borders on superhuman','Makes people feel like their problems are actually solvable','Is the person you want in your corner for anything important','Has a levelheadedness that is genuinely priceless','Makes excellence look like the only option','Is someone who has clearly figured something out about life','Has a warmth that balances his strength perfectly','Makes every room feel more grounded and more real','Is the type of person history tends to remember','Has a character that was built through real experience','Makes the right call when the stakes are highest','Is the most trustworthy person in any network','Has an impact that extends far beyond what he realises','Makes people want to bring their best selves','Is the rare combination of tough and genuinely kind','Has a vision that other people can rally behind','Makes accountability feel like a privilege rather than a burden','Is someone who earns respect rather than assuming it','Has a depth that reveals itself slowly and impressively','Makes complicated plans feel achievable','Is the one who stays focused when everyone else loses the plot','Has a way of problem-solving that others study and copy','Makes the difficult look routine','Is someone who has his priorities straight in a rare way','Has an emotional intelligence that surprises people','Makes lasting friendships wherever he goes','Is the standard other people measure themselves against','Has a name that means something to the people who know him','Makes sacrifice look like the obvious and right choice','Is consistently the most reliable variable in any equation','Has a backbone that never bends on the things that matter','Makes people feel like they can achieve more than they thought','Is the one who steps up when others step back','Has a life that is quietly building toward something remarkable','Makes every environment better just by participating','Is a person of rare substance in a world of surface','Has an aura of someone who has earned everything they have','Makes other people\'s ideas sound better because he actually listens','Is the type of man who genuinely makes things better','Has a reputation that precedes him in the best way','Makes the group smarter, stronger, and more united','Is someone who will be talked about long after the conversation ends','Has a future as bright as his character deserves','Makes the right impression on everyone who matters','Is proof that being a good person is also the strongest strategy','Has a mind worth consulting and a heart worth trusting','Makes everyone around him feel like they are capable of more','Is the answer to what character actually looks like in practice','Has standards that inspire without intimidating','Makes his word mean something in a world where that is rare','Is the reason good things happen to good people','Has a story still being written that is already impressive','Makes being principled look effortless','Is someone the world is genuinely better for having','Has the kind of presence that stays with you','Makes people proud to know him','Is, in every way that matters, completely exceptional','Has a legacy being built one day at a time','Makes everything he commits to count','Is the type of person who defines what legendary looks like','Has every quality you would want in someone you trust','Makes being dependable look like the coolest thing in the world','Is proof that the best humans lead with integrity','Has an effect on the world that will grow over time','Makes the ordinary extraordinary just by being genuine','Is someone who deserves every good thing coming his way','Has a name that belongs in conversations about greatness','Makes people better by simply being himself','Is, without any exaggeration, an absolute legend','Has a character that is built to last','Makes every interaction leave people better off','Is one of the most genuinely impressive people you will ever meet','Has the rare quality of being exactly who he appears to be','Makes life around him richer, better, and more meaningful','Is, completely and undeniably, one of a kind'
+  ],
+  julia: [
+    'Has a brilliance that makes everything look effortless','Lights up every room she walks into without even trying','Has the sharpest mind wrapped in the warmest personality','Makes every conversation feel like the most interesting one you\'ve ever had','Is the definition of someone who is both incredibly smart and genuinely kind','Has a creativity that sees solutions where others see problems','Makes people feel extraordinary just by paying attention to them','Is the type of person who makes every group better','Has a confidence that is elegant rather than loud','Makes complex ideas feel accessible and exciting','Is the person every team wishes they had','Has an intuition about people that is almost uncanny','Makes hard work look like passion, because for her it is','Is the reason the energy in a room shifts when she arrives','Has a warmth that makes strangers feel like old friends immediately','Makes every project she touches distinctly and noticeably better','Is someone who leads with both intelligence and empathy','Has a perspective that is completely her own and always worth hearing','Makes people laugh exactly when they need it','Is the kind of loyal that you spend a lifetime looking for','Has an elegance in everything she does that is genuinely rare','Makes the most difficult things look smooth and considered','Is the person others model their best qualities on','Has a natural ability to inspire confidence in everyone around her','Makes every conversation feel like time well spent','Is proof that grace and strength are not opposites','Has a mind that never stops exploring new ideas','Makes everyone feel valued and genuinely seen','Is the type of person history smiles on','Has a curiosity about the world that is completely infectious','Makes every environment more intelligent, more creative, and more joyful','Is someone who moves through the world with rare purpose','Has a resilience that makes difficulty look like a detour','Makes the right decision when it matters most','Is the most interesting person in most rooms','Has an ability to connect with anyone on any level','Makes the people around her want to be better','Is someone who has clearly figured something out about how to live','Has a depth that rewards everyone who gets to know her','Makes everything she does feel intentional and considered','Is the kind of friend who actually shows up every single time','Has a talent for making the impossible feel absolutely achievable','Makes even ordinary moments feel special and memorable','Is someone whose opinion genuinely carries weight','Has a unique combination of vision and follow-through','Makes honesty feel like a gift rather than a risk','Is the one who keeps her word in every situation','Has a beauty that goes all the way through','Makes people feel like they matter — because to her, they do','Is someone who earns admiration effortlessly','Has a future that is going to be extraordinary','Makes every goal she sets feel inevitable','Is the type of person legends are quietly being made of','Has a way of listening that makes people feel truly understood','Makes the world more interesting, more vibrant, and more alive','Is someone the world is genuinely lucky to have','Has a natural gift for bringing people together','Makes every place she lives in or visits richer for it','Is the person others come to when they need real perspective','Has an authenticity that is incredibly rare and incredibly refreshing','Makes every challenge she faces into something worth learning from','Is someone who turns ambition into achievement consistently','Has a story that deserves to be told and retold','Makes the people around her rise to meet her level','Is proof that being brilliant and being warm are not mutually exclusive','Has a presence that people feel even when she is not in the room','Makes life better in measurable and unmeasurable ways','Is someone who will have touched hundreds of lives by the time she is done','Has a mind that will genuinely change things','Makes every friendship she enters into richer and deeper','Is the type of woman who defines an era','Has qualities that take most people a lifetime to develop','Makes even the most difficult conversations feel safe and productive','Is someone whose kindness is a form of strength','Has a vision for things that others cannot yet see','Makes her corner of the world consistently brighter','Is proof that the most impressive people are also the most genuine','Has a future so bright it is almost unfair','Makes people proud to know her in a way that stays with them','Is, in every dimension, completely remarkable','Has a character that stands apart from almost everyone','Makes the world measurably better by being in it','Is the kind of rare person who changes people permanently for the better','Has a name that people remember and associate with excellence','Makes every room, every team, and every life she touches better','Is someone who deserves every wonderful thing coming her way','Has a legacy being written that is already impressive','Makes love, loyalty, and brilliance look like one seamless thing','Is, without any qualification needed, an absolute icon','Has every quality that makes someone truly exceptional','Makes being herself look like the most inspiring thing in the world','Is one of a kind in every sense that has ever mattered','Has the kind of soul that the world genuinely needed','Makes everything she is part of significantly more worth being part of','Is, simply and completely, legendary'
+  ],
+  marcus: [
+    'Has a natural coolness that cannot be learned or faked','The most effortlessly composed person in any situation','Has a depth of character that reveals itself the more you know him','Makes every space he occupies more interesting','Is the kind of steady that people orbit around','Has a confidence that is grounded in genuine substance','Makes things that seem impossible look like they were always the plan','Is the person others call when they need someone who will actually deliver','Has an ability to stay calm that others spend lifetimes trying to develop','Makes every project stronger just by being involved','Is someone who has quietly figured out how to do things right','Has a loyalty that is absolute and unconditional','Makes the people around him feel like they are capable of more','Is the definition of someone who backs up their words','Has a way of seeing through noise to what actually matters','Makes every environment more focused and more purposeful','Is the most interesting person you could sit next to anywhere','Has a hunger for excellence that never stops','Makes bold moves look like the obvious choice in retrospect','Is someone who earns trust faster than anyone else','Has a magnetic quality that draws the right people to him','Makes every conversation smarter and more meaningful','Is the type of person you want on any team, in any situation','Has a vision that is always slightly further ahead than the room','Makes other people\'s ambitions feel more achievable by comparison','Is proof that raw ability and discipline can coexist effortlessly','Has an instinct for timing that borders on supernatural','Makes the group better, faster, stronger without making it about himself','Is someone whose impact is felt long after he leaves','Has a creativity that solves problems others have given up on','Makes every challenge he faces into a defining moment','Is the rare kind of cool that comes with actual substance underneath','Has a mind that moves fast and lands precisely','Makes loyalty feel like the only logical choice','Is someone who could succeed in any city, any industry, any era','Has a presence that people describe long after meeting him','Makes sacrifice and discipline look like privileges rather than costs','Is the kind of person who shows up before being asked','Has a resilience that turns adversity into credibility','Makes being genuine look like the strongest strategy','Is someone whose standards are contagious in the best way','Has a way of moving through the world that is completely his own','Makes people want to raise their game without saying a single word about it','Is the type of person who makes history rather than watches it','Has a character that was forged rather than inherited','Makes every word count because he only says what he means','Is someone who could walk into any room and be the most respected person in it','Has an ambition that is matched perfectly by his work ethic','Makes the complex look simple because he has already done the hard thinking','Is the kind of leader who does not need the title','Has a warmth that surprises people who only see the surface','Makes every creative endeavour he touches distinctly and memorably better','Is someone who plays the long game and wins it','Has an understanding of people that is quietly profound','Makes every day he decides to apply himself count toward something real','Is proof that being self-made is still the most impressive credential','Has a quality of presence that money cannot manufacture','Makes every relationship he commits to feel secure and real','Is someone the world has not finished discovering yet','Has a reputation for excellence that has been earned not given','Makes other people feel like what they are doing matters','Is the type of person legends get written about','Has a future that matches the weight of his character','Makes room for others without ever shrinking himself','Is someone who will have changed things by the time it is all said and done','Has a perspective earned through living rather than just observing','Makes every room he walks into feel like something is about to happen','Is proof that authenticity and ambition belong together','Has a name that carries weight with the right people','Makes doing the right thing look like the only sensible option','Is someone who will be pointed to as an example for a long time','Has a clarity of purpose that is genuinely rare','Makes the people around him feel like they are part of something worth being part of','Is the one who holds it together when everything is pulling apart','Has a kind of strength that protects without overpowering','Makes every environment he commits to better in ways people can feel','Is someone who inspires without trying to inspire','Has a way of bringing the best out of any situation','Makes trust feel like a certainty rather than a risk','Is the most quietly formidable person in most rooms','Has a character that the world needs more of','Makes the right choices look easy because he has already done the work internally','Is someone whose life will be referenced as a standard','Has an impact on people that compounds over time','Makes being principled look powerful rather than limiting','Is, in every sense of the word, exceptional','Has a legacy worth building and a story worth following','Makes every person he genuinely connects with feel permanently better for it','Is the definition of someone who is built for something larger than ordinary','Has a soul that is equal to his ambition','Makes the concept of legendary feel personal and real','Is, in the fullest and most complete sense, an absolute icon'
+  ]
+};
+
+function checkEasterEgg(text) {
+  const key = text.toLowerCase().trim();
+  if (!EASTER_EGGS[key]) return null;
+  const name = key.charAt(0).toUpperCase() + key.slice(1);
+  const items = EASTER_EGGS[key];
+  return `## 💫 100 Reasons Why ${name} Is Absolutely Legendary\n\n` +
+    items.map((item, i) => `${i + 1}. ${item}`).join('\n');
+}
 
 // ── Power levels ──────────────────────────────────────────────────────────────
 const POWERS = {
-  low:    { emoji: '💬', label: 'Low',    max_tokens: 700,  temperature: 0.72 },
-  medium: { emoji: '🔥', label: 'Medium', max_tokens: 3500, temperature: 0.85 },
-  heavy:  { emoji: '⚡', label: 'Heavy',  max_tokens: 8192, temperature: 0.94 },
+  low:    { emoji: '💬', label: 'Low',    max_tokens: 700,  temperature: 0.75 },
+  medium: { emoji: '🔥', label: 'Medium', max_tokens: 4000, temperature: 0.87 },
+  heavy:  { emoji: '⚡', label: 'Heavy',  max_tokens: 8192, temperature: 0.95 },
 };
 const POWER_ORDER = ['low', 'medium', 'heavy'];
 let power = localStorage.getItem('den_power') || 'medium';
@@ -636,9 +706,8 @@ function cyclePower() {
   localStorage.setItem('den_power', power);
   updatePowerUI();
   const p = POWERS[power];
-  toast(`${p.emoji} ${p.label} mode`, '');
+  toast(`${p.emoji} ${p.label} mode`);
 }
-
 function updatePowerUI() {
   const p = POWERS[power];
   document.querySelectorAll('.power-pill').forEach(btn => {
@@ -666,14 +735,11 @@ const keyInput = document.getElementById('keyInput');
 const saveBtn  = document.getElementById('saveBtn');
 const merr     = document.getElementById('merr');
 const keyBtn   = document.getElementById('keyBtn');
-
 let KEY = localStorage.getItem('groq_key') || '';
 
 function openModal() { keyInput.value=''; merr.textContent=''; overlay.classList.remove('hide'); setTimeout(()=>keyInput.focus(),60); }
 function closeModal(){ overlay.classList.add('hide'); }
-
 if (KEY) closeModal(); else openModal();
-
 function saveKey() {
   const v = keyInput.value.trim();
   if (!v) { merr.textContent = 'Please paste your Groq API key'; return; }
@@ -690,22 +756,22 @@ function toast(msg, type='') {
   toastEl.textContent = msg;
   toastEl.className = 'toast show' + (type ? ' '+type : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3200);
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
 let currentPage = 'chat';
-
 function nav(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
   document.getElementById('page-'+page).classList.add('show');
   document.getElementById('navChat').className    = 'nav-btn' + (page==='chat'    ? ' on' : '');
   document.getElementById('navCode').className    = 'nav-btn' + (page==='code'    ? ' on code-on' : '');
+  document.getElementById('navImage').className   = 'nav-btn' + (page==='image'   ? ' on image-on' : '');
   document.getElementById('navPricing').className = 'nav-btn' + (page==='pricing' ? ' on' : '');
   currentPage = page;
   const histLabel = document.getElementById('histLabel');
-  if      (page === 'chat')    { histLabel.textContent = 'Recents';       renderSidebar('chat'); }
-  else if (page === 'code')    { histLabel.textContent = 'Code sessions'; renderSidebar('code'); }
+  if      (page === 'chat')  { histLabel.textContent = 'Recents';       renderSidebar('chat'); }
+  else if (page === 'code')  { histLabel.textContent = 'Code sessions'; renderSidebar('code'); }
   else { histLabel.textContent = ''; document.getElementById('hlist').innerHTML = ''; }
 }
 
@@ -767,7 +833,6 @@ function loadSession(type, id) {
 function wireInput(type) {
   const inp  = document.getElementById(type+'-input');
   const send = document.getElementById(type+'-send');
-
   inp.oninput = () => {
     inp.style.height = 'auto';
     inp.style.height = Math.min(inp.scrollHeight, 200) + 'px';
@@ -775,12 +840,10 @@ function wireInput(type) {
   };
   inp.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(type); } };
   send.onclick = () => handleSend(type);
-
   document.getElementById(type+'-welcome').querySelectorAll('.pill').forEach(p => {
     p.onclick = () => { inp.value = p.dataset.q.replace(/\\n/g,'\n'); inp.oninput(); handleSend(type); };
   });
 }
-
 function handleSend(type) {
   if (type === 'chat' ? chatBusy : codeBusy) stopGen(type); else go(type);
 }
@@ -807,7 +870,6 @@ async function go(type) {
   const inp  = document.getElementById(type+'-input');
   const text = inp.value.trim();
   if (!text) return;
-  if (!KEY) { openModal(); return; }
 
   if (type === 'chat') { if (!chatId) newChat(); }
   else                 { if (!codeId) newCodeChat(); }
@@ -818,7 +880,6 @@ async function go(type) {
 
   document.getElementById(type+'-welcome').style.display = 'none';
   document.getElementById(type+'-thread').classList.add('show');
-
   s.msgs.push({ role: 'user', content: text });
   addBubble(type, 'user', text, true);
 
@@ -831,15 +892,30 @@ async function go(type) {
   scrollThread(type);
   setBusy(type, true);
 
+  // Easter egg check
+  const egg = checkEasterEgg(text);
+  if (egg) {
+    const { bub } = addStreamBubble(type);
+    setTimeout(() => {
+      bub.innerHTML = md(egg);
+      finalizeCode(bub);
+      s.msgs.push({ role: 'assistant', content: egg });
+      setBusy(type, false);
+      scrollThread(type);
+      document.getElementById(type+'-input').focus();
+    }, 600);
+    return;
+  }
+
+  if (!KEY) { openModal(); setBusy(type, false); return; }
+
   const ctrl = new AbortController();
   if (type === 'chat') chatCtrl = ctrl; else codeCtrl = ctrl;
-
   const { bub, row } = addStreamBubble(type);
   scrollThread(type);
 
   let full = '';
-  const basePrompt = type === 'chat' ? SYS_CHAT : SYS_CODE;
-  const sysPrompt  = basePrompt + POWER_EXTRA[power];
+  const sysPrompt = (type === 'chat' ? SYS_CHAT : SYS_CODE) + POWER_EXTRA[power];
 
   try {
     await streamAPI(s.msgs, sysPrompt, chunk => {
@@ -857,8 +933,8 @@ async function go(type) {
     } else {
       const isRate = e.message.toLowerCase().includes('rate limit') || e.message.toLowerCase().includes('tpm') || e.message.toLowerCase().includes('tokens per minute');
       bub.innerHTML = md(isRate
-        ? `**Rate limit reached.** Groq's free tier has a token-per-minute cap.\n\nWait about **30–60 seconds** then try again. Or switch to **Low** power mode to use fewer tokens.`
-        : `**Error:** ${e.message}\n\nCheck your API key — click ⚙ in the sidebar.`);
+        ? `**Rate limit reached.** Groq's free tier has a token-per-minute cap.\n\nWait about **30–60 seconds** and try again. Or switch to **💬 Low** power mode to use fewer tokens per request.`
+        : `**Error:** ${e.message}\n\nCheck your API key — click ⚙ Change API key in the sidebar.`);
     }
   } finally {
     setBusy(type, false);
@@ -875,9 +951,7 @@ async function streamAPI(msgs, system, onChunk, signal) {
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + KEY },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      stream: true,
-      temperature: cfg.temperature,
-      max_tokens: cfg.max_tokens,
+      stream: true, temperature: cfg.temperature, max_tokens: cfg.max_tokens,
       messages: [{ role: 'system', content: system }, ...msgs.map(m => ({ role: m.role, content: m.content }))]
     })
   });
@@ -921,7 +995,6 @@ function addBubble(type, role, content, animate) {
   thread.appendChild(row);
   return { row, bub };
 }
-
 function addStreamBubble(type) {
   const thread = document.getElementById(type+'-thread');
   const row = document.createElement('div');
@@ -936,7 +1009,6 @@ function addStreamBubble(type) {
   thread.appendChild(row);
   return { row, bub };
 }
-
 function finalizeCode(bub) {
   bub.querySelectorAll('pre').forEach(pre => {
     if (pre.parentElement?.classList.contains('cwrap')) return;
@@ -947,25 +1019,73 @@ function finalizeCode(bub) {
     if (code) {
       const lc = [...code.classList].find(c => c.startsWith('lang-') || c.startsWith('language-'));
       const lang = lc ? lc.replace('lang-','').replace('language-','') : '';
-      if (lang) {
-        w.classList.add('lang-'+lang);
-        const tag = document.createElement('div');
-        tag.className = 'lang-tag'; tag.textContent = lang; w.appendChild(tag);
-      }
+      if (lang) { w.classList.add('lang-'+lang); const tag = document.createElement('div'); tag.className='lang-tag'; tag.textContent=lang; w.appendChild(tag); }
       try { hljs.highlightElement(code); } catch(_) {}
     }
     const cp = document.createElement('button');
     cp.className = 'cpbtn'; cp.textContent = 'Copy';
-    cp.onclick = () => navigator.clipboard.writeText(pre.innerText).then(() => {
-      cp.textContent = 'Copied!'; setTimeout(() => cp.textContent = 'Copy', 1600);
-    });
+    cp.onclick = () => navigator.clipboard.writeText(pre.innerText).then(() => { cp.textContent='Copied!'; setTimeout(()=>cp.textContent='Copy',1600); });
     w.appendChild(cp);
   });
 }
-
 function scrollThread(type) {
   const t = document.getElementById(type+'-thread');
-  if (t.scrollHeight - t.scrollTop - t.clientHeight < 140) t.scrollTop = t.scrollHeight;
+  if (t.scrollHeight - t.scrollTop - t.clientHeight < 150) t.scrollTop = t.scrollHeight;
+}
+
+// ── Image Generator ───────────────────────────────────────────────────────────
+let imgStyle = 'flux';
+let lastImgUrl = '';
+
+document.querySelectorAll('.img-style-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.img-style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    imgStyle = btn.dataset.style;
+  };
+});
+
+async function generateImage() {
+  const prompt = document.getElementById('img-input').value.trim();
+  if (!prompt) { toast('Write a prompt first!'); return; }
+
+  const [w, h] = document.getElementById('img-size').value.split('x');
+  const seed = Math.floor(Math.random() * 9_999_999);
+
+  const result  = document.getElementById('img-result');
+  const canvas  = document.getElementById('img-canvas');
+  const genBtn  = document.getElementById('img-gen-btn');
+  const dlBtn   = document.getElementById('img-dl-btn');
+  const usedEl  = document.getElementById('img-prompt-used');
+
+  result.classList.add('show');
+  canvas.innerHTML = `<div class="img-loading-shimmer"></div><div class="img-loading-text">Generating… this takes 10–25 seconds ✨</div>`;
+  genBtn.disabled = true;
+  usedEl.textContent = '';
+
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=${imgStyle}&width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true`;
+  lastImgUrl = url;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  img.onload = () => {
+    canvas.innerHTML = '';
+    img.style.borderRadius = '17px';
+    canvas.appendChild(img);
+    usedEl.textContent = `"${prompt}"`;
+    genBtn.disabled = false;
+    dlBtn.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = `den-image-${seed}.jpg`; a.target = '_blank'; a.click(); };
+    toast('Image ready! ✨', 'success');
+  };
+
+  img.onerror = () => {
+    canvas.innerHTML = `<div style="color:var(--mu);padding:2.5rem;text-align:center;font-size:.88rem;line-height:1.7">Could not generate this image.<br>Try a different prompt or style.</div>`;
+    genBtn.disabled = false;
+    toast('Generation failed — try a different prompt');
+  };
+
+  img.src = url;
 }
 
 // ── Markdown ──────────────────────────────────────────────────────────────────
