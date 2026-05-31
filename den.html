@@ -368,6 +368,82 @@ textarea::placeholder{color:var(--placeholder)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:2px}
 
+/* ── Animated background blobs ── */
+.bg-blob{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;animation:blob-drift ease-in-out infinite alternate}
+.bg-blob-1{width:520px;height:520px;background:rgba(192,132,252,.07);top:-130px;left:-130px;animation-duration:14s}
+.bg-blob-2{width:440px;height:440px;background:rgba(125,211,252,.06);bottom:-110px;right:-90px;animation-duration:18s;animation-delay:-7s}
+.bg-blob-3{width:380px;height:380px;background:rgba(251,113,133,.05);top:45%;right:12%;animation-duration:22s;animation-delay:-12s}
+.bg-blob-4{width:300px;height:300px;background:rgba(103,232,249,.04);top:20%;left:30%;animation-duration:26s;animation-delay:-4s}
+@keyframes blob-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(40px,28px) scale(1.13)}}
+
+/* ── Logo cycling gradient ── */
+.logo-icon{background:linear-gradient(270deg,#c084fc,#818cf8,#67e8f9,#fb7185,#fcd34d,#c084fc)!important;background-size:400% 400%!important;animation:grad-shift 5s linear infinite,logo-glow 3s ease-in-out infinite!important}
+@keyframes grad-shift{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+@keyframes logo-glow{0%,100%{box-shadow:0 0 18px rgba(192,132,252,.45)}50%{box-shadow:0 0 44px rgba(192,132,252,.95),0 0 80px rgba(129,140,248,.55)}}
+
+/* ── Particles ── */
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:particle-rise linear infinite;opacity:0}
+@keyframes particle-rise{0%{opacity:0;transform:translateY(18px) scale(0)}12%{opacity:.85;transform:translateY(0) scale(1)}85%{opacity:.5;transform:translateY(-95px) scale(.65)}100%{opacity:0;transform:translateY(-115px) scale(0)}}
+
+/* ── Thinking bubble ── */
+.think-wrap{display:flex;align-items:center;gap:.7rem;padding:.15rem 0}
+.think-dots{display:flex;gap:7px;align-items:center}
+.think-dot{width:11px;height:11px;border-radius:50%;animation:think-bounce 1.3s ease-in-out infinite}
+.think-dot:nth-child(1){background:linear-gradient(135deg,#c084fc,#818cf8);animation-delay:0s}
+.think-dot:nth-child(2){background:linear-gradient(135deg,#38bdf8,#67e8f9);animation-delay:.22s}
+.think-dot:nth-child(3){background:linear-gradient(135deg,#fb7185,#f9a8d4);animation-delay:.44s}
+@keyframes think-bounce{0%,60%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-15px) scale(1.35)}}
+.think-label{font-size:.78rem;color:var(--mu);font-style:italic;animation:think-fade 1.9s ease-in-out infinite}
+@keyframes think-fade{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* ── Page transition ── */
+.page.show{animation:page-in .3s ease}
+@keyframes page-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Row entrance ── */
+@keyframes fin{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* ── Input glow animation ── */
+.ibox.chat-focus:focus-within{animation:input-pulse-chat 2.2s ease-in-out infinite}
+.ibox.code-focus:focus-within{animation:input-pulse-code 2.2s ease-in-out infinite}
+@keyframes input-pulse-chat{0%,100%{border-color:rgba(192,132,252,.55);box-shadow:0 0 0 3px rgba(192,132,252,.07),0 0 18px rgba(192,132,252,.1)}50%{border-color:rgba(192,132,252,.85);box-shadow:0 0 0 3px rgba(192,132,252,.13),0 0 32px rgba(192,132,252,.22)}}
+@keyframes input-pulse-code{0%,100%{border-color:rgba(125,211,252,.5);box-shadow:0 0 0 3px rgba(125,211,252,.07),0 0 18px rgba(125,211,252,.1)}50%{border-color:rgba(125,211,252,.8);box-shadow:0 0 0 3px rgba(125,211,252,.13),0 0 32px rgba(125,211,252,.22)}}
+
+/* ── Stop button pulse ── */
+.sbtn.stop{animation:stop-pulse 1s ease-in-out infinite}
+@keyframes stop-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(248,113,113,.4)}50%{opacity:.85;box-shadow:0 0 0 8px rgba(248,113,113,0)}}
+
+/* ── Nav shimmer on hover ── */
+.nav-btn{position:relative;overflow:hidden}
+.nav-btn::after{content:'';position:absolute;left:-110%;top:0;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(192,132,252,.14),transparent);transition:left .4s ease;border-radius:8px;pointer-events:none}
+.nav-btn:hover::after{left:150%}
+
+/* ── Power pill heavy glow ── */
+.power-pill[data-p="heavy"]{animation:heavy-glow 2s ease-in-out infinite}
+@keyframes heavy-glow{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(192,132,252,.5)}}
+
+/* ── Avatar cycling gradient ── */
+.chat-page .a .av{background:linear-gradient(270deg,#c084fc,#818cf8,#67e8f9,#c084fc);background-size:300% 300%;animation:grad-shift 4s linear infinite}
+
+/* ── Welcome icon extra pulse ── */
+.w-icon.chat{animation:float 4.5s ease-in-out infinite,icon-glow-chat 3s ease-in-out infinite}
+.w-icon.code{animation:float 4.5s ease-in-out infinite,icon-glow-code 3s ease-in-out infinite}
+.w-icon.image-icon{animation:float 4.5s ease-in-out infinite,icon-glow-image 3s ease-in-out infinite}
+@keyframes icon-glow-chat{0%,100%{box-shadow:0 0 40px rgba(192,132,252,.35),0 0 80px rgba(129,140,248,.12)}50%{box-shadow:0 0 70px rgba(192,132,252,.65),0 0 130px rgba(129,140,248,.3)}}
+@keyframes icon-glow-code{0%,100%{box-shadow:0 0 40px rgba(56,189,248,.3),0 0 80px rgba(103,232,249,.12)}50%{box-shadow:0 0 70px rgba(56,189,248,.58),0 0 130px rgba(103,232,249,.28)}}
+@keyframes icon-glow-image{0%,100%{box-shadow:0 0 40px rgba(251,113,133,.3),0 0 80px rgba(192,132,252,.12)}50%{box-shadow:0 0 70px rgba(251,113,133,.58),0 0 130px rgba(192,132,252,.28)}}
+
+/* ── Pill hover bounce ── */
+.pill{transition:all .22s cubic-bezier(.34,1.56,.64,1)}
+.pill:hover{transform:translateY(-2px) scale(1.04)}
+
+/* ── Sidebar item hover ── */
+.hitem{transition:background .15s,color .15s,transform .15s}
+.hitem:hover{transform:translateX(3px)}
+
+/* ── Shell above blobs ── */
+.shell{position:relative;z-index:1}
+
 @media(max-width:700px){
   .sidebar{display:none}
   .row{padding:.5rem .9rem}
@@ -392,6 +468,11 @@ textarea::placeholder{color:var(--placeholder)}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+<div class="bg-blob bg-blob-3"></div>
+<div class="bg-blob bg-blob-4"></div>
 
 <div class="shell">
   <aside class="sidebar">
@@ -792,7 +873,10 @@ function newCodeChat() {
   codeId = id; renderSidebar('code'); showWelcome('code'); resetInput('code');
 }
 function showWelcome(type) {
-  document.getElementById(type+'-welcome').style.display = 'flex';
+  const welcome = document.getElementById(type+'-welcome');
+  welcome.style.display = 'flex';
+  welcome.querySelectorAll('.particle').forEach(p => p.remove());
+  addParticles(welcome);
   const t = document.getElementById(type+'-thread');
   t.className = 'thread'; t.innerHTML = '';
 }
@@ -911,6 +995,18 @@ async function go(type) {
 
   const ctrl = new AbortController();
   if (type === 'chat') chatCtrl = ctrl; else codeCtrl = ctrl;
+
+  // 2-second thinking phase
+  const thinkLabels = ['Thinking…','Processing…','Analyzing…','On it…','Crafting a response…','Let me think…','Working on it…'];
+  const { row: thinkRow } = addThinkBubble(type, thinkLabels[Math.floor(Math.random()*thinkLabels.length)]);
+  scrollThread(type);
+  await new Promise(r => {
+    const t = setTimeout(r, 2000);
+    ctrl.signal.addEventListener('abort', () => { clearTimeout(t); r(); });
+  });
+  thinkRow.remove();
+  if (ctrl.signal.aborted) { setBusy(type, false); return; }
+
   const { bub, row } = addStreamBubble(type);
   scrollThread(type);
 
@@ -1008,6 +1104,30 @@ function addStreamBubble(type) {
   row.appendChild(av); row.appendChild(bub);
   thread.appendChild(row);
   return { row, bub };
+}
+function addThinkBubble(type, label) {
+  const thread = document.getElementById(type+'-thread');
+  const row = document.createElement('div');
+  row.className = 'row a';
+  const av = document.createElement('div');
+  av.className = 'av';
+  av.textContent = type === 'code' ? '</>' : 'D';
+  const bub = document.createElement('div');
+  bub.className = 'bub';
+  bub.innerHTML = `<div class="think-wrap"><div class="think-dots"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div></div><span class="think-label">${label}</span></div>`;
+  row.appendChild(av); row.appendChild(bub);
+  thread.appendChild(row);
+  return { row, bub };
+}
+function addParticles(container) {
+  const colors = ['#c084fc','#818cf8','#7dd3fc','#67e8f9','#f9a8d4','#fb7185','#86efac','#fcd34d','#e9d5ff','#a7f3d0','#fb923c'];
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 3 + Math.random() * 7;
+    p.style.cssText = `left:${4+Math.random()*92}%;top:${55+Math.random()*40}%;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*7}s;animation-duration:${5+Math.random()*8}s`;
+    container.appendChild(p);
+  }
 }
 function finalizeCode(bub) {
   bub.querySelectorAll('pre').forEach(pre => {
