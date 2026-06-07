@@ -510,6 +510,7 @@ textarea::placeholder{color:var(--placeholder)}
         <span style="font-size:.72rem;color:var(--side-btn-c);margin-left:6px;align-self:center" id="themeLabel">Dark</span>
       </div>
       <button class="side-btn" id="keyBtn">⚙ Change API key</button>
+      <button class="side-btn" onclick="downloadApp()">⬇ Download DEN</button>
     </div>
   </aside>
 
@@ -1251,6 +1252,17 @@ function md(raw) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+function downloadApp() {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'den.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('DEN downloaded!', 'success');
+}
+
 setTheme(currentTheme);
 updatePowerUI();
 wireInput('chat');
