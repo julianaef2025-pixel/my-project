@@ -3,106 +3,711 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
+  <title>IRONFORGE GYM — Forge Your Legend</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
-      </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
+  <!-- CURSOR -->
+  <div class="cursor"></div>
+  <div class="cursor-follower"></div>
 
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
-        </div>
-
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
-      </div>
-
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
-      </div>
-    </section>
-
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
-      </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
+  <!-- LOADER -->
+  <div class="loader" id="loader">
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+    <div class="loader-text">IRONFORGE</div>
+    <div class="loader-sub">FORGING YOUR EXPERIENCE...</div>
   </div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <!-- NAV -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-logo">IRON<span>FORGE</span></div>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#classes">Classes</a></li>
+      <li><a href="#trainers">Trainers</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a href="#pricing" class="btn-nav">JOIN NOW</a>
+    <div class="hamburger" id="hamburger">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#classes">Classes</a></li>
+      <li><a href="#trainers">Trainers</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a href="#pricing" class="btn-primary">JOIN THE FORGE</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-bg-text">IRON</div>
+    <div class="hero-content">
+      <div class="hero-badge reveal-up">EST. 2010 &mdash; ELITE TRAINING</div>
+      <h1 class="hero-title">
+        <span class="line reveal-up delay-1">FORGE</span>
+        <span class="line reveal-up delay-2">YOUR</span>
+        <span class="line reveal-up delay-3 red">LEGEND</span>
+      </h1>
+      <p class="hero-sub reveal-up delay-4">Pain is temporary. Greatness is forever.<br>Stop surviving. Start dominating.</p>
+      <div class="hero-btns reveal-up delay-5">
+        <a href="#pricing" class="btn-primary">START TODAY</a>
+        <a href="#classes" class="btn-ghost">EXPLORE CLASSES</a>
+      </div>
+      <div class="hero-stats reveal-up delay-6">
+        <div class="stat"><span class="stat-num" data-target="12">0</span><span>+</span><p>Years Dominating</p></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num" data-target="4800">0</span><span>+</span><p>Members Strong</p></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num" data-target="35">0</span><span>+</span><p>Elite Trainers</p></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num" data-target="98">0</span><span>%</span><p>Success Rate</p></div>
+      </div>
+    </div>
+    <div class="hero-scroll-indicator">
+      <span>SCROLL DOWN</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- MARQUEE TICKER -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span>NO EXCUSES</span><span class="dot">&bull;</span>
+      <span>TRAIN HARDER</span><span class="dot">&bull;</span>
+      <span>OUTWORK EVERYONE</span><span class="dot">&bull;</span>
+      <span>IRON MIND</span><span class="dot">&bull;</span>
+      <span>EARN IT</span><span class="dot">&bull;</span>
+      <span>ZERO LIMITS</span><span class="dot">&bull;</span>
+      <span>NO EXCUSES</span><span class="dot">&bull;</span>
+      <span>TRAIN HARDER</span><span class="dot">&bull;</span>
+      <span>OUTWORK EVERYONE</span><span class="dot">&bull;</span>
+      <span>IRON MIND</span><span class="dot">&bull;</span>
+      <span>EARN IT</span><span class="dot">&bull;</span>
+      <span>ZERO LIMITS</span><span class="dot">&bull;</span>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-visual reveal-left">
+          <div class="about-img-wrap">
+            <div class="about-img-bg"></div>
+            <div class="about-img-overlay">
+              <div class="experience-badge">
+                <div class="exp-num">12</div>
+                <div class="exp-text">YEARS<br>OF IRON</div>
+              </div>
+            </div>
+          </div>
+          <div class="floating-card card-1 float-anim">
+            <div class="fc-icon">&#128293;</div>
+            <div class="fc-text"><strong>5AM</strong><br>First Session</div>
+          </div>
+          <div class="floating-card card-2 float-anim delay-2">
+            <div class="fc-icon">&#9889;</div>
+            <div class="fc-text"><strong>Elite</strong><br>Equipment</div>
+          </div>
+        </div>
+        <div class="about-text reveal-right">
+          <div class="section-label">WHO WE ARE</div>
+          <h2 class="section-title">We Don't Build <span class="red">Bodies.</span><br>We Build <span class="red">Warriors.</span></h2>
+          <p class="about-desc">IRONFORGE isn't your average gym. We built this place for people who are done being average. Every plate, every cable, every inch of this facility was designed to push you beyond what you thought was possible.</p>
+          <p class="about-desc">Whether you're picking up your first barbell or training for your next competition — this is where legends are made.</p>
+          <div class="about-features">
+            <div class="feature-item reveal-up">
+              <div class="feature-icon">&#128170;</div>
+              <div><strong>State-of-the-Art Equipment</strong><p>Over $2M in premium iron, machines, and functional training gear.</p></div>
+            </div>
+            <div class="feature-item reveal-up delay-1">
+              <div class="feature-icon">&#127942;</div>
+              <div><strong>Championship-Level Coaching</strong><p>Train with coaches who've built champions — not followers.</p></div>
+            </div>
+            <div class="feature-item reveal-up delay-2">
+              <div class="feature-icon">&#128293;</div>
+              <div><strong>No-Quit Culture</strong><p>Surround yourself with people who show up. Every. Single. Day.</p></div>
+            </div>
+          </div>
+          <a href="#pricing" class="btn-primary">JOIN THE FORGE</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE BANNER 1 -->
+  <div class="quote-banner parallax" data-speed="0.3">
+    <div class="qb-inner">
+      <div class="qb-line"></div>
+      <blockquote>"The Iron never lies to you. You can walk outside and listen to all kinds of talk, get told that you're a god or a total bastard. The Iron will always kick you the real deal."</blockquote>
+      <cite>&mdash; Henry Rollins</cite>
+      <div class="qb-line"></div>
+    </div>
+  </div>
+
+  <!-- CLASSES -->
+  <section class="classes" id="classes">
+    <div class="container">
+      <div class="section-header reveal-up">
+        <div class="section-label">WHAT WE OFFER</div>
+        <h2 class="section-title">Choose Your <span class="red">Battleground</span></h2>
+        <p class="section-sub">Six disciplines. One mission. Become unstoppable.</p>
+      </div>
+      <div class="classes-grid">
+        <div class="class-card reveal-up delay-1">
+          <div class="class-bg pl-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#127959;</div>
+            <h3>POWERLIFTING</h3>
+            <p>Squat. Bench. Deadlift. Simple. Brutal. Effective. Build raw strength that commands respect.</p>
+            <div class="class-meta">
+              <span>&#9201; 90 min</span>
+              <span>&#128293; Advanced</span>
+              <span>&#128101; 8 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+        <div class="class-card reveal-up delay-2">
+          <div class="class-bg hiit-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#9889;</div>
+            <h3>HIIT WARFARE</h3>
+            <p>Maximum output. Minimum rest. Burn fat, build endurance, and test your mental limits.</p>
+            <div class="class-meta">
+              <span>&#9201; 45 min</span>
+              <span>&#128293; All levels</span>
+              <span>&#128101; 20 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+        <div class="class-card reveal-up delay-3">
+          <div class="class-bg mma-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#129354;</div>
+            <h3>MMA CONDITIONING</h3>
+            <p>Fighter's fitness. Full-body conditioning inspired by combat sports. Get lean. Get mean.</p>
+            <div class="class-meta">
+              <span>&#9201; 60 min</span>
+              <span>&#128293; Intermediate</span>
+              <span>&#128101; 15 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+        <div class="class-card reveal-up delay-1">
+          <div class="class-bg str-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#128170;</div>
+            <h3>STRENGTH FORGE</h3>
+            <p>Progressive overload. Smart programming. Hypertrophy-focused training for serious results.</p>
+            <div class="class-meta">
+              <span>&#9201; 75 min</span>
+              <span>&#128293; Intermediate</span>
+              <span>&#128101; 12 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+        <div class="class-card reveal-up delay-2">
+          <div class="class-bg func-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#127919;</div>
+            <h3>FUNCTIONAL FURY</h3>
+            <p>Move better. Lift smarter. Build a body that performs as good as it looks.</p>
+            <div class="class-meta">
+              <span>&#9201; 60 min</span>
+              <span>&#128293; All levels</span>
+              <span>&#128101; 16 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+        <div class="class-card reveal-up delay-3">
+          <div class="class-bg box-bg"></div>
+          <div class="class-overlay"></div>
+          <div class="class-content">
+            <div class="class-icon">&#129355;</div>
+            <h3>IRON YOGA</h3>
+            <p>Flexibility meets iron will. Mobility training that unlocks performance and prevents injury.</p>
+            <div class="class-meta">
+              <span>&#9201; 60 min</span>
+              <span>&#128293; All levels</span>
+              <span>&#128101; 20 max</span>
+            </div>
+            <a href="#pricing" class="class-btn">BOOK SESSION</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE BANNER 2 -->
+  <div class="quote-banner quote-banner-alt parallax" data-speed="0.2">
+    <div class="qb-inner">
+      <div class="qb-line"></div>
+      <blockquote>"Most people give up right before the big break comes &mdash; don't let that person be you."</blockquote>
+      <cite>&mdash; Ross Enamait</cite>
+      <div class="qb-line"></div>
+    </div>
+  </div>
+
+  <!-- TRAINERS -->
+  <section class="trainers" id="trainers">
+    <div class="container">
+      <div class="section-header reveal-up">
+        <div class="section-label">OUR TEAM</div>
+        <h2 class="section-title">Trained by the <span class="red">Best</span></h2>
+        <p class="section-sub">No pretenders. Every trainer here has walked the walk.</p>
+      </div>
+      <div class="trainers-grid">
+        <div class="trainer-card reveal-up delay-1">
+          <div class="trainer-img t1">
+            <div class="trainer-overlay">
+              <div class="trainer-socials">
+                <a href="#" class="ts">IG</a>
+                <a href="#" class="ts">TW</a>
+                <a href="#" class="ts">YT</a>
+              </div>
+            </div>
+          </div>
+          <div class="trainer-info">
+            <div class="trainer-badge">HEAD COACH</div>
+            <h3>MARCUS IRON</h3>
+            <p>IPF World Champion &middot; 15 Years Training</p>
+            <div class="trainer-tags">
+              <span>Powerlifting</span><span>Strength</span><span>Nutrition</span>
+            </div>
+          </div>
+        </div>
+        <div class="trainer-card reveal-up delay-2">
+          <div class="trainer-img t2">
+            <div class="trainer-overlay">
+              <div class="trainer-socials">
+                <a href="#" class="ts">IG</a>
+                <a href="#" class="ts">TW</a>
+                <a href="#" class="ts">YT</a>
+              </div>
+            </div>
+          </div>
+          <div class="trainer-info">
+            <div class="trainer-badge">MMA COACH</div>
+            <h3>DANTE STEEL</h3>
+            <p>Pro MMA Fighter &middot; 8x Title Holder</p>
+            <div class="trainer-tags">
+              <span>MMA</span><span>HIIT</span><span>Boxing</span>
+            </div>
+          </div>
+        </div>
+        <div class="trainer-card reveal-up delay-3">
+          <div class="trainer-img t3">
+            <div class="trainer-overlay">
+              <div class="trainer-socials">
+                <a href="#" class="ts">IG</a>
+                <a href="#" class="ts">TW</a>
+                <a href="#" class="ts">YT</a>
+              </div>
+            </div>
+          </div>
+          <div class="trainer-info">
+            <div class="trainer-badge">PERFORMANCE</div>
+            <h3>ALEX VEGA</h3>
+            <p>NSCA Certified &middot; Sports Science PhD</p>
+            <div class="trainer-tags">
+              <span>Functional</span><span>Recovery</span><span>Mobility</span>
+            </div>
+          </div>
+        </div>
+        <div class="trainer-card reveal-up delay-4">
+          <div class="trainer-img t4">
+            <div class="trainer-overlay">
+              <div class="trainer-socials">
+                <a href="#" class="ts">IG</a>
+                <a href="#" class="ts">TW</a>
+                <a href="#" class="ts">YT</a>
+              </div>
+            </div>
+          </div>
+          <div class="trainer-info">
+            <div class="trainer-badge">CONDITIONING</div>
+            <h3>RYKER BLAZE</h3>
+            <p>CrossFit L3 &middot; 200+ Athletes Coached</p>
+            <div class="trainer-tags">
+              <span>CrossFit</span><span>Endurance</span><span>HIIT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COUNTER SECTION -->
+  <section class="counter-section">
+    <div class="counter-bg-text">RESULTS</div>
+    <div class="container">
+      <div class="counters-grid">
+        <div class="counter-item reveal-up">
+          <div class="counter-icon">&#127959;</div>
+          <div class="counter-num" data-target="2400000">0</div>
+          <div class="counter-suffix">kg</div>
+          <div class="counter-label">Lifted This Year</div>
+        </div>
+        <div class="counter-item reveal-up delay-1">
+          <div class="counter-icon">&#128197;</div>
+          <div class="counter-num" data-target="52000">0</div>
+          <div class="counter-suffix">+</div>
+          <div class="counter-label">Sessions Completed</div>
+        </div>
+        <div class="counter-item reveal-up delay-2">
+          <div class="counter-icon">&#128293;</div>
+          <div class="counter-num" data-target="1200">0</div>
+          <div class="counter-suffix">+</div>
+          <div class="counter-label">Transformations</div>
+        </div>
+        <div class="counter-item reveal-up delay-3">
+          <div class="counter-icon">&#127942;</div>
+          <div class="counter-num" data-target="87">0</div>
+          <div class="counter-suffix">+</div>
+          <div class="counter-label">Competition Medals</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="section-header reveal-up">
+        <div class="section-label">MEMBERSHIP</div>
+        <h2 class="section-title">Pick Your <span class="red">Weapon</span></h2>
+        <p class="section-sub">Every plan includes full gym access. No hidden fees. No bull.</p>
+      </div>
+      <div class="pricing-toggle reveal-up">
+        <span class="toggle-label">MONTHLY</span>
+        <div class="toggle-switch" id="toggleSwitch">
+          <div class="toggle-knob"></div>
+        </div>
+        <span class="toggle-label">ANNUAL <span class="save-badge">SAVE 30%</span></span>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card reveal-up delay-1">
+          <div class="plan-name">RECRUIT</div>
+          <div class="plan-desc">Get in the door. Start moving iron.</div>
+          <div class="plan-price">
+            <sup>$</sup><span class="price-num" data-monthly="49" data-annual="34">49</span><sub>/mo</sub>
+          </div>
+          <ul class="plan-features">
+            <li class="yes">Full Gym Access</li>
+            <li class="yes">Locker Room</li>
+            <li class="yes">2 Group Classes/Week</li>
+            <li class="yes">App Access</li>
+            <li class="no">Personal Training</li>
+            <li class="no">Nutrition Coaching</li>
+            <li class="no">Priority Booking</li>
+          </ul>
+          <a href="#contact" class="btn-ghost w-full">GET STARTED</a>
+        </div>
+        <div class="pricing-card featured reveal-up delay-2">
+          <div class="plan-badge">MOST POPULAR</div>
+          <div class="plan-name">WARRIOR</div>
+          <div class="plan-desc">For those who are serious about results.</div>
+          <div class="plan-price">
+            <sup>$</sup><span class="price-num" data-monthly="89" data-annual="62">89</span><sub>/mo</sub>
+          </div>
+          <ul class="plan-features">
+            <li class="yes">Full Gym Access</li>
+            <li class="yes">Locker Room + Sauna</li>
+            <li class="yes">Unlimited Group Classes</li>
+            <li class="yes">App + Tracking</li>
+            <li class="yes">2 PT Sessions/Month</li>
+            <li class="yes">Nutrition Coaching</li>
+            <li class="no">Priority Booking</li>
+          </ul>
+          <a href="#contact" class="btn-primary w-full">JOIN NOW</a>
+        </div>
+        <div class="pricing-card reveal-up delay-3">
+          <div class="plan-name">LEGEND</div>
+          <div class="plan-desc">The full arsenal. No compromises.</div>
+          <div class="plan-price">
+            <sup>$</sup><span class="price-num" data-monthly="149" data-annual="104">149</span><sub>/mo</sub>
+          </div>
+          <ul class="plan-features">
+            <li class="yes">Full Gym Access 24/7</li>
+            <li class="yes">Premium Locker + Sauna</li>
+            <li class="yes">Unlimited Group Classes</li>
+            <li class="yes">Advanced Analytics App</li>
+            <li class="yes">8 PT Sessions/Month</li>
+            <li class="yes">Custom Nutrition Plan</li>
+            <li class="yes">Priority Booking + Guest</li>
+          </ul>
+          <a href="#contact" class="btn-ghost w-full">GO LEGEND</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE BANNER 3 -->
+  <div class="quote-banner parallax" data-speed="0.25">
+    <div class="qb-inner">
+      <div class="qb-line"></div>
+      <blockquote>"Everybody wants to be a bodybuilder, but nobody wants to lift no heavy-ass weights."</blockquote>
+      <cite>&mdash; Ronnie Coleman</cite>
+      <div class="qb-line"></div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-header reveal-up">
+        <div class="section-label">REAL RESULTS</div>
+        <h2 class="section-title">They Showed Up. <span class="red">They Won.</span></h2>
+      </div>
+      <div class="testimonials-track-wrap">
+        <div class="testimonials-track" id="testimonialsTrack">
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"I dropped 40lbs and hit a 300kg deadlift in 8 months. IRONFORGE didn't just change my body &mdash; it changed who I am."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta1"></div>
+              <div><strong>JAMES K.</strong><p>Lost 40lbs &middot; Gained everything</p></div>
+            </div>
+          </div>
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"Every time I wanted to quit, someone here pushed me harder. The culture alone is worth the membership."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta2"></div>
+              <div><strong>MIKE R.</strong><p>Member since 2021</p></div>
+            </div>
+          </div>
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"Dante's MMA class destroyed me the first week. Then I came back Monday. Best decision of my life."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta3"></div>
+              <div><strong>CARLOS M.</strong><p>MMA student &middot; 2 years</p></div>
+            </div>
+          </div>
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"Marcus put 80kg on my squat in 6 months. He knows exactly how to program for your body. Zero fluff."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta4"></div>
+              <div><strong>TOM B.</strong><p>Powerlifting &middot; National competitor</p></div>
+            </div>
+          </div>
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"I was skinny and embarrassed to be in a gym. 18 months later I'm 20kg heavier and genuinely love training."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta5"></div>
+              <div><strong>RYAN S.</strong><p>Gained 20kg muscle</p></div>
+            </div>
+          </div>
+          <div class="testi-card">
+            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>"The 5AM crew is something else. Showing up at dawn with people who are fired up &mdash; that energy is addictive."</p>
+            <div class="testi-author">
+              <div class="testi-avatar ta6"></div>
+              <div><strong>DEREK P.</strong><p>5AM crew &middot; 3 years strong</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-nav">
+        <button class="testi-btn" id="testiPrev">&#8592;</button>
+        <div class="testi-dots" id="testiDots"></div>
+        <button class="testi-btn" id="testiNext">&#8594;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="gallery" id="gallery">
+    <div class="section-header reveal-up">
+      <div class="section-label">THE FORGE</div>
+      <h2 class="section-title">Inside the <span class="red">Machine</span></h2>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item g1 reveal-up delay-1"><div class="g-overlay"><span>POWERLIFTING FLOOR</span></div></div>
+      <div class="gallery-item g2 reveal-up delay-2"><div class="g-overlay"><span>FUNCTIONAL ZONE</span></div></div>
+      <div class="gallery-item g3 reveal-up delay-3"><div class="g-overlay"><span>MMA CAGE</span></div></div>
+      <div class="gallery-item g4 reveal-up delay-1"><div class="g-overlay"><span>FREE WEIGHTS</span></div></div>
+      <div class="gallery-item g5 reveal-up delay-2"><div class="g-overlay"><span>CARDIO DECK</span></div></div>
+      <div class="gallery-item g6 reveal-up delay-3"><div class="g-overlay"><span>RECOVERY SUITE</span></div></div>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section class="cta-section">
+    <div class="cta-bg-text">NOW</div>
+    <div class="cta-content reveal-up">
+      <div class="section-label">STOP WAITING</div>
+      <h2>"The best time to start was yesterday.<br>The next best time is <span class="red">RIGHT NOW.</span>"</h2>
+      <p>Your future self is already at the gym. Are you going to show up?</p>
+      <div class="cta-btns">
+        <a href="#contact" class="btn-primary btn-xl pulse-btn">START TODAY &mdash; FREE WEEK</a>
+        <a href="tel:+15551234567" class="btn-ghost">CALL US: +1 555 IRON 24</a>
+      </div>
+      <div class="cta-guarantee">
+        &#128274; 30-Day Money-Back Guarantee. No questions asked.
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-info reveal-left">
+          <div class="section-label">GET IN TOUCH</div>
+          <h2 class="section-title">Ready to <span class="red">Begin?</span></h2>
+          <p>Come in for a free session. See for yourself. We guarantee you'll never want to leave.</p>
+          <div class="contact-details">
+            <div class="cd-item">
+              <div class="cd-icon">&#128205;</div>
+              <div><strong>IRONFORGE HQ</strong><p>1240 Iron District Ave, Steel City, SC 29401</p></div>
+            </div>
+            <div class="cd-item">
+              <div class="cd-icon">&#128336;</div>
+              <div><strong>HOURS</strong><p>Mon&ndash;Fri: 5AM &ndash; 11PM<br>Sat&ndash;Sun: 6AM &ndash; 9PM</p></div>
+            </div>
+            <div class="cd-item">
+              <div class="cd-icon">&#128222;</div>
+              <div><strong>HOTLINE</strong><p>+1 555 IRON-247</p></div>
+            </div>
+            <div class="cd-item">
+              <div class="cd-icon">&#9993;</div>
+              <div><strong>EMAIL</strong><p>forge@ironforge.gym</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="contact-form-wrap reveal-right">
+          <form class="contact-form" id="contactForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name</label>
+                <input type="text" placeholder="Marcus" required />
+              </div>
+              <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" placeholder="Iron" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" placeholder="you@domain.com" required />
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" placeholder="+1 555 000 0000" />
+            </div>
+            <div class="form-group">
+              <label>Choose Your Plan</label>
+              <select>
+                <option value="">Select a membership...</option>
+                <option>Recruit &mdash; $49/mo</option>
+                <option>Warrior &mdash; $89/mo</option>
+                <option>Legend &mdash; $149/mo</option>
+                <option>Free Trial Week</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Your Goal</label>
+              <textarea placeholder="Tell us where you're starting and where you want to go..." rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn-primary w-full submit-btn">
+              <span class="btn-text">FORGE MY FUTURE</span>
+              <span class="btn-loader" style="display:none">SENDING...</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-top">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="footer-logo">IRON<span>FORGE</span></div>
+            <p>Built for those who refuse to be ordinary. The iron never lies.</p>
+            <div class="footer-socials">
+              <a href="#" class="fsoc">IG</a>
+              <a href="#" class="fsoc">FB</a>
+              <a href="#" class="fsoc">TW</a>
+              <a href="#" class="fsoc">YT</a>
+              <a href="#" class="fsoc">TK</a>
+            </div>
+          </div>
+          <div class="footer-col">
+            <h4>TRAIN</h4>
+            <ul>
+              <li><a href="#classes">Classes</a></li>
+              <li><a href="#trainers">Trainers</a></li>
+              <li><a href="#">Schedule</a></li>
+              <li><a href="#">Nutrition</a></li>
+              <li><a href="#">App</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>COMPANY</h4>
+            <ul>
+              <li><a href="#about">About</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Press</a></li>
+              <li><a href="#">Partners</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>STAY FIRED UP</h4>
+            <p>Get weekly training drops, tips, and motivation.</p>
+            <form class="footer-form">
+              <input type="email" placeholder="your@email.com" />
+              <button type="submit" class="btn-primary">&#8594;</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>&copy; 2024 IRONFORGE GYM. All rights reserved. No excuses accepted.</p>
+        <div class="footer-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Cookies</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- BACK TO TOP -->
+  <button class="back-to-top" id="backToTop">&#8593;</button>
+
   <script src="app.js"></script>
 </body>
 </html>
