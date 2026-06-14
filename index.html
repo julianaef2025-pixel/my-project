@@ -43,11 +43,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
 .tbtn{flex:1;padding:3px 1px;background:#000;border:1px solid #002200;color:#003300;font-family:'Courier New',monospace;font-size:8px;cursor:pointer;text-align:center;}
 .tbtn.active{background:#001a00;border-color:#00ff41;color:#00ff41;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#003300;}
-/* ── ZOOM CONTROLS ── */
-#zoom-ctrl{position:absolute;bottom:44px;right:6px;z-index:40;display:flex;flex-direction:column;align-items:center;gap:3px;}
-.zoom-btn{background:rgba(0,12,0,0.9);border:1px solid #004400;color:#00ff41;font-family:'Courier New',monospace;font-size:16px;cursor:pointer;width:34px;height:30px;line-height:1;text-align:center;padding:0;}
-.zoom-btn:hover{background:rgba(0,40,0,0.95);border-color:#00ff41;}
-#zoom-disp{font-size:9px;color:#00ff41;font-family:'Courier New',monospace;background:rgba(0,0,0,0.75);padding:2px 5px;border:1px solid #003300;min-width:34px;text-align:center;}
 /* ── MOBILE PANEL TOGGLES ── */
 .mob-toggle{display:none;position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,12,0,0.88);border:1px solid #004400;color:#00ff41;font-family:'Courier New',monospace;font-size:17px;padding:10px 7px;cursor:pointer;z-index:50;line-height:1;}
 #mob-left{left:0;border-radius:0 4px 4px 0;border-left:none;}
@@ -140,8 +135,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
     <button class="btn" id="btn-autotrack" onclick="doAutoTrack()">[ AUTO-TRACK: OFF ]</button>
     <button class="btn" onclick="doIdentify()">[ IDENTIFY (AI) ]</button>
     <button class="btn" id="btn-face" onclick="doIdentifyHuman()" style="border-color:#ff88ff;color:#ff88ff;">[ IDENTIFY HUMAN ]</button>
-    <button class="btn" id="btn-heatmap" onclick="doHeatMap()" style="border-color:#ff6600;color:#ff6600;">[ HEAT MAP: OFF ]</button>
-    <button class="btn" id="btn-longrange" onclick="doLongRange()">[ LONG RANGE: OFF ]</button>
     <div class="psec">
       <div class="ptitle">// SPEED CALC</div>
       <div class="ctrl"><div class="clabel">M/PX SCALE <span id="v-scale">0.05</span></div><input type="range" id="s-scale" min="1" max="100" value="5"></div>
@@ -160,12 +153,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
       <canvas id="main-canvas"></canvas>
       <button class="mob-toggle" id="mob-left" onclick="togglePanel('left-panel')">&#9776;</button>
       <button class="mob-toggle" id="mob-right" onclick="togglePanel('right-panel')">&#9776;</button>
-      <div id="zoom-ctrl">
-        <button class="zoom-btn" onclick="doZoom(1.3)">+</button>
-        <span id="zoom-disp">1.0x</span>
-        <button class="zoom-btn" onclick="doZoom(1/1.3)">&#8722;</button>
-        <button class="zoom-btn" style="font-size:9px;height:22px;" onclick="S.zoom=1;updZoom()">RST</button>
-      </div>
     </div>
   </div>
 
@@ -325,7 +312,7 @@ const S={
   fps:0, frameCount:0, lastFpsTs:0, totalFrames:0,
   trails:[], autoTrack:false, speedMode:false, stillFrames:0,
   faceDetections:null, faceDetectTime:0, reidentCount:0,
-  prevBlurred:null, heatBuf:null, heatMode:false, zoom:1, longRange:false,
+  prevBlurred:null,
 };
 const kalman=new Kalman();
 
@@ -395,48 +382,6 @@ function dilateMask(mask,W,H,r){
     for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) out[(y+dy)*W+(x+dx)]=1;
   }
   return out;
-}
-
-function mergeBlobs(blobs,threshold){
-  if(blobs.length<2) return blobs;
-  const used=new Uint8Array(blobs.length), out=[];
-  for(let i=0;i<blobs.length;i++){
-    if(used[i]) continue;
-    let b={...blobs[i]};
-    for(let j=i+1;j<blobs.length;j++){
-      if(used[j]) continue;
-      if(Math.hypot(blobs[j].cx-b.cx,blobs[j].cy-b.cy)<threshold){
-        const ta=b.area+blobs[j].area;
-        b.cx=(b.cx*b.area+blobs[j].cx*blobs[j].area)/ta;
-        b.cy=(b.cy*b.area+blobs[j].cy*blobs[j].area)/ta;
-        const nx=Math.min(b.x,blobs[j].x), ny=Math.min(b.y,blobs[j].y);
-        b.w=Math.max(b.x+b.w,blobs[j].x+blobs[j].w)-nx;
-        b.h=Math.max(b.y+b.h,blobs[j].y+blobs[j].h)-ny;
-        b.x=nx; b.y=ny; b.area=ta; used[j]=1;
-      }
-    }
-    out.push(b);
-  }
-  return out;
-}
-
-function drawHeatMap(W,H){
-  if(!S.heatMode||!S.heatBuf) return;
-  const img=new ImageData(W,H);
-  for(let i=0;i<W*H;i++){
-    const v=Math.min(1,S.heatBuf[i]/25);
-    if(v<0.04) continue;
-    let r=0,g=0,b=0;
-    if(v<0.2){b=255;g=v*5*200;}
-    else if(v<0.45){b=Math.max(0,(0.45-v)*4*255);g=200+v*200;}
-    else if(v<0.7){g=255-(v-0.45)*3*200;r=(v-0.45)*4*255;}
-    else{r=255;g=Math.max(0,(1-v)*3*255);}
-    img.data[i*4]=r|0; img.data[i*4+1]=g|0; img.data[i*4+2]=b|0;
-    img.data[i*4+3]=Math.min(210,v*255*1.5)|0;
-  }
-  const mc=document.createElement('canvas'); mc.width=W; mc.height=H;
-  mc.getContext('2d').putImageData(img,0,0);
-  ctx.drawImage(mc,0,0);
 }
 
 // ══════════════════════════════════════════
@@ -595,9 +540,9 @@ function drawMotionHeat(blurred,W,H){
 
 function drawTrails(){
   const now=performance.now();
-  S.trails=S.trails.filter(t=>now-t.t<7000);
+  S.trails=S.trails.filter(t=>now-t.t<5000);
   for(const t of S.trails){
-    const age=(now-t.t)/7000;
+    const age=(now-t.t)/5000;
     const alpha=Math.max(0,(1-age)*0.85).toFixed(2);
     const sz=Math.max(0.3,1.8*(1-age));
     ctx.fillStyle='rgba(0,255,65,'+alpha+')';
@@ -679,9 +624,7 @@ function drawHUD(W,H){
   ctx.textAlign='left';
   // Bottom bar
   ctx.font='9px Courier New'; ctx.fillStyle='#005500';
-  ctx.fillText('BLOBS:'+S.blobs.length+'  INT:'+S.motionInt.toFixed(0)+(S.autoTrack?'  AUTO-TRACK:ON':'')+(S.longRange?'  LR:ON':''),6,H-7);
-  if(S.zoom>1.01){ctx.fillStyle='#ffff00';ctx.textAlign='right';ctx.fillText('ZOOM '+S.zoom.toFixed(1)+'x',W-6,H-7);ctx.textAlign='left';}
-  if(S.heatMode){ctx.fillStyle='#ff6600';ctx.textAlign='right';ctx.fillText('HEAT MAP',W-6,H-18);ctx.textAlign='left';}
+  ctx.fillText('BLOBS:'+S.blobs.length+'  INT:'+S.motionInt.toFixed(0)+(S.autoTrack?'  AUTO-TRACK:ON':''),6,H-7);
 }
 
 // ══════════════════════════════════════════
@@ -976,62 +919,6 @@ document.getElementById('main-canvas').addEventListener('click',function(){
   document.getElementById('right-panel').classList.remove('mob-open');
 });
 
-// ── ZOOM ──
-function updZoom(){
-  S.zoom=Math.max(1,Math.min(8,S.zoom));
-  document.getElementById('zoom-disp').textContent=S.zoom.toFixed(1)+'x';
-}
-function doZoom(factor){ S.zoom*=factor; updZoom(); }
-
-// Scroll wheel zoom (desktop)
-canvas.addEventListener('wheel',function(e){
-  e.preventDefault();
-  doZoom(e.deltaY<0?1.12:1/1.12);
-},{passive:false});
-
-// Pinch-to-zoom (mobile)
-let _pinchD=0;
-canvas.addEventListener('touchstart',function(e){
-  if(e.touches.length===2) _pinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-},{passive:true});
-canvas.addEventListener('touchmove',function(e){
-  if(e.touches.length!==2) return;
-  e.preventDefault();
-  const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-  if(_pinchD>0){ S.zoom=Math.max(1,Math.min(8,S.zoom*(d/_pinchD))); updZoom(); }
-  _pinchD=d;
-},{passive:false});
-
-// ── HEAT MAP ──
-function doHeatMap(){
-  S.heatMode=!S.heatMode;
-  if(!S.heatMode) S.heatBuf=null;
-  const btn=document.getElementById('btn-heatmap');
-  btn.textContent=S.heatMode?'[ HEAT MAP: ON ]':'[ HEAT MAP: OFF ]';
-  btn.classList.toggle('active',S.heatMode);
-  if(S.heatMode) btn.style.color=btn.style.borderColor='#ff6600';
-  else {btn.style.color='#ff6600';btn.style.borderColor='#ff6600';}
-  addLog('Heat map '+(S.heatMode?'ON — accumulating motion heat':'OFF'),S.heatMode?'detect':'');
-}
-
-// ── LONG RANGE ──
-function doLongRange(){
-  S.longRange=!S.longRange;
-  const btn=document.getElementById('btn-longrange');
-  if(S.longRange){
-    // Optimal settings for detecting distant objects (birds, planes)
-    const set=(id,v,vid,fmt)=>{document.getElementById(id).value=v;document.getElementById(vid).textContent=fmt||v;};
-    set('s-thresh','2','v-thresh'); set('s-minb','20','v-minb','20'); set('s-blur','4','v-blur'); set('s-sens','98','v-sens');
-    btn.textContent='[ LONG RANGE: ON ]'; btn.classList.add('active');
-    addLog('LONG RANGE ON — threshold x3.5, min blob 20px','lock');
-  } else {
-    const set=(id,v,vid,fmt)=>{document.getElementById(id).value=v;document.getElementById(vid).textContent=fmt||v;};
-    set('s-thresh','7','v-thresh'); set('s-minb','80','v-minb','80'); set('s-blur','2','v-blur'); set('s-sens','70','v-sens');
-    btn.textContent='[ LONG RANGE: OFF ]'; btn.classList.remove('active');
-    addLog('Long range OFF — defaults restored','');
-  }
-}
-
 // ══════════════════════════════════════════
 //  DATA PANEL UPDATE
 // ══════════════════════════════════════════
@@ -1086,36 +973,23 @@ function loop(ts){
   }
 
   const vw=video.videoWidth, vh=video.videoHeight;
-  // Apply zoom: crop center of video frame
-  if(S.zoom<=1){
-    const sc=Math.max(W/vw,H/vh);
-    tmpCtx.drawImage(video,(W-vw*sc)/2,(H-vh*sc)/2,vw*sc,vh*sc);
-  } else {
-    const zw=vw/S.zoom, zh=vh/S.zoom;
-    tmpCtx.drawImage(video,(vw-zw)/2,(vh-zh)/2,zw,zh,0,0,W,H);
-  }
+  const sc=Math.max(W/vw,H/vh);
+  tmpCtx.drawImage(video,(W-vw*sc)/2,(H-vh*sc)/2,vw*sc,vh*sc);
   const frame=tmpCtx.getImageData(0,0,W,H);
 
   let motionResult=null;
   if(prevPixels){
-    const isMob=window.innerWidth<=700;
-    // Long-range amplifies sensitivity by lowering effective threshold
-    const effThr=sv('s-thresh')/(S.longRange?3.5:1);
-    motionResult=detectMotion(prevPixels,frame.data,W,H,effThr,sv('s-blur'),S.prevBlurred);
+    motionResult=detectMotion(prevPixels,frame.data,W,H,sv('s-thresh'),sv('s-blur'),S.prevBlurred);
     S.prevBlurred=motionResult.blurred;
-    // Larger dilation = better full-object capture; extra large in long-range
-    const dilR=isMob?(S.longRange?10:6):(S.longRange?20:15);
-    const dilated=dilateMask(motionResult.mask,W,H,dilR);
-    S.blobs=mergeBlobs(findBlobs(dilated,W,H,sv('s-minb')),isMob?60:90);
+    const isMob=window.innerWidth<=700;
+    const dilated=dilateMask(motionResult.mask,W,H,isMob?6:10);
+    S.blobs=findBlobs(dilated,W,H,sv('s-minb'));
     S.motionInt=motionResult.avgInt;
-    // Heat map accumulation
-    if(S.heatMode){
-      if(!S.heatBuf||S.heatBuf.length!==W*H) S.heatBuf=new Float32Array(W*H);
-      const bd=motionResult.blurred;
-      for(let i=0;i<W*H;i++) S.heatBuf[i]=S.heatBuf[i]*0.982+bd[i]*0.018;
+    // Trails: 3 scattered dots per blob, every 2 frames (less clutter)
+    if(S.totalFrames%2===0){
+      for(const b of S.blobs.slice(0,5)) for(let i=0;i<3;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.6,y:b.cy+(Math.random()-.5)*b.h*.6,t:ts});
     }
-    // Trails: 5 scattered dots per blob every frame
-    for(const b of S.blobs.slice(0,6)) for(let i=0;i<5;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.65,y:b.cy+(Math.random()-.5)*b.h*.65,t:ts});
+    // Auto-track: lock on largest blob automatically
     if(S.autoTrack&&!S.locked&&S.blobs.length>0) doCapture();
   }
 
@@ -1150,7 +1024,6 @@ function loop(ts){
   if(S.renderMode!=='normal') disp=applyRenderMode(frame,S.renderMode);
   ctx.putImageData(disp,0,0);
   if(motionResult) drawMotionHeat(motionResult.blurred,W,H);
-  drawHeatMap(W,H);
   if(S.overlays.grid) drawGrid(W,H);
   if(S.overlays.scan) drawScanline(W,H,ts);
   drawTrails();
