@@ -43,6 +43,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
 .tbtn{flex:1;padding:3px 1px;background:#000;border:1px solid #002200;color:#003300;font-family:'Courier New',monospace;font-size:8px;cursor:pointer;text-align:center;}
 .tbtn.active{background:#001a00;border-color:#00ff41;color:#00ff41;}
 ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:#000;} ::-webkit-scrollbar-thumb{background:#003300;}
+/* ── MOBILE PANEL TOGGLES ── */
+.mob-toggle{display:none;position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,12,0,0.88);border:1px solid #004400;color:#00ff41;font-family:'Courier New',monospace;font-size:17px;padding:10px 7px;cursor:pointer;z-index:50;line-height:1;}
+#mob-left{left:0;border-radius:0 4px 4px 0;border-left:none;}
+#mob-right{right:0;border-radius:4px 0 0 4px;border-right:none;}
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  #left-panel,#right-panel{position:fixed;top:0;bottom:0;width:220px;z-index:100;overflow-y:auto;transition:transform .22s ease;}
+  #left-panel{left:0;transform:translateX(-221px);}
+  #right-panel{right:0;transform:translateX(221px);}
+  #left-panel.mob-open{transform:translateX(0);}
+  #right-panel.mob-open{transform:translateX(0);}
+  .mob-toggle{display:block;}
+  #bottom{height:68px;}
+  #radar-container{display:none;}
+  #statusbar{gap:6px;font-size:9px;}
+  #title{font-size:11px;letter-spacing:1px;}
+  .btn{font-size:9px;padding:4px 3px;}
+  #header{padding:3px 6px;}
+}
 #boot{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;}
 #boot-text{font-size:11px;color:#00ff41;white-space:pre;line-height:1.5;max-width:90vw;overflow-x:hidden;}
 #start-btn{padding:10px 30px;background:#001500;border:2px solid #00ff41;color:#00ff41;font-family:'Courier New',monospace;font-size:13px;letter-spacing:4px;cursor:pointer;margin-top:16px;}
@@ -132,6 +151,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
     <div id="canvas-container">
       <video id="video" autoplay muted playsinline></video>
       <canvas id="main-canvas"></canvas>
+      <button class="mob-toggle" id="mob-left" onclick="togglePanel('left-panel')">&#9776;</button>
+      <button class="mob-toggle" id="mob-right" onclick="togglePanel('right-panel')">&#9776;</button>
     </div>
   </div>
 
@@ -291,6 +312,7 @@ const S={
   fps:0, frameCount:0, lastFpsTs:0, totalFrames:0,
   trails:[], autoTrack:false, speedMode:false, stillFrames:0,
   faceDetections:null, faceDetectTime:0, reidentCount:0,
+  prevBlurred:null,
 };
 const kalman=new Kalman();
 
@@ -307,7 +329,7 @@ let prevPixels=null, tmpCanvas, tmpCtx, radarAngle=0;
 // ══════════════════════════════════════════
 //  MOTION DETECTION
 // ══════════════════════════════════════════
-function detectMotion(prev,curr,W,H,thr,blurR){
+function detectMotion(prev,curr,W,H,thr,blurR,prevBlur){
   const diff=new Float32Array(W*H);
   for(let i=0;i<W*H;i++){
     const k=i*4;
@@ -320,6 +342,8 @@ function detectMotion(prev,curr,W,H,thr,blurR){
     for(let ky=-r;ky<=r;ky++) for(let kx=-r;kx<=r;kx++){s+=diff[(y+ky)*W+(x+kx)];n++;}
     bd[y*W+x]=s/n;
   }
+  // Temporal EMA: blend with previous frame to suppress single-frame noise
+  if(prevBlur){for(let i=0;i<W*H;i++) bd[i]=bd[i]*0.5+prevBlur[i]*0.5;}
   const mask=new Uint8Array(W*H);
   let tot=0,cnt=0;
   for(let i=0;i<W*H;i++) if(bd[i]>thr){mask[i]=1;tot+=bd[i];cnt++;}
@@ -884,6 +908,17 @@ function doIdentify(){
   runIdentify();
 }
 
+function togglePanel(id){
+  document.getElementById(id).classList.toggle('mob-open');
+}
+
+// Close panels when tapping the canvas area on mobile
+document.getElementById('main-canvas').addEventListener('click',function(){
+  if(window.innerWidth>700) return;
+  document.getElementById('left-panel').classList.remove('mob-open');
+  document.getElementById('right-panel').classList.remove('mob-open');
+});
+
 // ══════════════════════════════════════════
 //  DATA PANEL UPDATE
 // ══════════════════════════════════════════
@@ -944,13 +979,16 @@ function loop(ts){
 
   let motionResult=null;
   if(prevPixels){
-    motionResult=detectMotion(prevPixels,frame.data,W,H,sv('s-thresh'),sv('s-blur'));
-    const dilated=dilateMask(motionResult.mask,W,H,10);
+    motionResult=detectMotion(prevPixels,frame.data,W,H,sv('s-thresh'),sv('s-blur'),S.prevBlurred);
+    S.prevBlurred=motionResult.blurred;
+    const isMob=window.innerWidth<=700;
+    const dilated=dilateMask(motionResult.mask,W,H,isMob?6:10);
     S.blobs=findBlobs(dilated,W,H,sv('s-minb'));
     S.motionInt=motionResult.avgInt;
-    // Record motion trails for all detected blobs
-    // More trails: 6 scattered points per blob, smaller dots
-    for(const b of S.blobs.slice(0,6)) for(let i=0;i<6;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.7,y:b.cy+(Math.random()-.5)*b.h*.7,t:ts});
+    // Trails: 3 scattered dots per blob, every 2 frames (less clutter)
+    if(S.totalFrames%2===0){
+      for(const b of S.blobs.slice(0,5)) for(let i=0;i<3;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.6,y:b.cy+(Math.random()-.5)*b.h*.6,t:ts});
+    }
     // Auto-track: lock on largest blob automatically
     if(S.autoTrack&&!S.locked&&S.blobs.length>0) doCapture();
   }
@@ -959,7 +997,7 @@ function loop(ts){
     OF.track(prevPixels,frame.data,W,H);
     let sx=0,sy=0,n=0;
     for(const p of OF.pts) if(p.x>0&&p.x<W&&p.y>0&&p.y<H){sx+=p.x;sy+=p.y;n++;}
-    if(n>OF.pts.length*.4){S.target.cx=S.target.cx*.65+(sx/n)*.35;S.target.cy=S.target.cy*.65+(sy/n)*.35;}
+    if(n>OF.pts.length*.4){S.target.cx=S.target.cx*.78+(sx/n)*.22;S.target.cy=S.target.cy*.78+(sy/n)*.22;}
     const lr=sv('s-lr')*1.6;
     let best=null, bd=Infinity;
     for(const b of S.blobs){
@@ -967,9 +1005,9 @@ function loop(ts){
       if(d<lr&&d<bd){bd=d;best=b;}
     }
     if(best){
-      S.target.cx=S.target.cx*.55+best.cx*.45;
-      S.target.cy=S.target.cy*.55+best.cy*.45;
-      S.target.w=best.w; S.target.h=best.h; S.target.area=best.area;
+      S.target.cx=S.target.cx*.72+best.cx*.28;
+      S.target.cy=S.target.cy*.72+best.cy*.28;
+      S.target.w=S.target.w*.6+best.w*.4; S.target.h=S.target.h*.6+best.h*.4; S.target.area=best.area;
       S.sysMode='LOCK';
     } else { S.sysMode='PREDICT'; }
     kalman.predict(); kalman.update(S.target.cx,S.target.cy);
