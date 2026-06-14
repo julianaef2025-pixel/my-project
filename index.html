@@ -145,6 +145,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
       </div>
       <button class="btn" id="btn-speed" onclick="doSpeedMode()">[ SPEED MODE: OFF ]</button>
     </div>
+    <div class="psec">
+      <div class="ptitle">// ZOOM / RANGE</div>
+      <div class="trow">
+        <button class="tbtn active" id="zm-1" onclick="setZoom(1)">1×</button>
+        <button class="tbtn" id="zm-2" onclick="setZoom(2)">2×</button>
+        <button class="tbtn" id="zm-4" onclick="setZoom(4)">4×</button>
+        <button class="tbtn" id="zm-8" onclick="setZoom(8)">8×</button>
+      </div>
+      <div id="zoom-label" style="text-align:center;font-size:9px;color:#006600;margin-top:3px;">NORMAL RANGE</div>
+    </div>
   </div>
 
   <div id="center">
@@ -312,7 +322,7 @@ const S={
   fps:0, frameCount:0, lastFpsTs:0, totalFrames:0,
   trails:[], autoTrack:false, speedMode:false, stillFrames:0,
   faceDetections:null, faceDetectTime:0, reidentCount:0,
-  prevBlurred:null,
+  prevBlurred:null, zoom:1, blobPaths:[],
 };
 const kalman=new Kalman();
 
@@ -538,13 +548,56 @@ function drawMotionHeat(blurred,W,H){
   ctx.drawImage(mc,0,0);
 }
 
+function updateBlobPaths(blobs,ts){
+  const maxPaths=7, matchDist=90;
+  for(const p of S.blobPaths) p._matched=false;
+  for(const b of blobs.slice(0,maxPaths)){
+    let best=null, bd=matchDist;
+    for(const p of S.blobPaths){
+      if(p._matched||!p.pts.length) continue;
+      const last=p.pts[p.pts.length-1];
+      const d=Math.hypot(b.cx-last.x,b.cy-last.y);
+      if(d<bd){bd=d;best=p;}
+    }
+    if(best){
+      best.pts.push({x:b.cx,y:b.cy,t:ts});
+      if(best.pts.length>80) best.pts.shift();
+      best._matched=true; best.lastSeen=ts;
+    } else if(S.blobPaths.length<maxPaths){
+      S.blobPaths.push({pts:[{x:b.cx,y:b.cy,t:ts}],_matched:true,lastSeen:ts});
+    }
+  }
+  S.blobPaths=S.blobPaths.filter(p=>ts-p.lastSeen<5000);
+}
+
+function drawBlobPaths(){
+  const now=performance.now();
+  for(const p of S.blobPaths){
+    if(p.pts.length<2) continue;
+    for(let i=1;i<p.pts.length;i++){
+      const age=(now-p.pts[i].t)/5000;
+      const alpha=Math.max(0,(1-age)*0.7);
+      ctx.strokeStyle='rgba(0,255,65,'+alpha.toFixed(2)+')';
+      ctx.lineWidth=Math.max(0.4,2*(1-age));
+      ctx.beginPath(); ctx.moveTo(p.pts[i-1].x,p.pts[i-1].y); ctx.lineTo(p.pts[i].x,p.pts[i].y); ctx.stroke();
+    }
+    // Bright dot at current tip
+    const tip=p.pts[p.pts.length-1];
+    const tipAge=(now-tip.t)/5000;
+    if(tipAge<0.3){
+      ctx.fillStyle='rgba(0,255,65,0.95)';
+      ctx.beginPath(); ctx.arc(tip.x,tip.y,3,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+
 function drawTrails(){
   const now=performance.now();
-  S.trails=S.trails.filter(t=>now-t.t<5000);
+  S.trails=S.trails.filter(t=>now-t.t<6000);
   for(const t of S.trails){
-    const age=(now-t.t)/5000;
-    const alpha=Math.max(0,(1-age)*0.85).toFixed(2);
-    const sz=Math.max(0.3,1.8*(1-age));
+    const age=(now-t.t)/6000;
+    const alpha=Math.max(0,(1-age)*0.7).toFixed(2);
+    const sz=Math.max(0.3,2*(1-age));
     ctx.fillStyle='rgba(0,255,65,'+alpha+')';
     ctx.beginPath(); ctx.arc(t.x,t.y,sz,0,Math.PI*2); ctx.fill();
   }
@@ -625,6 +678,11 @@ function drawHUD(W,H){
   // Bottom bar
   ctx.font='9px Courier New'; ctx.fillStyle='#005500';
   ctx.fillText('BLOBS:'+S.blobs.length+'  INT:'+S.motionInt.toFixed(0)+(S.autoTrack?'  AUTO-TRACK:ON':''),6,H-7);
+  if(S.zoom>1){
+    ctx.fillStyle='rgba(255,200,0,0.9)'; ctx.textAlign='right';
+    ctx.fillText('ZOOM '+S.zoom+'×',W-6,H-7);
+    ctx.textAlign='left';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -764,6 +822,15 @@ function doSpeedMode(){
   btn.textContent=S.speedMode?'[ SPEED MODE: ON ]':'[ SPEED MODE: OFF ]';
   btn.classList.toggle('active',S.speedMode);
   addLog('Speed display '+(S.speedMode?'ON':'OFF'),S.speedMode?'detect':'');
+}
+
+function setZoom(z){
+  S.zoom=z;
+  [1,2,4,8].forEach(n=>document.getElementById('zm-'+n).classList.remove('active'));
+  document.getElementById('zm-'+z).classList.add('active');
+  const lbl={1:'NORMAL RANGE',2:'MEDIUM RANGE ~100m',4:'LONG RANGE ~300m',8:'MAX RANGE ~600m'};
+  document.getElementById('zoom-label').textContent=lbl[z];
+  addLog('Zoom '+z+'× — '+lbl[z],'detect');
 }
 
 // ══════════════════════════════════════════
@@ -973,8 +1040,23 @@ function loop(ts){
   }
 
   const vw=video.videoWidth, vh=video.videoHeight;
-  const sc=Math.max(W/vw,H/vh);
-  tmpCtx.drawImage(video,(W-vw*sc)/2,(H-vh*sc)/2,vw*sc,vh*sc);
+  const Z=S.zoom;
+  const sc0=Math.max(W/vw,H/vh);
+  if(Z===1){
+    tmpCtx.drawImage(video,(W-vw*sc0)/2,(H-vh*sc0)/2,vw*sc0,vh*sc0);
+  } else {
+    // Digital zoom: crop 1/Z of source, centered on locked target or frame center
+    let zcx=vw/2, zcy=vh/2;
+    if(S.target){
+      zcx=Math.max(0,Math.min(vw,(S.target.cx-(W-vw*sc0)/2)/sc0));
+      zcy=Math.max(0,Math.min(vh,(S.target.cy-(H-vh*sc0)/2)/sc0));
+    }
+    const srcW=vw/Z, srcH=vh/Z;
+    const srcX=Math.max(0,Math.min(vw-srcW,zcx-srcW/2));
+    const srcY=Math.max(0,Math.min(vh-srcH,zcy-srcH/2));
+    tmpCtx.clearRect(0,0,W,H);
+    tmpCtx.drawImage(video,srcX,srcY,srcW,srcH,0,0,W,H);
+  }
   const frame=tmpCtx.getImageData(0,0,W,H);
 
   let motionResult=null;
@@ -982,13 +1064,14 @@ function loop(ts){
     motionResult=detectMotion(prevPixels,frame.data,W,H,sv('s-thresh'),sv('s-blur'),S.prevBlurred);
     S.prevBlurred=motionResult.blurred;
     const isMob=window.innerWidth<=700;
-    const dilated=dilateMask(motionResult.mask,W,H,isMob?6:10);
+    // At high zoom, smaller dilation so tiny distant objects aren't merged away
+    const dilR=isMob?5:Math.max(4,Math.round(10/Z));
+    const dilated=dilateMask(motionResult.mask,W,H,dilR);
     S.blobs=findBlobs(dilated,W,H,sv('s-minb'));
     S.motionInt=motionResult.avgInt;
-    // Trails: 3 scattered dots per blob, every 2 frames (less clutter)
-    if(S.totalFrames%2===0){
-      for(const b of S.blobs.slice(0,5)) for(let i=0;i<3;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.6,y:b.cy+(Math.random()-.5)*b.h*.6,t:ts});
-    }
+    // Trails: scattered dots + path history every frame
+    for(const b of S.blobs.slice(0,6)) for(let i=0;i<4;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.5,y:b.cy+(Math.random()-.5)*b.h*.5,t:ts});
+    updateBlobPaths(S.blobs,ts);
     // Auto-track: lock on largest blob automatically
     if(S.autoTrack&&!S.locked&&S.blobs.length>0) doCapture();
   }
@@ -1026,6 +1109,7 @@ function loop(ts){
   if(motionResult) drawMotionHeat(motionResult.blurred,W,H);
   if(S.overlays.grid) drawGrid(W,H);
   if(S.overlays.scan) drawScanline(W,H,ts);
+  drawBlobPaths();
   drawTrails();
   drawBlobs();
   if(S.locked&&S.target){ drawTargetBox(); drawKalman(); drawOptFlow(); }
@@ -1072,7 +1156,7 @@ async function startSystem(){
   const lines=[
 '',
 '  +-----------------------------------------------------------------+',
-'  |  PANOPTICORE  //  SIGINT MOTION ANALYSIS SYSTEM  v2.4          |',
+'  |  PANOPTICORE  //  SIGINT MOTION ANALYSIS SYSTEM  v2.5          |',
 '  |  Pixel-level detection + Kalman prediction + Optical flow      |',
 '  +-----------------------------------------------------------------+',
 '',
