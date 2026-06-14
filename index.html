@@ -320,7 +320,7 @@ const S={
   blobs:[], motionInt:0, yolo:null,
   overlays:{reticle:true,motion:true,kalman:true,flow:true,grid:true,scan:true},
   fps:0, frameCount:0, lastFpsTs:0, totalFrames:0,
-  trails:[], autoTrack:false, speedMode:false, stillFrames:0,
+  autoTrack:false, speedMode:false, stillFrames:0,
   faceDetections:null, faceDetectTime:0, reidentCount:0,
   prevBlurred:null, zoom:1, blobPaths:[],
 };
@@ -549,7 +549,7 @@ function drawMotionHeat(blurred,W,H){
 }
 
 function updateBlobPaths(blobs,ts){
-  const maxPaths=7, matchDist=90;
+  const maxPaths=4, matchDist=120, minMove=5;
   for(const p of S.blobPaths) p._matched=false;
   for(const b of blobs.slice(0,maxPaths)){
     let best=null, bd=matchDist;
@@ -560,47 +560,57 @@ function updateBlobPaths(blobs,ts){
       if(d<bd){bd=d;best=p;}
     }
     if(best){
-      best.pts.push({x:b.cx,y:b.cy,t:ts});
-      if(best.pts.length>80) best.pts.shift();
+      const last=best.pts[best.pts.length-1];
+      // Only record point if blob actually moved (filters out camera noise/static blobs)
+      if(Math.hypot(b.cx-last.x,b.cy-last.y)>=minMove){
+        best.pts.push({x:b.cx,y:b.cy,t:ts});
+        if(best.pts.length>60) best.pts.shift();
+      }
       best._matched=true; best.lastSeen=ts;
     } else if(S.blobPaths.length<maxPaths){
       S.blobPaths.push({pts:[{x:b.cx,y:b.cy,t:ts}],_matched:true,lastSeen:ts});
     }
   }
-  S.blobPaths=S.blobPaths.filter(p=>ts-p.lastSeen<5000);
+  S.blobPaths=S.blobPaths.filter(p=>ts-p.lastSeen<3500);
 }
 
 function drawBlobPaths(){
   const now=performance.now();
+  ctx.lineCap='round'; ctx.lineJoin='round';
   for(const p of S.blobPaths){
     if(p.pts.length<2) continue;
+    // Glow pass (wide, soft)
     for(let i=1;i<p.pts.length;i++){
-      const age=(now-p.pts[i].t)/5000;
-      const alpha=Math.max(0,(1-age)*0.7);
-      ctx.strokeStyle='rgba(0,255,65,'+alpha.toFixed(2)+')';
-      ctx.lineWidth=Math.max(0.4,2*(1-age));
+      const age=(now-p.pts[i].t)/3500;
+      if(age>=1) continue;
+      const a=(1-age)*0.18;
+      ctx.strokeStyle='rgba(0,255,65,'+a.toFixed(2)+')';
+      ctx.lineWidth=10*(1-age);
       ctx.beginPath(); ctx.moveTo(p.pts[i-1].x,p.pts[i-1].y); ctx.lineTo(p.pts[i].x,p.pts[i].y); ctx.stroke();
     }
-    // Bright dot at current tip
+    // Sharp line pass
+    for(let i=1;i<p.pts.length;i++){
+      const age=(now-p.pts[i].t)/3500;
+      if(age>=1) continue;
+      const a=(1-age)*0.9;
+      ctx.strokeStyle='rgba(0,255,65,'+a.toFixed(2)+')';
+      ctx.lineWidth=Math.max(0.5,2*(1-age));
+      ctx.beginPath(); ctx.moveTo(p.pts[i-1].x,p.pts[i-1].y); ctx.lineTo(p.pts[i].x,p.pts[i].y); ctx.stroke();
+    }
+    // Bright dot at the moving tip
     const tip=p.pts[p.pts.length-1];
-    const tipAge=(now-tip.t)/5000;
-    if(tipAge<0.3){
-      ctx.fillStyle='rgba(0,255,65,0.95)';
-      ctx.beginPath(); ctx.arc(tip.x,tip.y,3,0,Math.PI*2); ctx.fill();
+    const tipAge=(now-tip.t)/3500;
+    if(tipAge<0.6){
+      const a=1-tipAge/0.6;
+      // Outer glow ring
+      ctx.strokeStyle='rgba(0,255,65,'+(a*0.35).toFixed(2)+')';
+      ctx.lineWidth=1; ctx.beginPath(); ctx.arc(tip.x,tip.y,9,0,Math.PI*2); ctx.stroke();
+      // Inner dot
+      ctx.fillStyle='rgba(0,255,65,'+a.toFixed(2)+')';
+      ctx.beginPath(); ctx.arc(tip.x,tip.y,3.5,0,Math.PI*2); ctx.fill();
     }
   }
-}
-
-function drawTrails(){
-  const now=performance.now();
-  S.trails=S.trails.filter(t=>now-t.t<6000);
-  for(const t of S.trails){
-    const age=(now-t.t)/6000;
-    const alpha=Math.max(0,(1-age)*0.7).toFixed(2);
-    const sz=Math.max(0.3,2*(1-age));
-    ctx.fillStyle='rgba(0,255,65,'+alpha+')';
-    ctx.beginPath(); ctx.arc(t.x,t.y,sz,0,Math.PI*2); ctx.fill();
-  }
+  ctx.lineCap='butt'; ctx.lineJoin='miter';
 }
 
 function drawSpeedOverlay(W,H){
@@ -1069,8 +1079,6 @@ function loop(ts){
     const dilated=dilateMask(motionResult.mask,W,H,dilR);
     S.blobs=findBlobs(dilated,W,H,sv('s-minb'));
     S.motionInt=motionResult.avgInt;
-    // Trails: scattered dots + path history every frame
-    for(const b of S.blobs.slice(0,6)) for(let i=0;i<4;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.5,y:b.cy+(Math.random()-.5)*b.h*.5,t:ts});
     updateBlobPaths(S.blobs,ts);
     // Auto-track: lock on largest blob automatically
     if(S.autoTrack&&!S.locked&&S.blobs.length>0) doCapture();
@@ -1110,7 +1118,6 @@ function loop(ts){
   if(S.overlays.grid) drawGrid(W,H);
   if(S.overlays.scan) drawScanline(W,H,ts);
   drawBlobPaths();
-  drawTrails();
   drawBlobs();
   if(S.locked&&S.target){ drawTargetBox(); drawKalman(); drawOptFlow(); }
   drawFaceDetections(W,H);
