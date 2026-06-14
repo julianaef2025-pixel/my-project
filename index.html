@@ -115,6 +115,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
     <button class="btn red" onclick="doRelease()">[ RELEASE TARGET ]</button>
     <button class="btn" id="btn-autotrack" onclick="doAutoTrack()">[ AUTO-TRACK: OFF ]</button>
     <button class="btn" onclick="doIdentify()">[ IDENTIFY (AI) ]</button>
+    <button class="btn" id="btn-face" onclick="doIdentifyHuman()" style="border-color:#ff88ff;color:#ff88ff;">[ IDENTIFY HUMAN ]</button>
     <div class="psec">
       <div class="ptitle">// SPEED CALC</div>
       <div class="ctrl"><div class="clabel">M/PX SCALE <span id="v-scale">0.05</span></div><input type="range" id="s-scale" min="1" max="100" value="5"></div>
@@ -159,6 +160,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
       <div class="dr"><span class="dl">CLASS</span><span class="dv" id="d-class">---</span></div>
       <div class="dr"><span class="dl">CONFIDENCE</span><span class="dv" id="d-conf">---</span></div>
       <div class="dr"><span class="dl">AI MODEL</span><span class="dv" id="d-model">STANDBY</span></div>
+      <div class="dr"><span class="dl">AGE EST</span><span class="dv" id="d-age" style="color:#ff88ff;font-size:12px">---</span></div>
+      <div class="dr"><span class="dl">GENDER</span><span class="dv" id="d-gender" style="color:#ff88ff">---</span></div>
+      <div class="dr"><span class="dl">FACES</span><span class="dv" id="d-faces">0</span></div>
     </div>
     <div class="psec">
       <div class="ptitle">// SCENE STATS</div>
@@ -181,6 +185,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 <script>
 'use strict';
 
@@ -285,6 +290,7 @@ const S={
   overlays:{reticle:true,motion:true,kalman:true,flow:true,grid:true,scan:true},
   fps:0, frameCount:0, lastFpsTs:0, totalFrames:0,
   trails:[], autoTrack:false, speedMode:false, stillFrames:0,
+  faceDetections:null, faceDetectTime:0, reidentCount:0,
 };
 const kalman=new Kalman();
 
@@ -343,6 +349,15 @@ function findBlobs(mask,W,H,minSize){
     blobs.push({cx:sx/pix.length,cy:sy/pix.length,area:pix.length,x:mn,y:mn2,w:mx2-mn,h:mx3-mn2});
   }
   return blobs.sort((a,b)=>b.area-a.area);
+}
+
+function dilateMask(mask,W,H,r){
+  const out=new Uint8Array(W*H);
+  for(let y=r;y<H-r;y++) for(let x=r;x<W-r;x++){
+    if(!mask[y*W+x]) continue;
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) out[(y+dy)*W+(x+dx)]=1;
+  }
+  return out;
 }
 
 // ══════════════════════════════════════════
@@ -428,7 +443,7 @@ function drawTargetBox(){
   const {cx,cy,w,h}=S.target;
   const col=S.sysMode==='PREDICT'?'#ffaa00':'#00ffff';
   ctx.strokeStyle=col; ctx.globalAlpha=.85; ctx.lineWidth=1.5;
-  const pad=12, bx=cx-w/2-pad, by=cy-h/2-pad, bw=w+pad*2, bh=h+pad*2;
+  const pad=28, bx=cx-w/2-pad, by=cy-h/2-pad, bw=w+pad*2, bh=h+pad*2;
   ctx.setLineDash([5,4]); ctx.strokeRect(bx,by,bw,bh); ctx.setLineDash([]);
   const cl=14; ctx.lineWidth=2;
   ctx.beginPath();
@@ -504,8 +519,8 @@ function drawTrails(){
   S.trails=S.trails.filter(t=>now-t.t<5000);
   for(const t of S.trails){
     const age=(now-t.t)/5000;
-    const alpha=Math.max(0,(1-age)*0.9).toFixed(2);
-    const sz=Math.max(0.5,4*(1-age));
+    const alpha=Math.max(0,(1-age)*0.85).toFixed(2);
+    const sz=Math.max(0.3,1.8*(1-age));
     ctx.fillStyle='rgba(0,255,65,'+alpha+')';
     ctx.beginPath(); ctx.arc(t.x,t.y,sz,0,Math.PI*2); ctx.fill();
   }
@@ -685,6 +700,8 @@ function doCapture(){
     if(d<lr&&d<bd){bd=d;best=b;}
   }
   const tgt=best||{cx,cy,w:70,h:70,area:0};
+  // Expand box to encompass full object, not just the motion region
+  tgt.w=Math.max(tgt.w,50)*2.2; tgt.h=Math.max(tgt.h,50)*2.2;
   S.target=tgt; S.locked=true; S.lockTime=Date.now(); S.sysMode='LOCK';
   kalman.reset(); kalman.q=sv('s-kq')/100; kalman.r=sv('s-kr')/10;
   kalman.update(tgt.cx,tgt.cy);
@@ -723,6 +740,96 @@ function doSpeedMode(){
   btn.textContent=S.speedMode?'[ SPEED MODE: ON ]':'[ SPEED MODE: OFF ]';
   btn.classList.toggle('active',S.speedMode);
   addLog('Speed display '+(S.speedMode?'ON':'OFF'),S.speedMode?'detect':'');
+}
+
+// ══════════════════════════════════════════
+//  FACE AGE IDENTIFICATION
+// ══════════════════════════════════════════
+let faceModelsLoaded=false, faceModelsLoading=false;
+
+async function loadFaceModels(){
+  if(faceModelsLoaded||faceModelsLoading) return;
+  faceModelsLoading=true;
+  const btn=document.getElementById('btn-face');
+  btn.textContent='[ LOADING... ]';
+  addLog('Loading face AI models...','detect');
+  const url='https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+  try{
+    await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+    await faceapi.nets.ageGenderNet.loadFromUri(url);
+    faceModelsLoaded=true;
+    addLog('Face AI ready — age + gender estimation','lock');
+    btn.textContent='[ IDENTIFY HUMAN ]';
+  }catch(e){
+    addLog('Face model error: '+e.message,'alert');
+    btn.textContent='[ IDENTIFY HUMAN ]';
+  }
+  faceModelsLoading=false;
+}
+
+async function doIdentifyHuman(){
+  if(!faceModelsLoaded){await loadFaceModels();if(!faceModelsLoaded)return;}
+  addLog('Scanning for faces...','detect');
+  const btn=document.getElementById('btn-face');
+  btn.textContent='[ SCANNING... ]';
+  try{
+    const opts=new faceapi.TinyFaceDetectorOptions({inputSize:512,scoreThreshold:0.35});
+    const detections=await faceapi.detectAllFaces(video,opts).withAgeAndGender();
+    if(detections.length>0){
+      let best=detections[0];
+      if(S.target&&detections.length>1){
+        let bd=Infinity;
+        const sx=canvas.width/video.videoWidth, sy=canvas.height/video.videoHeight;
+        for(const d of detections){
+          const fcx=(d.detection.box.x+d.detection.box.width/2)*sx;
+          const fcy=(d.detection.box.y+d.detection.box.height/2)*sy;
+          const dist=Math.hypot(fcx-S.target.cx,fcy-S.target.cy);
+          if(dist<bd){bd=dist;best=d;}
+        }
+      }
+      const age=Math.round(best.age);
+      const gender=best.gender.toUpperCase();
+      const gconf=(best.genderProbability*100).toFixed(0);
+      document.getElementById('d-age').textContent=age+' yrs';
+      document.getElementById('d-gender').textContent=gender+' ('+gconf+'%)';
+      document.getElementById('d-faces').textContent=detections.length;
+      addLog('HUMAN SCAN: AGE ~'+age+' | '+gender+' '+gconf+'%','lock');
+      S.faceDetections=detections;
+      S.faceDetectTime=performance.now();
+    } else {
+      addLog('No faces detected in frame','alert');
+      document.getElementById('d-faces').textContent='0';
+      S.faceDetections=null;
+    }
+  }catch(e){addLog('Face scan error: '+e.message,'alert');}
+  btn.textContent='[ IDENTIFY HUMAN ]';
+}
+
+function drawFaceDetections(W,H){
+  if(!S.faceDetections||!S.faceDetections.length) return;
+  if(performance.now()-S.faceDetectTime>8000){S.faceDetections=null;return;}
+  const sx=W/video.videoWidth, sy=H/video.videoHeight;
+  for(const d of S.faceDetections){
+    const box=d.detection.box;
+    const bx=box.x*sx, by=box.y*sy, bw=box.width*sx, bh=box.height*sy;
+    const age=Math.round(d.age), gender=d.gender.toUpperCase();
+    const gconf=(d.genderProbability*100).toFixed(0);
+    ctx.strokeStyle='#ff88ff'; ctx.lineWidth=2; ctx.globalAlpha=0.9;
+    ctx.strokeRect(bx,by,bw,bh);
+    const cl=14; ctx.lineWidth=2.5; ctx.beginPath();
+    ctx.moveTo(bx+cl,by);ctx.lineTo(bx,by);ctx.lineTo(bx,by+cl);
+    ctx.moveTo(bx+bw-cl,by);ctx.lineTo(bx+bw,by);ctx.lineTo(bx+bw,by+cl);
+    ctx.moveTo(bx,by+bh-cl);ctx.lineTo(bx,by+bh);ctx.lineTo(bx+cl,by+bh);
+    ctx.moveTo(bx+bw-cl,by+bh);ctx.lineTo(bx+bw,by+bh);ctx.lineTo(bx+bw,by+bh-cl);
+    ctx.stroke();
+    // Age label
+    ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(bx,by-32,bw,32);
+    ctx.font='bold 14px Courier New'; ctx.fillStyle='#ff88ff'; ctx.textAlign='left';
+    ctx.fillText('AGE: '+age,bx+4,by-14);
+    ctx.font='9px Courier New'; ctx.fillStyle='#cc66cc';
+    ctx.fillText(gender+' '+gconf+'%',bx+4,by-3);
+    ctx.globalAlpha=1;
+  }
 }
 
 // ══════════════════════════════════════════
@@ -838,10 +945,12 @@ function loop(ts){
   let motionResult=null;
   if(prevPixels){
     motionResult=detectMotion(prevPixels,frame.data,W,H,sv('s-thresh'),sv('s-blur'));
-    S.blobs=findBlobs(motionResult.mask,W,H,sv('s-minb'));
+    const dilated=dilateMask(motionResult.mask,W,H,10);
+    S.blobs=findBlobs(dilated,W,H,sv('s-minb'));
     S.motionInt=motionResult.avgInt;
     // Record motion trails for all detected blobs
-    for(const b of S.blobs.slice(0,6)) S.trails.push({x:b.cx,y:b.cy,t:ts});
+    // More trails: 6 scattered points per blob, smaller dots
+    for(const b of S.blobs.slice(0,6)) for(let i=0;i<6;i++) S.trails.push({x:b.cx+(Math.random()-.5)*b.w*.7,y:b.cy+(Math.random()-.5)*b.h*.7,t:ts});
     // Auto-track: lock on largest blob automatically
     if(S.autoTrack&&!S.locked&&S.blobs.length>0) doCapture();
   }
@@ -864,6 +973,8 @@ function loop(ts){
       S.sysMode='LOCK';
     } else { S.sysMode='PREDICT'; }
     kalman.predict(); kalman.update(S.target.cx,S.target.cy);
+    // Smarter AI: re-run COCO-SSD every 90 frames during lock
+    S.reidentCount++; if(S.reidentCount%90===0&&cocoModel) runIdentify();
     // Auto-release when target goes still (only in auto-track mode)
     if(S.autoTrack){
       if(S.sysMode==='PREDICT') S.stillFrames++; else S.stillFrames=0;
@@ -880,6 +991,7 @@ function loop(ts){
   drawTrails();
   drawBlobs();
   if(S.locked&&S.target){ drawTargetBox(); drawKalman(); drawOptFlow(); }
+  drawFaceDetections(W,H);
   if(S.overlays.reticle) drawReticle(W,H);
   drawCanvasBorder(W,H);
   drawHUD(W,H);
