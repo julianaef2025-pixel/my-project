@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>THE BUTTON</title>
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #000005;
+  --glow1: #7c3aed;
+  --glow2: #e040fb;
+  --glow3: #06b6d4;
+  --gold: #fbbf24;
+  --white: #ffffff;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  cursor: none;
+}
+
+/* ─── Canvas Layers ─────────────────────────────────────────────────────── */
+canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#cv-bg    { z-index: 1; }
+#cv-mid   { z-index: 2; }
+#cv-top   { z-index: 3; }
+#cv-ui    { z-index: 4; pointer-events: none; }
+
+/* ─── Custom Cursor ─────────────────────────────────────────────────────── */
+#cursor {
+  position: fixed;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--glow2);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  transition: width 0.15s, height 0.15s, background 0.15s;
+  mix-blend-mode: screen;
+}
+#cursor-dot {
+  position: fixed;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+}
+
+/* ─── Center Stage ──────────────────────────────────────────────────────── */
+#stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  pointer-events: none;
+}
+
+/* ─── Phase Label ───────────────────────────────────────────────────────── */
+#phase-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  transition: opacity 0.8s;
+}
+
+/* ─── Title ─────────────────────────────────────────────────────────────── */
+#title {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  text-shadow: 0 0 30px var(--glow1);
+  transition: all 1s ease;
+  text-align: center;
+}
+
+/* ─── THE Button ────────────────────────────────────────────────────────── */
+#btn {
+  position: relative;
+  pointer-events: all;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  border: none;
+  cursor: none;
+  background: radial-gradient(circle at 35% 35%, #c084fc, #7c3aed 45%, #3b0764);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  outline: none;
+  transition: transform 0.1s;
+  box-shadow:
+    0 0 40px #a855f7,
+    0 0 80px #7c3aed88,
+    0 0 160px #6d28d944,
+    inset 0 0 40px rgba(255,255,255,0.1);
+}
+
+#btn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #e040fb, #06b6d4, #fbbf24, #e040fb
+  );
+  z-index: -1;
+  animation: spinRing 3s linear infinite;
+  opacity: 0.7;
+}
+
+#btn::after {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 180deg,
+    #7c3aed44, transparent 60%, #e040fb44
+  );
+  z-index: -2;
+  animation: spinRing 6s linear infinite reverse;
+}
+
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+
+#btn:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 60px #c084fc,
+    0 0 120px #a855f7aa,
+    0 0 240px #7c3aed55,
+    inset 0 0 60px rgba(255,255,255,0.2);
+}
+
+#btn:active { transform: scale(0.92); }
+
+#btn-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#btn-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px #fff);
+  animation: pulse-icon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px #fff); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 20px #e040fb); }
+}
+
+#btn-text { font-size: 0.75rem; letter-spacing: 0.2em; }
+#btn-count {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  letter-spacing: 0.1em;
+}
+
+/* ─── Message Banner ────────────────────────────────────────────────────── */
+#message {
+  max-width: 600px;
+  font-size: clamp(1rem, 3vw, 1.8rem);
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 0 30px var(--glow2), 0 0 60px var(--glow1);
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  padding: 0 1rem;
+}
+
+#message.show {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* ─── Stats Bar ─────────────────────────────────────────────────────────── */
+#stats {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  gap: 2rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+}
+
+#stats span { transition: color 0.3s; }
+#stats span.lit { color: var(--gold); }
+
+/* ─── Phase Indicator Dots ──────────────────────────────────────────────── */
+#phase-dots {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.pdot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.4s, transform 0.4s;
+  cursor: default;
+}
+
+.pdot.active {
+  background: var(--glow2);
+  transform: scale(1.4);
+  box-shadow: 0 0 8px var(--glow2);
+}
+
+.pdot.done {
+  background: var(--glow1);
+}
+
+/* ─── Screen Flash ──────────────────────────────────────────────────────── */
+#flash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  background: #fff;
+  transition: opacity 0.05s;
+}
+
+/* ─── Typewriter Box ────────────────────────────────────────────────────── */
+#typewriter {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid var(--glow2);
+  animation: blink-cursor 0.8s step-end infinite;
+  max-width: 90vw;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { border-color: var(--glow2); }
+  50% { border-color: transparent; }
+}
+
+/* ─── Shockwave ─────────────────────────────────────────────────────────── */
+.shockwave {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 8;
+  animation: shockwave-anim 1.2s ease-out forwards;
+}
+
+@keyframes shockwave-anim {
+  0%   { transform: scale(0); opacity: 0.8; }
+  100% { transform: scale(8); opacity: 0; }
+}
+
+/* ─── Scroll hint ───────────────────────────────────────────────────────── */
+#hint {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 50;
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: rgba(255,255,255,0.15);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+</style>
+</head>
+<body>
+
+<canvas id="cv-bg"></canvas>
+<canvas id="cv-mid"></canvas>
+<canvas id="cv-top"></canvas>
+<canvas id="cv-ui"></canvas>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<div id="flash"></div>
+
+<div id="phase-dots"></div>
+<div id="hint">Phase 0 / 7</div>
+
+<div id="stage">
+  <div id="phase-label">Phase 0 — Dormant</div>
+  <div id="title">Something extraordinary awaits</div>
+
+  <button id="btn" aria-label="Activate">
+    <div id="btn-inner">
+      <span id="btn-icon">⚡</span>
+      <span id="btn-text">ACTIVATE</span>
+      <span id="btn-count"></span>
+    </div>
+  </button>
+
+  <div id="message"></div>
+</div>
+
+<div id="stats">
+  <span id="stat-presses">Presses: 0</span>
+  <span id="stat-particles">Particles: 0</span>
+  <span id="stat-phase">Phase: 0</span>
+</div>
+
+<div id="typewriter"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   THE BUTTON — Cosmic Edition
+   7 Phases × Full particle physics × Web Audio synthesis × Canvas FX
+═══════════════════════════════════════════════════════════════════════ */
+
+// ── Canvas Setup ──────────────────────────────────────────────────────────
+const layers = {
+  bg:  { el: document.getElementById('cv-bg'),  ctx: null },
+  mid: { el: document.getElementById('cv-mid'), ctx: null },
+  top: { el: document.getElementById('cv-top'), ctx: null },
+  ui:  { el: document.getElementById('cv-ui'),  ctx: null },
+};
+
+function resizeAll() {
+  for (const k in layers) {
+    layers[k].el.width  = window.innerWidth;
+    layers[k].el.height = window.innerHeight;
+  }
+}
+
+for (const k in layers) layers[k].ctx = layers[k].el.getContext('2d');
+resizeAll();
+window.addEventListener('resize', resizeAll);
+
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+// ── Audio Engine ──────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, type = 'sine', dur = 0.4, vol = 0.2, detune = 0) {
+  if (!audioCtx) return;
+  const osc   = audioCtx.createOscillator();
+  const gain  = audioCtx.createGain();
+  const filt  = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = freq * 4;
+  osc.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  osc.detune.value = detune;
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  osc.start(); osc.stop(audioCtx.currentTime + dur);
+}
+
+function playChord(freqs, type = 'sine', dur = 0.6, vol = 0.12) {
+  freqs.forEach((f, i) => playTone(f, type, dur, vol, i * 5));
+}
+
+function playNoise(dur = 0.3, vol = 0.15) {
+  if (!audioCtx) return;
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src  = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'bandpass'; filt.frequency.value = 800; filt.Q.value = 0.5;
+  src.buffer = buf;
+  src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  src.start(); src.stop(audioCtx.currentTime + dur);
+}
+
+function playBoom(vol = 0.4) {
+  if (!audioCtx) return;
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.5, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.3));
+  const src  = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = 300;
+  src.buffer = buf;
+  src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+  src.start(); src.stop(audioCtx.currentTime + 1.5);
+}
+
+const PHASE_AUDIO = [
+  () => { playTone(220, 'sine',     0.5, 0.15); playNoise(0.2, 0.08); },
+  () => { playChord([261, 329, 392], 'triangle', 0.8, 0.12); playBoom(0.2); },
+  () => { playChord([440, 554, 659, 880], 'sawtooth', 0.6, 0.08); playBoom(0.3); },
+  () => { playBoom(0.5); playChord([110, 220, 330], 'square', 1.0, 0.06); },
+  () => { playBoom(0.6); playChord([880, 1108, 1318], 'sine', 1.2, 0.1); playNoise(0.5, 0.2); },
+  () => { playBoom(0.8); playChord([55, 110, 165, 220, 330, 440, 660, 880], 'sine', 2.0, 0.07); playNoise(0.8, 0.25); },
+  () => { playBoom(1.0); [55,110,165,220,294,330,440,554,659,880,1108,1318].forEach((f,i) => setTimeout(() => playTone(f,'sine',1.5,0.06), i*80)); playNoise(1.2, 0.3); },
+];
+
+// ── Particle System ───────────────────────────────────────────────────────
+const PALETTES = [
+  ['#a855f7','#e040fb','#c084fc','#f0abfc','#ffffff'],  // purple dream
+  ['#06b6d4','#0ea5e9','#38bdf8','#7dd3fc','#ffffff'],  // ocean
+  ['#f59e0b','#fbbf24','#fcd34d','#fde68a','#ffffff'],  // gold
+  ['#ef4444','#f97316','#fb923c','#fca5a5','#ffffff'],  // fire
+  ['#10b981','#34d399','#6ee7b7','#a7f3d0','#ffffff'],  // emerald
+  ['#e040fb','#f43f5e','#fb7185','#fda4af','#ffffff'],  // pink nova
+  ['#a855f7','#06b6d4','#e040fb','#fbbf24','#10b981'],  // full spectrum
+];
+
+const particles = [];
+
+function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function spawnBurst(x, y, count, palette, speed = 14, spread = Math.PI * 2, dirAngle = 0, gravity = 0.3, life = 1.0) {
+  for (let i = 0; i < count; i++) {
+    const angle = dirAngle + (Math.random() - 0.5) * spread;
+    const spd   = speed * (0.4 + Math.random() * 0.9);
+    const size  = 3 + Math.random() * 9;
+    const shape = Math.random();
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd - Math.random() * 4,
+      ax: 0, ay: gravity,
+      alpha: life,
+      decay: 0.008 + Math.random() * 0.012,
+      color: randFrom(palette),
+      size,
+      shape: shape < 0.4 ? 'circle' : shape < 0.7 ? 'rect' : 'star',
+      rot: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.25,
+      trail: [],
+      trailMax: Math.random() < 0.3 ? 8 : 0,
+      glow: Math.random() < 0.4,
+    });
+  }
+}
+
+function spawnFirework(x, y, palette) {
+  const shells = 3 + Math.floor(Math.random() * 4);
+  for (let s = 0; s < shells; s++) {
+    setTimeout(() => {
+      const fx = x + (Math.random() - 0.5) * 200;
+      const fy = y - 50 - Math.random() * 200;
+      spawnBurst(fx, fy, 80, palette, 10, Math.PI * 2, 0, 0.18, 0.9);
+      shockwave(fx, fy, randFrom(palette), 60);
+    }, s * 180);
+  }
+}
+
+function spawnGalaxy(cx, cy, count, palette) {
+  for (let i = 0; i < count; i++) {
+    const arm    = Math.floor(Math.random() * 3);
+    const t      = Math.random();
+    const angle  = arm * (Math.PI * 2 / 3) + t * Math.PI * 3;
+    const radius = 20 + t * 300;
+    const spread = (1 - t) * 30 + 10;
+    const px = cx + Math.cos(angle) * radius + (Math.random() - 0.5) * spread;
+    const py = cy + Math.sin(angle) * radius + (Math.random() - 0.5) * spread;
+    const vangle = angle + Math.PI / 2;
+    const speed  = 0.5 + Math.random() * 1.5;
+    particles.push({
+      x: px, y: py,
+      vx: Math.cos(vangle) * speed,
+      vy: Math.sin(vangle) * speed,
+      ax: 0, ay: 0,
+      alpha: 0.6 + Math.random() * 0.4,
+      decay: 0.003 + Math.random() * 0.004,
+      color: randFrom(palette),
+      size: 1.5 + Math.random() * 4,
+      shape: 'circle',
+      rot: 0, spin: 0,
+      trail: [], trailMax: 0, glow: true,
+    });
+  }
+}
+
+function spawnMatrix(count, palette) {
+  for (let i = 0; i < count; i++) {
+    const col  = Math.floor(Math.random() * Math.ceil(W() / 18));
+    const px   = col * 18 + 9;
+    const spd  = 3 + Math.random() * 8;
+    particles.push({
+      x: px, y: -20,
+      vx: 0, vy: spd,
+      ax: 0, ay: 0,
+      alpha: 0.8 + Math.random() * 0.2,
+      decay: 0.002,
+      color: randFrom(palette),
+      size: 12 + Math.random() * 6,
+      shape: 'char',
+      char: String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96)),
+      rot: 0, spin: 0,
+      trail: [], trailMax: 0, glow: true,
+      isMatrix: true,
+    });
+  }
+}
+
+function spawnBlackHole(cx, cy, count, palette) {
+  for (let i = 0; i < count; i++) {
+    const angle  = Math.random() * Math.PI * 2;
+    const radius = 100 + Math.random() * (Math.min(W(), H()) / 2 - 100);
+    particles.push({
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+      vx: 0, vy: 0,
+      ax: 0, ay: 0,
+      bh: { cx, cy, strength: 3 + Math.random() * 4 },
+      alpha: 0.7 + Math.random() * 0.3,
+      decay: 0.006,
+      color: randFrom(palette),
+      size: 2 + Math.random() * 5,
+      shape: 'circle',
+      rot: 0, spin: 0.05 + Math.random() * 0.1,
+      trail: [], trailMax: 6, glow: true,
+    });
+  }
+}
+
+function spawnLightning(x1, y1, x2, y2, palette, depth = 4) {
+  if (depth === 0) return;
+  const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * 80 * depth;
+  const my = (y1 + y2) / 2 + (Math.random() - 0.5) * 80 * depth;
+  const seg = 8;
+  for (let i = 0; i <= seg; i++) {
+    const t  = i / seg;
+    const px = lerp(x1, mx, t) + (Math.random() - 0.5) * 10 * depth;
+    const py = lerp(y1, my, t) + (Math.random() - 0.5) * 10 * depth;
+    particles.push({
+      x: px, y: py,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      ax: 0, ay: 0,
+      alpha: 0.9,
+      decay: 0.04 + Math.random() * 0.04,
+      color: randFrom(palette),
+      size: depth * 1.5,
+      shape: 'circle',
+      rot: 0, spin: 0,
+      trail: [], trailMax: 0, glow: true,
+    });
+  }
+  spawnLightning(x1, y1, mx, my, palette, depth - 1);
+  spawnLightning(mx, my, x2, y2, palette, depth - 1);
+  if (Math.random() < 0.4)
+    spawnLightning(mx, my, mx + (Math.random()-0.5)*300, my + Math.random()*300, palette, depth - 2);
+}
+
+function spawnNova(cx, cy, palette) {
+  for (let ring = 1; ring <= 5; ring++) {
+    const count = ring * 30;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const spd   = 2 + ring * 3;
+      particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        ax: 0, ay: 0,
+        alpha: 0.9,
+        decay: 0.004 + ring * 0.002,
+        color: PALETTES[6][ring % PALETTES[6].length],
+        size: 4 - ring * 0.4,
+        shape: 'circle',
+        rot: 0, spin: 0,
+        trail: [], trailMax: 5, glow: true,
+      });
+    }
+  }
+}
+
+function drawStar(ctx, x, y, r, points = 5) {
+  const step = Math.PI / points;
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const radius = i % 2 === 0 ? r : r * 0.4;
+    const angle  = i * step - Math.PI / 2;
+    ctx[i === 0 ? 'moveTo' : 'lineTo'](
+      x + Math.cos(angle) * radius,
+      y + Math.sin(angle) * radius
+    );
+  }
+  ctx.closePath();
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+
+    if (p.bh) {
+      const dx = p.bh.cx - p.x;
+      const dy = p.bh.cy - p.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) + 1;
+      const force = p.bh.strength * 500 / (dist * dist);
+      p.vx += (dx / dist) * force * dt;
+      p.vy += (dy / dist) * force * dt;
+      p.vx += (-dy / dist) * force * dt * 0.3;
+      p.vy += ( dx / dist) * force * dt * 0.3;
+      if (dist < 20) { particles.splice(i, 1); continue; }
+    }
+
+    if (p.trailMax > 0) {
+      p.trail.push({ x: p.x, y: p.y, a: p.alpha });
+      if (p.trail.length > p.trailMax) p.trail.shift();
+    }
+
+    p.vx += p.ax * dt;
+    p.vy += p.ay * dt;
+    p.vx *= 0.995;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.spin;
+    p.alpha -= p.decay;
+
+    if (p.alpha <= 0) { particles.splice(i, 1); }
+  }
+}
+
+function drawParticles() {
+  const ctx = layers.top.ctx;
+  ctx.clearRect(0, 0, W(), H());
+  ctx.save();
+
+  for (const p of particles) {
+    if (p.alpha <= 0) continue;
+
+    if (p.trail.length > 1) {
+      for (let j = 1; j < p.trail.length; j++) {
+        const t0 = p.trail[j-1], t1 = p.trail[j];
+        const a = (j / p.trail.length) * p.alpha * 0.5;
+        ctx.strokeStyle = p.color;
+        ctx.globalAlpha = a;
+        ctx.lineWidth = p.size * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(t0.x, t0.y);
+        ctx.lineTo(t1.x, t1.y);
+        ctx.stroke();
+      }
+    }
+
+    ctx.save();
+    ctx.globalAlpha = clamp(p.alpha, 0, 1);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+
+    if (p.glow) {
+      ctx.shadowBlur = p.size * 3;
+      ctx.shadowColor = p.color;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fillStyle = p.color;
+
+    if (p.shape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.shape === 'rect') {
+      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    } else if (p.shape === 'star') {
+      drawStar(ctx, 0, 0, p.size / 2);
+      ctx.fill();
+    } else if (p.shape === 'char') {
+      ctx.shadowBlur = 8;
+      ctx.font = `${p.size}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.char, 0, 0);
+      if (Math.random() < 0.05) p.char = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+    }
+
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ── Background Systems ────────────────────────────────────────────────────
+const stars = [];
+for (let i = 0; i < 300; i++) {
+  stars.push({
+    x: Math.random(),
+    y: Math.random(),
+    r: 0.3 + Math.random() * 1.8,
+    brightness: 0.2 + Math.random() * 0.8,
+    twinkleSpeed: 0.5 + Math.random() * 2,
+    twinklePhase: Math.random() * Math.PI * 2,
+  });
+}
+
+let bgMode = 'stars';
+let bgTransition = 0;
+let nebulaOffset = 0;
+let auroraSeed   = Math.random() * 1000;
+
+function drawBackground(t) {
+  const ctx = layers.bg.ctx;
+  ctx.clearRect(0, 0, W(), H());
+
+  if (bgMode === 'stars' || bgMode === 'nebula') {
+    ctx.fillStyle = '#000008';
+    ctx.fillRect(0, 0, W(), H());
+
+    for (const s of stars) {
+      const tw = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinklePhase);
+      const a  = s.brightness * tw;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(s.x * W(), s.y * H(), s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  if (bgMode === 'nebula') {
+    nebulaOffset += 0.002;
+    const grad1 = ctx.createRadialGradient(W()*0.3, H()*0.4, 0, W()*0.3, H()*0.4, W()*0.5);
+    grad1.addColorStop(0, `hsla(270,80%,30%,${0.12 + 0.05*Math.sin(t*0.3)})`);
+    grad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad1; ctx.fillRect(0, 0, W(), H());
+
+    const grad2 = ctx.createRadialGradient(W()*0.7, H()*0.6, 0, W()*0.7, H()*0.6, W()*0.4);
+    grad2.addColorStop(0, `hsla(200,80%,20%,${0.1 + 0.04*Math.sin(t*0.4 + 1)})`);
+    grad2.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad2; ctx.fillRect(0, 0, W(), H());
+  }
+
+  if (bgMode === 'aurora') {
+    ctx.fillStyle = '#000010';
+    ctx.fillRect(0, 0, W(), H());
+    for (const s of stars) {
+      ctx.globalAlpha = s.brightness * 0.4;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(s.x * W(), s.y * H(), s.r * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    const bands = 6;
+    for (let b = 0; b < bands; b++) {
+      const hue    = 120 + b * 30 + Math.sin(t * 0.2 + b) * 40;
+      const yBase  = H() * (0.1 + b * 0.12);
+      const amp    = 30 + 20 * Math.sin(t * 0.3 + b * 0.7);
+      ctx.beginPath();
+      ctx.moveTo(0, yBase);
+      for (let x = 0; x <= W(); x += 4) {
+        const y = yBase + Math.sin((x / W()) * Math.PI * 4 + t * 0.5 + b) * amp;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W(), 0); ctx.lineTo(0, 0); ctx.closePath();
+      const ag = ctx.createLinearGradient(0, yBase - amp, 0, yBase + amp);
+      ag.addColorStop(0, `hsla(${hue},100%,60%,0)`);
+      ag.addColorStop(0.5, `hsla(${hue},100%,60%,${0.06 + 0.03*Math.sin(t + b)})`);
+      ag.addColorStop(1, `hsla(${hue},100%,60%,0)`);
+      ctx.fillStyle = ag;
+      ctx.fill();
+    }
+  }
+
+  if (bgMode === 'vortex') {
+    ctx.fillStyle = `rgba(0,0,5,0.08)`;
+    ctx.fillRect(0, 0, W(), H());
+    const cx = W() / 2, cy = H() / 2;
+    for (let i = 0; i < 8; i++) {
+      const angle  = (i / 8) * Math.PI * 2 + t * 0.4;
+      const radius = 50 + 300 * Math.abs(Math.sin(t * 0.1 + i));
+      const grad   = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      const hue    = (i * 45 + t * 30) % 360;
+      grad.addColorStop(0, `hsla(${hue},100%,50%,0.02)`);
+      grad.addColorStop(0.5, `hsla(${hue+60},100%,60%,0.04)`);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, W(), H());
+    }
+  }
+
+  if (bgMode === 'supernova') {
+    ctx.fillStyle = `rgba(5,0,0,0.06)`;
+    ctx.fillRect(0, 0, W(), H());
+    const cx = W() / 2, cy = H() / 2;
+    const radius = (100 + Math.sin(t * 2) * 50) * (1 + bgTransition * 5);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0,   `rgba(255,255,255,${0.05 + 0.03 * Math.sin(t * 3)})`);
+    grad.addColorStop(0.3, `rgba(255,150,50,0.06)`);
+    grad.addColorStop(0.7, `rgba(200,20,200,0.04)`);
+    grad.addColorStop(1,   'transparent');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W(), H());
+  }
+}
+
+// ── Midground (persistent glows, rings) ──────────────────────────────────
+const glowRings = [];
+
+function addGlowRing(x, y, color, maxR = 400) {
+  glowRings.push({ x, y, r: 0, maxR, color, alpha: 0.8, speed: 4 });
+}
+
+function updateMid() {
+  const ctx = layers.mid.ctx;
+  ctx.clearRect(0, 0, W(), H());
+
+  for (let i = glowRings.length - 1; i >= 0; i--) {
+    const g = glowRings[i];
+    g.r     += g.speed;
+    g.alpha -= 0.008;
+    if (g.alpha <= 0 || g.r > g.maxR) { glowRings.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = g.alpha * (1 - g.r / g.maxR);
+    ctx.strokeStyle = g.color;
+    ctx.lineWidth   = 2;
+    ctx.shadowBlur  = 20;
+    ctx.shadowColor = g.color;
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ── Shockwave DOM ─────────────────────────────────────────────────────────
+function shockwave(x, y, color, size = 100) {
+  const el = document.createElement('div');
+  el.className = 'shockwave';
+  const s = size;
+  el.style.cssText = `
+    width:${s}px; height:${s}px;
+    left:${x - s/2}px; top:${y - s/2}px;
+    border: 3px solid ${color};
+    box-shadow: 0 0 20px ${color}, inset 0 0 20px ${color}33;
+  `;
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+// ── Screen FX ─────────────────────────────────────────────────────────────
+let shakeX = 0, shakeY = 0, shakeDecay = 0;
+
+function triggerShake(intensity = 20, duration = 0.5) {
+  shakeDecay = intensity / duration;
+  shakeX     = intensity;
+}
+
+function triggerFlash(color = '#ffffff', opacity = 0.8, dur = 300) {
+  const f = document.getElementById('flash');
+  f.style.background = color;
+  f.style.opacity    = opacity;
+  f.style.transition = 'none';
+  requestAnimationFrame(() => {
+    f.style.transition = `opacity ${dur}ms ease`;
+    f.style.opacity    = 0;
+  });
+}
+
+// ── UI Layer (FPS / HUD) ──────────────────────────────────────────────────
+let fps = 0, fpsAcc = 0, fpsCnt = 0, lastT = 0;
+
+function drawUI(t) {
+  const ctx = layers.ui.ctx;
+  ctx.clearRect(0, 0, W(), H());
+
+  fpsAcc += t - lastT; fpsCnt++;
+  if (fpsAcc >= 1) { fps = Math.round(fpsCnt / fpsAcc); fpsAcc = 0; fpsCnt = 0; }
+  lastT = t;
+
+  ctx.save();
+  ctx.font = '10px monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.textAlign = 'right';
+  ctx.fillText(`FPS ${fps} | P ${particles.length}`, W() - 12, 20);
+  ctx.restore();
+}
+
+// ── Phase Definitions ─────────────────────────────────────────────────────
+const PHASES = [
+  {
+    name: 'Dormant',
+    label: 'Phase 0 — Dormant',
+    title: 'Something extraordinary awaits',
+    icon: '⚡',
+    btnText: 'ACTIVATE',
+    message: '',
+    bg: 'stars',
+    onEnter() {},
+  },
+  {
+    name: 'Awakening',
+    label: 'Phase 1 — Awakening',
+    title: 'The energy stirs...',
+    icon: '🌟',
+    btnText: 'AGAIN',
+    message: 'THE COSMOS TAKES NOTICE 🌌',
+    bg: 'nebula',
+    onEnter(cx, cy) {
+      spawnBurst(cx, cy, 300, PALETTES[0], 16, Math.PI*2, 0, 0.25, 1.0);
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => addGlowRing(cx, cy, '#a855f7', 500), i * 100);
+      }
+      shockwave(cx, cy, '#e040fb', 120);
+      triggerShake(8, 0.4);
+    },
+  },
+  {
+    name: 'Storm',
+    label: 'Phase 2 — Electrical Storm',
+    title: 'Lightning obeys your will',
+    icon: '⚡',
+    btnText: 'MORE',
+    message: 'REALITY CRACKS OPEN ⚡',
+    bg: 'nebula',
+    onEnter(cx, cy) {
+      spawnBurst(cx, cy, 400, PALETTES[2], 18, Math.PI*2, 0, 0.3, 1.0);
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+          const ex = (Math.random() - 0.5) * W() + cx;
+          const ey = (Math.random() - 0.5) * H() + cy;
+          spawnLightning(cx, cy, ex, ey, PALETTES[0], 4);
+          shockwave(ex, ey, '#06b6d4', 80);
+        }, i * 120);
+      }
+      spawnBurst(cx, cy, 200, PALETTES[1], 12, Math.PI*2, 0, 0.1);
+      triggerShake(15, 0.6);
+      triggerFlash('#0088ff', 0.3);
+    },
+  },
+  {
+    name: 'Galaxy',
+    label: 'Phase 3 — Galaxy Formation',
+    title: 'You are the centre of everything',
+    icon: '🌀',
+    btnText: 'DEEPER',
+    message: 'GALAXIES SPIRAL FOR YOU 🌀',
+    bg: 'aurora',
+    onEnter(cx, cy) {
+      spawnGalaxy(cx, cy, 600, PALETTES[6]);
+      spawnFirework(cx, cy, PALETTES[0]);
+      spawnFirework(W()*0.2, H()*0.3, PALETTES[1]);
+      spawnFirework(W()*0.8, H()*0.3, PALETTES[2]);
+      spawnBurst(cx, cy, 200, PALETTES[5], 20, Math.PI*2, 0, 0.2);
+      triggerShake(12, 0.8);
+      triggerFlash('#aa00ff', 0.35);
+    },
+  },
+  {
+    name: 'Matrix',
+    label: 'Phase 4 — Digital Rain',
+    title: 'You have broken the simulation',
+    icon: '👁️',
+    btnText: 'BREACH',
+    message: 'THE MATRIX DISSOLVES AROUND YOU 👁️',
+    bg: 'vortex',
+    onEnter(cx, cy) {
+      spawnMatrix(200, PALETTES[4]);
+      spawnBurst(cx, cy, 300, PALETTES[4], 14, Math.PI*2, 0, 0.15);
+      for (let i = 0; i < 12; i++) {
+        setTimeout(() => {
+          const x = Math.random() * W();
+          const y = Math.random() * H();
+          spawnLightning(x, 0, x + (Math.random()-0.5)*100, H(), PALETTES[4], 3);
+        }, i * 80);
+      }
+      triggerShake(10, 0.5);
+      triggerFlash('#00ff88', 0.25);
+    },
+  },
+  {
+    name: 'Black Hole',
+    label: 'Phase 5 — Singularity',
+    title: 'Everything bends toward you',
+    icon: '🕳️',
+    btnText: 'CONSUME',
+    message: 'YOU ARE THE SINGULARITY 🕳️',
+    bg: 'vortex',
+    onEnter(cx, cy) {
+      spawnBlackHole(cx, cy, 600, PALETTES[6]);
+      spawnNova(cx, cy, PALETTES[3]);
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => shockwave(cx, cy, PALETTES[3][i % PALETTES[3].length], 100 + i * 40), i * 150);
+      }
+      triggerShake(25, 1.0);
+      triggerFlash('#ff0000', 0.4);
+    },
+  },
+  {
+    name: 'Supernova',
+    label: 'Phase 6 — Supernova',
+    title: 'You have become the universe',
+    icon: '💥',
+    btnText: 'ASCEND',
+    message: 'YOU HAVE TRANSCENDED EXISTENCE 💥✨',
+    bg: 'supernova',
+    onEnter(cx, cy) {
+      triggerFlash('#ffffff', 1.0, 800);
+      triggerShake(40, 1.5);
+      setTimeout(() => {
+        for (let i = 0; i < 20; i++) {
+          const x = Math.random() * W(), y = Math.random() * H();
+          spawnBurst(x, y, 120, PALETTES[6], 20, Math.PI*2, 0, 0.1);
+          spawnFirework(x, y, PALETTES[i % PALETTES.length]);
+        }
+        spawnNova(cx, cy, PALETTES[6]);
+        spawnNova(cx, cy, PALETTES[5]);
+        spawnGalaxy(cx, cy, 800, PALETTES[6]);
+        for (let i = 0; i < 20; i++) {
+          setTimeout(() => {
+            shockwave(cx, cy, PALETTES[6][i % 5], 80 + i * 20);
+          }, i * 60);
+        }
+        for (let i = 0; i < 24; i++) {
+          const ex = Math.random() * W();
+          const ey = Math.random() * H();
+          setTimeout(() => {
+            spawnLightning(cx, cy, ex, ey, PALETTES[6], 5);
+            addGlowRing(ex, ey, randFrom(PALETTES[6]), 300);
+          }, i * 50);
+        }
+      }, 400);
+    },
+  },
+  {
+    name: 'Eternal',
+    label: 'Phase 7 — Eternal Loop',
+    title: '∞  You are infinite  ∞',
+    icon: '∞',
+    btnText: 'AGAIN ∞',
+    message: 'INFINITE POWER — INFINITE YOU ∞',
+    bg: 'aurora',
+    onEnter(cx, cy) {
+      triggerFlash('#ffff00', 0.6, 600);
+      triggerShake(20, 1.0);
+      spawnNova(cx, cy, PALETTES[6]);
+      spawnGalaxy(cx, cy, 500, PALETTES[6]);
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+          spawnFirework(
+            cx + (Math.random()-0.5)*W()*0.8,
+            cy + (Math.random()-0.5)*H()*0.8,
+            PALETTES[i % PALETTES.length]
+          );
+        }, i * 150);
+      }
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => shockwave(cx, cy, PALETTES[6][i % 5], 60 + i * 30), i * 100);
+      }
+    },
+  },
+];
+
+// ── Phase State ───────────────────────────────────────────────────────────
+let currentPhase = 0;
+let pressCount   = 0;
+let totalParticlesEver = 0;
+
+const phaseDotsEl = document.getElementById('phase-dots');
+const hintEl      = document.getElementById('hint');
+
+function buildPhaseDots() {
+  phaseDotsEl.innerHTML = '';
+  for (let i = 1; i < PHASES.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    d.id = `pdot-${i}`;
+    phaseDotsEl.appendChild(d);
+  }
+}
+buildPhaseDots();
+
+function updatePhaseDots() {
+  for (let i = 1; i < PHASES.length; i++) {
+    const d = document.getElementById(`pdot-${i}`);
+    if (!d) continue;
+    d.classList.remove('active', 'done');
+    if (i < currentPhase)  d.classList.add('done');
+    if (i === currentPhase) d.classList.add('active');
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-presses').textContent   = `Presses: ${pressCount}`;
+  document.getElementById('stat-particles').textContent = `Particles: ${particles.length}`;
+  document.getElementById('stat-phase').textContent     = `Phase: ${currentPhase}`;
+
+  if (pressCount > 0) {
+    document.getElementById('stat-presses').classList.add('lit');
+  }
+  if (particles.length > 100) {
+    document.getElementById('stat-particles').classList.add('lit');
+  }
+}
+
+// ── Typewriter Effect ─────────────────────────────────────────────────────
+const TYPEWRITER_LINES = [
+  'INITIATING COSMIC SEQUENCE...',
+  'REALITY FABRIC DESTABILIZED.',
+  'QUANTUM ENTANGLEMENT: ACTIVE.',
+  'DARK ENERGY LEVELS: CRITICAL.',
+  'MULTIVERSE CONVERGENCE DETECTED.',
+  'SPACETIME CURVATURE: MAXIMUM.',
+  'CONSCIOUSNESS EXPANSION: ONGOING...',
+  'YOU HAVE BROKEN PHYSICS.',
+  'THE UNIVERSE THANKS YOU.',
+  'SINGULARITY EVENT HORIZON CROSSED.',
+  'ALL MATTER BOWS TO YOUR WILL.',
+  'ENTROPY REVERSED. HOW?',
+  'SIMULATION INTEGRITY: 0%',
+  '> GOD MODE ACTIVATED.',
+];
+
+let twIndex = 0, twCharIndex = 0, twDir = 1, twPause = 0;
+const twEl = document.getElementById('typewriter');
+
+function stepTypewriter() {
+  if (currentPhase === 0) { twEl.textContent = ''; return; }
+  const line = TYPEWRITER_LINES[twIndex % TYPEWRITER_LINES.length];
+  if (twPause > 0) { twPause--; return; }
+  if (twDir === 1) {
+    twCharIndex++;
+    twEl.textContent = line.slice(0, twCharIndex);
+    if (twCharIndex >= line.length) { twDir = -1; twPause = 60; }
+  } else {
+    twCharIndex--;
+    twEl.textContent = line.slice(0, twCharIndex);
+    if (twCharIndex <= 0) { twDir = 1; twPause = 20; twIndex++; }
+  }
+}
+
+// ── Message Display ───────────────────────────────────────────────────────
+function showMessage(text) {
+  const el = document.getElementById('message');
+  el.classList.remove('show');
+  el.textContent = text;
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ── Button Activation ─────────────────────────────────────────────────────
+const btn = document.getElementById('btn');
+
+btn.addEventListener('click', e => {
+  ensureAudio();
+  pressCount++;
+  totalParticlesEver += particles.length;
+
+  const rect = btn.getBoundingClientRect();
+  const cx   = rect.left + rect.width  / 2;
+  const cy   = rect.top  + rect.height / 2;
+
+  const nextPhase = currentPhase < PHASES.length - 1 ? currentPhase + 1 : PHASES.length - 1;
+
+  if (currentPhase === PHASES.length - 1) {
+    PHASES[currentPhase].onEnter(cx, cy);
+    PHASE_AUDIO[6]();
+  } else {
+    currentPhase = nextPhase;
+    const phase = PHASES[currentPhase];
+    bgMode = phase.bg;
+    bgTransition = 0;
+
+    document.getElementById('phase-label').textContent = phase.label;
+    document.getElementById('title').textContent       = phase.title;
+    document.getElementById('btn-icon').textContent    = phase.icon;
+    document.getElementById('btn-text').textContent    = phase.btnText;
+    document.getElementById('btn-count').textContent   = `×${pressCount}`;
+    hintEl.textContent = `Phase ${currentPhase} / ${PHASES.length - 1}`;
+
+    if (phase.message) showMessage(phase.message);
+    phase.onEnter(cx, cy);
+    PHASE_AUDIO[Math.min(currentPhase, PHASE_AUDIO.length - 1)]();
+    updatePhaseDots();
+  }
+
+  updateStats();
+});
+
+// ── Cursor ────────────────────────────────────────────────────────────────
+let mouseX = W()/2, mouseY = H()/2;
+let cursorX = W()/2, cursorY = H()/2;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+});
+
+document.addEventListener('mouseenter', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+});
+
+btn.addEventListener('mouseenter', () => {
+  const c = document.getElementById('cursor');
+  c.style.width  = '40px';
+  c.style.height = '40px';
+  c.style.background = 'rgba(224,64,251,0.2)';
+});
+
+btn.addEventListener('mouseleave', () => {
+  const c = document.getElementById('cursor');
+  c.style.width  = '20px';
+  c.style.height = '20px';
+  c.style.background = 'transparent';
+});
+
+// ── Main Loop ─────────────────────────────────────────────────────────────
+let then = performance.now();
+let twTimer = 0;
+
+function loop(now) {
+  const dt = Math.min((now - then) / 1000, 0.05);
+  then = now;
+  const t = now / 1000;
+
+  bgTransition = Math.min(bgTransition + dt * 0.5, 1);
+
+  // Cursor lerp
+  cursorX = lerp(cursorX, mouseX, 0.15);
+  cursorY = lerp(cursorY, mouseY, 0.15);
+  const cursor    = document.getElementById('cursor');
+  const cursorDot = document.getElementById('cursor-dot');
+  cursor.style.left    = cursorX + 'px';
+  cursor.style.top     = cursorY + 'px';
+  cursorDot.style.left = mouseX + 'px';
+  cursorDot.style.top  = mouseY + 'px';
+
+  // Screen shake
+  let offsetX = 0, offsetY = 0;
+  if (shakeX > 0) {
+    offsetX = (Math.random() - 0.5) * shakeX;
+    offsetY = (Math.random() - 0.5) * shakeX;
+    shakeX  = Math.max(0, shakeX - shakeDecay * dt);
+  }
+  document.getElementById('stage').style.transform =
+    `translate(${offsetX}px, ${offsetY}px)`;
+
+  // Typewriter
+  twTimer += dt;
+  if (twTimer > 0.04) { twTimer = 0; stepTypewriter(); }
+
+  // Update + draw
+  updateParticles(dt);
+  drawBackground(t);
+  updateMid();
+  drawParticles();
+  drawUI(t);
+  updateStats();
+
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+// ── Keyboard Shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    btn.click();
+  }
+});
+
+// ── Resize guard ──────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  for (const s of stars) {
+    s.x = Math.random();
+    s.y = Math.random();
+  }
+});
+</script>
+</body>
+</html>
