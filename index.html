@@ -3,106 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
+  <title>DarkWeb Monitor — Breach Detection</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
+
     <header class="header">
       <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
+        <span class="logo-icon">&#x1F6E1;</span>
+        <span class="logo-text">DarkWeb <span class="accent">Monitor</span></span>
       </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
+      <p class="tagline">Check if your data has been exposed in known breaches — powered by HaveIBeenPwned</p>
     </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
-
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
+    <!-- ── Password Checker ──────────────────────────────────────── -->
+    <section class="card" id="pwSection">
+      <h2><span class="section-icon">&#x1F511;</span> Password Breach Check</h2>
+      <p class="section-desc">Checks your password against 1 billion+ leaked passwords using k-anonymity — your full password is never sent anywhere.</p>
+      <div class="input-row">
+        <div class="pw-wrap">
+          <input id="pwInput" type="password" placeholder="Enter a password to check…" autocomplete="off" spellcheck="false" />
+          <button id="pwToggle" class="btn btn-ghost btn-sm" title="Show/hide">&#x1F441;</button>
         </div>
-
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
+        <button id="pwBtn" class="btn btn-primary">Check Password</button>
       </div>
+      <div id="pwResult" class="result-box hidden"></div>
+    </section>
 
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
+    <!-- ── Email Checker ─────────────────────────────────────────── -->
+    <section class="card" id="emailSection">
+      <h2><span class="section-icon">&#x2709;&#xFE0F;</span> Email Breach Check</h2>
+      <p class="section-desc">Find out which data breaches your email address appeared in. Requires a free HIBP API key — <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">get one free here</a>.</p>
+      <div class="input-row">
+        <input id="apiKeyInput" type="password" placeholder="Paste your free HIBP API key…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="input-row">
+        <input id="emailInput" type="email" placeholder="your@email.com" autocomplete="off" spellcheck="false" />
+        <button id="emailBtn" class="btn btn-primary">Check Email</button>
+      </div>
+      <div id="emailResult" class="result-box hidden"></div>
+    </section>
+
+    <!-- ── Recent Breaches Feed ──────────────────────────────────── -->
+    <section class="card" id="feedSection">
+      <div class="feed-header">
+        <h2><span class="section-icon">&#x1F4E1;</span> Recent Known Breaches</h2>
+        <span id="feedCount" class="badge"></span>
+      </div>
+      <p class="section-desc">Latest confirmed data breaches from the HaveIBeenPwned database.</p>
+      <div class="feed-filters">
+        <input id="feedSearch" type="text" placeholder="Search breaches…" autocomplete="off" />
+        <select id="feedSort">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="size-desc">Largest first</option>
+        </select>
+      </div>
+      <div id="feedList" class="feed-list">
+        <div class="loading-spinner">Loading breach data…</div>
       </div>
     </section>
 
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
-      </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
   </div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <footer class="footer">
+    Breach data provided by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">HaveIBeenPwned</a>.
+    Passwords checked via k-anonymity — your password never leaves your browser intact.
+  </footer>
+
   <script src="app.js"></script>
 </body>
 </html>

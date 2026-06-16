@@ -1,399 +1,227 @@
 'use strict';
 
-// ── DOM refs ──────────────────────────────────────────────────────────────────
-const video       = document.getElementById('video');
-const canvas      = document.getElementById('overlay');
-const ctx         = canvas.getContext('2d');
-const btnLoadUrl  = document.getElementById('btnLoadUrl');
-const btnStart    = document.getElementById('btnStart');
-const btnStop     = document.getElementById('btnStop');
-const btnClear    = document.getElementById('btnClear');
-const videoUrl    = document.getElementById('videoUrl');
-const videoFile   = document.getElementById('videoFile');
-const fileLabel   = document.getElementById('fileLabel');
-const urlHint     = document.getElementById('urlHint');
-const modelStatus = document.getElementById('modelStatus');
-const scaleSlider = document.getElementById('scaleFactor');
-const scaleValue  = document.getElementById('scaleValue');
-const confSlider  = document.getElementById('confidence');
-const confValue   = document.getElementById('confValue');
-const statCount   = document.getElementById('statCount');
-const statAvg     = document.getElementById('statAvg');
-const statMax     = document.getElementById('statMax');
-const statFps     = document.getElementById('statFps');
+// ── Password Checker (HIBP k-anonymity, free, no key needed) ──────────────────
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let cocoModel    = null;
-let detecting    = false;
-let rafId        = null;
-let tracker      = null;
-let lastTs       = 0;
-let frameTimes   = [];
+async function sha1(str) {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
 
-const VEHICLE_CLASSES = new Set(['car','truck','bus','motorcycle','bicycle']);
+async function checkPassword(password) {
+  const hash   = await sha1(password);
+  const prefix = hash.slice(0, 5);
+  const suffix = hash.slice(5);
 
-// ── Centroid tracker ──────────────────────────────────────────────────────────
-class CentroidTracker {
-  constructor() {
-    this.objects     = new Map(); // id → {cx, cy, bbox, speed, smoothSpeed}
-    this.disappeared = new Map(); // id → frames-missing count
-    this.history     = new Map(); // id → [{cx, cy, ms}]
-    this.nextId      = 0;
-    this.MAX_GONE    = 12;
-    this.MAX_DIST    = 120; // pixels
-    this.HIST_LEN    = 18;
-  }
+  const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+    headers: { 'Add-Padding': 'true' }
+  });
+  if (!res.ok) throw new Error('HIBP API error: ' + res.status);
 
-  _register(cx, cy, bbox) {
-    const id = this.nextId++;
-    this.objects.set(id, { cx, cy, bbox, speed: 0, smoothSpeed: 0 });
-    this.disappeared.set(id, 0);
-    this.history.set(id, [{ cx, cy, ms: performance.now() }]);
-    return id;
-  }
+  const text  = await res.text();
+  const match = text.split('\n').find(line => line.startsWith(suffix));
+  if (!match) return 0;
+  return parseInt(match.split(':')[1].trim(), 10);
+}
 
-  _deregister(id) {
-    this.objects.delete(id);
-    this.disappeared.delete(id);
-    this.history.delete(id);
-  }
+const pwInput  = document.getElementById('pwInput');
+const pwBtn    = document.getElementById('pwBtn');
+const pwResult = document.getElementById('pwResult');
+const pwToggle = document.getElementById('pwToggle');
 
-  update(detections, pixelsPerMeter) {
-    if (detections.length === 0) {
-      for (const id of [...this.disappeared.keys()]) {
-        const gone = this.disappeared.get(id) + 1;
-        if (gone > this.MAX_GONE) this._deregister(id);
-        else this.disappeared.set(id, gone);
-      }
-      return this.objects;
+pwToggle.addEventListener('click', () => {
+  const show = pwInput.type === 'password';
+  pwInput.type = show ? 'text' : 'password';
+  pwToggle.textContent = show ? '🚫' : '👁';
+});
+
+pwBtn.addEventListener('click', async () => {
+  const pw = pwInput.value.trim();
+  if (!pw) return showResult(pwResult, 'Enter a password first.', 'warn');
+
+  pwBtn.disabled = true;
+  pwBtn.textContent = 'Checking…';
+  try {
+    const count = await checkPassword(pw);
+    if (count === 0) {
+      showResult(pwResult,
+        '<span class="safe-icon">&#x2705;</span> <strong>Not found</strong> in any known breach. Looks safe — but use a password manager and stay unique across sites.',
+        'safe');
+    } else {
+      showResult(pwResult,
+        `<span class="danger-icon">&#x26A0;&#xFE0F;</span> <strong>Exposed ${count.toLocaleString()} times</strong> in known data breaches. Stop using this password immediately and change it everywhere you use it.`,
+        'danger');
     }
+  } catch (e) {
+    showResult(pwResult, 'Error: ' + e.message, 'warn');
+  } finally {
+    pwBtn.disabled = false;
+    pwBtn.textContent = 'Check Password';
+  }
+});
 
-    const inputs = detections.map(d => ({
-      cx:   d.bbox[0] + d.bbox[2] / 2,
-      cy:   d.bbox[1] + d.bbox[3] / 2,
-      bbox: d.bbox,
-    }));
+pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') pwBtn.click(); });
 
-    if (this.objects.size === 0) {
-      inputs.forEach(i => this._register(i.cx, i.cy, i.bbox));
-      return this.objects;
-    }
+// ── Email Checker (requires free HIBP API key) ────────────────────────────────
 
-    // Build cost matrix (Euclidean distance)
-    const ids   = [...this.objects.keys()];
-    const objs  = ids.map(id => this.objects.get(id));
-    const costs = objs.map(o =>
-      inputs.map(i => Math.hypot(o.cx - i.cx, o.cy - i.cy))
+const emailInput  = document.getElementById('emailInput');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const emailBtn    = document.getElementById('emailBtn');
+const emailResult = document.getElementById('emailResult');
+
+emailBtn.addEventListener('click', async () => {
+  const email  = emailInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
+
+  if (!apiKey) {
+    return showResult(emailResult,
+      '&#x1F511; Paste your free HIBP API key first. <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">Get one free here</a> — it takes 30 seconds.',
+      'warn');
+  }
+  if (!email || !email.includes('@')) {
+    return showResult(emailResult, 'Enter a valid email address.', 'warn');
+  }
+
+  emailBtn.disabled = true;
+  emailBtn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      { headers: { 'hibp-api-key': apiKey, 'user-agent': 'DarkWebMonitor' } }
     );
 
-    // Greedy nearest-neighbour matching (simple but effective for traffic)
-    const pairs = [];
-    for (let r = 0; r < costs.length; r++)
-      for (let c = 0; c < costs[r].length; c++)
-        pairs.push({ r, c, d: costs[r][c] });
-    pairs.sort((a, b) => a.d - b.d);
-
-    const usedR = new Set(), usedC = new Set();
-    for (const { r, c, d } of pairs) {
-      if (usedR.has(r) || usedC.has(c) || d > this.MAX_DIST) continue;
-      usedR.add(r); usedC.add(c);
-
-      const id  = ids[r];
-      const inp = inputs[c];
-      const now = performance.now();
-
-      // Update position history
-      const hist = this.history.get(id);
-      hist.push({ cx: inp.cx, cy: inp.cy, ms: now });
-      if (hist.length > this.HIST_LEN) hist.shift();
-
-      // Speed from history window
-      let speed = 0;
-      if (hist.length >= 4) {
-        const a = hist[0], b = hist[hist.length - 1];
-        const dt = (b.ms - a.ms) / 1000;          // seconds
-        const dp = Math.hypot(b.cx - a.cx, b.cy - a.cy); // pixels
-        speed = dp / pixelsPerMeter / dt * 3.6;    // km/h
-      }
-
-      const prev = this.objects.get(id);
-      // Exponential smoothing so numbers don't flicker wildly
-      const smoothSpeed = prev.smoothSpeed * 0.7 + speed * 0.3;
-
-      this.objects.set(id, {
-        cx: inp.cx, cy: inp.cy, bbox: inp.bbox,
-        speed, smoothSpeed
-      });
-      this.disappeared.set(id, 0);
+    if (res.status === 404) {
+      showResult(emailResult,
+        '<span class="safe-icon">&#x2705;</span> <strong>Good news!</strong> This email wasn\'t found in any known breaches.',
+        'safe');
+    } else if (res.status === 401) {
+      showResult(emailResult, '&#x1F6AB; Invalid API key. Double-check and try again.', 'warn');
+    } else if (res.status === 429) {
+      showResult(emailResult, '&#x23F3; Rate limited — wait a moment and try again.', 'warn');
+    } else if (!res.ok) {
+      showResult(emailResult, 'API error: ' + res.status, 'warn');
+    } else {
+      const breaches = await res.json();
+      renderEmailBreaches(breaches);
     }
-
-    // Mark unmatched existing objects as disappeared
-    for (let r = 0; r < ids.length; r++) {
-      if (!usedR.has(r)) {
-        const id   = ids[r];
-        const gone = this.disappeared.get(id) + 1;
-        if (gone > this.MAX_GONE) this._deregister(id);
-        else this.disappeared.set(id, gone);
-      }
-    }
-
-    // Register brand-new detections
-    for (let c = 0; c < inputs.length; c++) {
-      if (!usedC.has(c)) {
-        const i = inputs[c];
-        this._register(i.cx, i.cy, i.bbox);
-      }
-    }
-
-    return this.objects;
+  } catch (e) {
+    showResult(emailResult,
+      '&#x26A0;&#xFE0F; Network error — this may be a CORS issue if running from a local file. Try hosting the page on a server (e.g. VS Code Live Server).',
+      'warn');
+  } finally {
+    emailBtn.disabled = false;
+    emailBtn.textContent = 'Check Email';
   }
+});
 
-  clear() {
-    this.objects.clear();
-    this.disappeared.clear();
-    this.history.clear();
-    this.nextId = 0;
+emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') emailBtn.click(); });
+
+function renderEmailBreaches(breaches) {
+  const count = breaches.length;
+  let html = `<div class="breach-summary danger">
+    <span class="danger-icon">&#x26A0;&#xFE0F;</span>
+    <strong>Found in ${count} breach${count === 1 ? '' : 'es'}</strong>
+  </div><div class="breach-list">`;
+
+  for (const b of breaches) {
+    const types = (b.DataClasses || []).slice(0, 5).join(', ');
+    html += `
+      <div class="breach-item">
+        <div class="breach-item-header">
+          <strong>${escHtml(b.Title)}</strong>
+          <span class="breach-date">${b.BreachDate ? b.BreachDate.slice(0, 7) : 'Unknown'}</span>
+        </div>
+        <div class="breach-meta">
+          ${b.PwnCount ? `<span class="badge badge-red">${(b.PwnCount / 1e6).toFixed(1)}M accounts</span>` : ''}
+          ${b.IsVerified ? '' : '<span class="badge badge-gray">Unverified</span>'}
+          ${b.IsSensitive ? '<span class="badge badge-orange">Sensitive</span>' : ''}
+        </div>
+        ${types ? `<div class="breach-types">Data: ${escHtml(types)}${b.DataClasses.length > 5 ? ` +${b.DataClasses.length - 5} more` : ''}</div>` : ''}
+      </div>`;
+  }
+  html += '</div>';
+  showResult(emailResult, html, 'danger');
+}
+
+// ── Breach Feed (free, no key) ────────────────────────────────────────────────
+
+const feedList   = document.getElementById('feedList');
+const feedSearch = document.getElementById('feedSearch');
+const feedSort   = document.getElementById('feedSort');
+const feedCount  = document.getElementById('feedCount');
+
+let allBreaches = [];
+
+async function loadFeed() {
+  try {
+    const res = await fetch('https://haveibeenpwned.com/api/v3/breaches');
+    if (!res.ok) throw new Error('Status ' + res.status);
+    allBreaches = await res.json();
+    feedCount.textContent = allBreaches.length + ' breaches';
+    renderFeed();
+  } catch (e) {
+    feedList.innerHTML = `<div class="feed-error">&#x26A0;&#xFE0F; Could not load breach data: ${e.message}</div>`;
   }
 }
 
-// ── Drawing ───────────────────────────────────────────────────────────────────
-function speedColor(kmh) {
-  if (kmh < 40)  return '#22c55e';
-  if (kmh < 80)  return '#eab308';
-  return '#ef4444';
-}
+function renderFeed() {
+  const query = feedSearch.value.toLowerCase();
+  const sort  = feedSort.value;
 
-function drawOverlay(objects, scaleX, scaleY) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let items = allBreaches.filter(b =>
+    b.Name.toLowerCase().includes(query) ||
+    b.Title.toLowerCase().includes(query) ||
+    (b.Domain || '').toLowerCase().includes(query)
+  );
 
-  let totalSpeed = 0, count = 0, maxSpeed = 0;
+  if (sort === 'date-desc') items.sort((a, b) => b.BreachDate.localeCompare(a.BreachDate));
+  else if (sort === 'date-asc') items.sort((a, b) => a.BreachDate.localeCompare(b.BreachDate));
+  else if (sort === 'size-desc') items.sort((a, b) => (b.PwnCount || 0) - (a.PwnCount || 0));
 
-  for (const obj of objects.values()) {
-    if (obj.disappeared > 0) continue;   // only draw live tracks
-
-    const [bx, by, bw, bh] = obj.bbox;
-    const x  = bx * scaleX;
-    const y  = by * scaleY;
-    const w  = bw * scaleX;
-    const h  = bh * scaleY;
-
-    const kmh  = Math.round(obj.smoothSpeed);
-    const col  = speedColor(kmh);
-    const label = `${kmh} km/h`;
-
-    // Bounding box
-    ctx.strokeStyle = col;
-    ctx.lineWidth   = 2;
-    ctx.strokeRect(x, y, w, h);
-
-    // Semi-transparent fill (subtle)
-    ctx.fillStyle = col + '18';
-    ctx.fillRect(x, y, w, h);
-
-    // Speed badge above the box
-    const FONT_SIZE = Math.max(12, Math.min(18, w * 0.22));
-    ctx.font = `bold ${FONT_SIZE}px 'Segoe UI', system-ui, sans-serif`;
-    const textW = ctx.measureText(label).width;
-    const padX  = 8, padY = 4;
-    const badgeW = textW + padX * 2;
-    const badgeH = FONT_SIZE + padY * 2;
-    const bx2   = x + w / 2 - badgeW / 2;
-    const by2   = Math.max(0, y - badgeH - 4);
-
-    // Badge background
-    ctx.fillStyle = col;
-    roundRect(ctx, bx2, by2, badgeW, badgeH, 5);
-    ctx.fill();
-
-    // Badge text
-    ctx.fillStyle = '#fff';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, bx2 + padX, by2 + badgeH / 2);
-
-    // Corner dots
-    ctx.fillStyle = col;
-    const dotR = 3;
-    [[x, y],[x+w, y],[x, y+h],[x+w, y+h]].forEach(([dx, dy]) => {
-      ctx.beginPath();
-      ctx.arc(dx, dy, dotR, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    totalSpeed += kmh;
-    count++;
-    if (kmh > maxSpeed) maxSpeed = kmh;
-  }
-
-  // Update stats
-  statCount.textContent = count || '—';
-  statAvg.textContent   = count ? `${Math.round(totalSpeed / count)} km/h` : '—';
-  statMax.textContent   = count ? `${maxSpeed} km/h` : '—';
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-// ── Detection loop ────────────────────────────────────────────────────────────
-async function detect() {
-  if (!detecting || video.paused || video.ended) return;
-
-  const now = performance.now();
-  const dt  = now - lastTs;
-  lastTs    = now;
-
-  // FPS measurement (rolling 30 frames)
-  frameTimes.push(dt);
-  if (frameTimes.length > 30) frameTimes.shift();
-  const avgDt = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
-  statFps.textContent = Math.round(1000 / avgDt);
-
-  // Run COCO-SSD
-  const minScore    = confSlider.value / 100;
-  const predictions = await cocoModel.detect(video, undefined, minScore);
-  const vehicles    = predictions.filter(p => VEHICLE_CLASSES.has(p.class));
-
-  // Scale factors: canvas coords → displayed video coords
-  const rect   = video.getBoundingClientRect();
-  const vidW   = video.videoWidth  || rect.width;
-  const vidH   = video.videoHeight || rect.height;
-  const scaleX = canvas.width  / vidW;
-  const scaleY = canvas.height / vidH;
-
-  const pixelsPerMeter = Number(scaleSlider.value);
-  const objects        = tracker.update(vehicles, pixelsPerMeter);
-  drawOverlay(objects, scaleX, scaleY);
-
-  rafId = requestAnimationFrame(detect);
-}
-
-// ── Canvas sizing ─────────────────────────────────────────────────────────────
-function syncCanvas() {
-  const rect = video.getBoundingClientRect();
-  canvas.width  = rect.width;
-  canvas.height = rect.height;
-  canvas.style.width  = rect.width  + 'px';
-  canvas.style.height = rect.height + 'px';
-}
-
-// ── Video loading helpers ─────────────────────────────────────────────────────
-function isYouTubeUrl(url) {
-  return /youtube\.com|youtu\.be/.test(url);
-}
-
-function onVideoReady() {
-  syncCanvas();
-  btnStart.disabled = false;
-  videoUrl.blur();
-}
-
-function loadVideoSrc(src) {
-  video.src = src;
-  video.load();
-  video.addEventListener('loadeddata', onVideoReady, { once: true });
-  video.addEventListener('error', () => {
-    setHint(urlHint, 'Could not load video. Make sure CORS headers allow cross-origin access.', 'error');
-  }, { once: true });
-}
-
-function setHint(el, msg, type = '') {
-  el.textContent = msg;
-  el.className   = 'hint ' + type;
-}
-
-// ── Controls ──────────────────────────────────────────────────────────────────
-btnLoadUrl.addEventListener('click', () => {
-  const raw = videoUrl.value.trim();
-  if (!raw) return;
-
-  if (isYouTubeUrl(raw)) {
-    setHint(
-      urlHint,
-      '⚠ YouTube blocks canvas frame access (CORS). Download the video as an .mp4 and use the file upload instead.',
-      'error'
-    );
+  if (items.length === 0) {
+    feedList.innerHTML = '<div class="feed-empty">No breaches match your search.</div>';
     return;
   }
-  setHint(urlHint, 'Loading…', 'info');
-  loadVideoSrc(raw);
-});
 
-videoUrl.addEventListener('keydown', e => {
-  if (e.key === 'Enter') btnLoadUrl.click();
-});
+  feedList.innerHTML = items.slice(0, 80).map(b => {
+    const mil = b.PwnCount ? (b.PwnCount / 1e6).toFixed(1) + 'M' : '?';
+    const sev = b.PwnCount > 50e6 ? 'sev-high' : b.PwnCount > 5e6 ? 'sev-med' : 'sev-low';
+    return `
+      <div class="feed-item ${sev}">
+        <div class="feed-item-left">
+          ${b.LogoPath ? `<img src="${escHtml(b.LogoPath)}" alt="" class="feed-logo" loading="lazy" onerror="this.style.display='none'" />` : '<div class="feed-logo-placeholder">?</div>'}
+        </div>
+        <div class="feed-item-body">
+          <div class="feed-item-title">${escHtml(b.Title)}</div>
+          <div class="feed-item-meta">
+            <span>${b.BreachDate ? b.BreachDate.slice(0, 10) : 'Unknown date'}</span>
+            <span class="dot">·</span>
+            <span class="count-badge ${sev}">${mil} accounts</span>
+            ${b.IsVerified ? '' : '<span class="dot">·</span><span class="unverified">Unverified</span>'}
+          </div>
+          ${b.DataClasses ? `<div class="feed-item-types">${b.DataClasses.slice(0, 4).map(t => `<span class="type-tag">${escHtml(t)}</span>`).join('')}${b.DataClasses.length > 4 ? `<span class="type-tag more">+${b.DataClasses.length - 4}</span>` : ''}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
 
-videoFile.addEventListener('change', () => {
-  const file = videoFile.files[0];
-  if (!file) return;
-  fileLabel.textContent = file.name;
-  setHint(urlHint, '');
-  const url = URL.createObjectURL(file);
-  loadVideoSrc(url);
-});
+feedSearch.addEventListener('input', renderFeed);
+feedSort.addEventListener('change', renderFeed);
 
-btnStart.addEventListener('click', () => {
-  if (!cocoModel) return;
-  tracker   = new CentroidTracker();
-  detecting = true;
-  lastTs    = performance.now();
-  frameTimes = [];
-  btnStart.disabled = true;
-  btnStop.disabled  = false;
-  video.play();
-  syncCanvas();
-  rafId = requestAnimationFrame(detect);
-});
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-btnStop.addEventListener('click', () => {
-  detecting = false;
-  if (rafId) cancelAnimationFrame(rafId);
-  btnStart.disabled = false;
-  btnStop.disabled  = true;
-  statFps.textContent = '—';
-});
+function showResult(el, html, type) {
+  el.className = 'result-box ' + type;
+  el.innerHTML = html;
+}
 
-btnClear.addEventListener('click', () => {
-  if (tracker) tracker.clear();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  statCount.textContent = '—';
-  statAvg.textContent   = '—';
-  statMax.textContent   = '—';
-});
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-// ── Sliders ───────────────────────────────────────────────────────────────────
-scaleSlider.addEventListener('input', () => {
-  scaleValue.textContent = scaleSlider.value + ' px/m';
-});
-
-confSlider.addEventListener('input', () => {
-  confValue.textContent = confSlider.value + '%';
-});
-
-// ── Resize ────────────────────────────────────────────────────────────────────
-window.addEventListener('resize', syncCanvas);
-
-// ── Load COCO-SSD model ───────────────────────────────────────────────────────
-(async () => {
-  try {
-    modelStatus.textContent = 'Loading AI model…';
-    cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
-    modelStatus.textContent = 'Model ready';
-    modelStatus.classList.add('ready');
-    setTimeout(() => modelStatus.classList.add('hidden'), 2000);
-    // Enable start if video already loaded
-    if (video.readyState >= 2) btnStart.disabled = false;
-  } catch (err) {
-    modelStatus.textContent = 'Model failed to load: ' + err.message;
-    console.error(err);
-  }
-})();
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadFeed();
