@@ -3,75 +3,626 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DarkWeb Monitor — Breach Detection</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>DarkWeb Monitor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #07080c;
+      --surface: #0f1117;
+      --s2:      #161923;
+      --border:  #1e2535;
+      --accent:  #22d3ee;
+      --green:   #22c55e;
+      --red:     #ef4444;
+      --orange:  #f97316;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --r:       14px;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .app {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    /* ── Header ── */
+    .header { text-align: center; padding: 1.5rem 0 .5rem; }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      margin-bottom: .4rem;
+    }
+
+    .accent {
+      background: linear-gradient(135deg, #22d3ee, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline { color: var(--muted); font-size: .92rem; }
+
+    /* ── Nav tabs ── */
+    .tabs {
+      display: flex;
+      gap: .5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab {
+      padding: .65rem 1.25rem;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: none;
+      color: var(--muted);
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color .15s, background .15s;
+      position: relative;
+      bottom: -1px;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      background: var(--surface);
+      border-color: var(--border);
+      border-bottom-color: var(--surface);
+      color: var(--text);
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .card h2 {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .desc { font-size: .875rem; color: var(--muted); }
+
+    /* ── Inputs ── */
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select {
+      flex: 1;
+      min-width: 160px;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .9rem;
+      padding: .65rem 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    .pw-wrap { flex: 1; min-width: 160px; display: flex; gap: .4rem; }
+    .pw-wrap input { min-width: 0; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .65rem 1.3rem;
+      border-radius: 8px;
+      border: none;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active  { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22d3ee, #818cf8);
+      color: #fff;
+    }
+    .btn-primary:not(:disabled):hover { opacity: .88; }
+
+    .btn-ghost {
+      background: var(--s2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: .65rem .9rem;
+    }
+    .btn-ghost:hover { color: var(--text); }
+
+    /* ── Result boxes ── */
+    .result {
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      font-size: .9rem;
+      line-height: 1.65;
+      display: none;
+    }
+    .result.show { display: block; }
+
+    .result.safe   { background: rgba(34,197,94,.08);  border: 1px solid rgba(34,197,94,.25);  color: #86efac; }
+    .result.danger { background: rgba(239,68,68,.07);  border: 1px solid rgba(239,68,68,.25);  color: #fca5a5; }
+    .result.warn   { background: rgba(234,179,8,.07);  border: 1px solid rgba(234,179,8,.25);  color: #fde047; }
+
+    /* ── Breach cards inside email result ── */
+    .breach-list { display: flex; flex-direction: column; gap: .55rem; max-height: 400px; overflow-y: auto; margin-top: .5rem; }
+
+    .bc {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(239,68,68,.15);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+
+    .bc-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .3rem; }
+    .bc-head strong { font-size: .95rem; }
+    .bc-date { font-size: .75rem; color: var(--muted); }
+    .bc-meta { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .bc-types { font-size: .78rem; color: var(--muted); }
+
+    /* ── Badges ── */
+    .badge {
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+    }
+    .b-red    { background: rgba(239,68,68,.15);  color: #fca5a5; }
+    .b-orange { background: rgba(249,115,22,.15); color: #fdba74; }
+    .b-gray   { background: rgba(100,116,139,.15); color: var(--muted); }
+    .b-cyan   { background: rgba(34,211,238,.1);  color: #67e8f9; }
+
+    /* ── Feed ── */
+    .feed-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+    .feed-controls { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .feed-controls input { flex: 1; min-width: 160px; }
+
+    .feed-list { display: flex; flex-direction: column; gap: .5rem; max-height: 560px; overflow-y: auto; }
+
+    .fi {
+      display: flex;
+      gap: .9rem;
+      align-items: flex-start;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .85rem 1rem;
+      transition: border-color .15s;
+    }
+    .fi:hover { border-color: #334155; }
+    .fi.h { border-left: 3px solid var(--red); }
+    .fi.m { border-left: 3px solid var(--orange); }
+    .fi.l { border-left: 3px solid var(--muted); }
+
+    .fi-logo {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      object-fit: contain;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .fi-logo-ph {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      background: var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .fi-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
+
+    .fi-title { font-weight: 600; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .fi-meta {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: .3rem; font-size: .78rem; color: var(--muted);
+    }
+
+    .cnt { font-weight: 600; font-size: .75rem; }
+    .cnt.h { color: #fca5a5; }
+    .cnt.m { color: #fdba74; }
+    .cnt.l { color: var(--muted); }
+
+    .dot { color: var(--border); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: .22rem; margin-top: .1rem; }
+
+    .tag {
+      font-size: .68rem;
+      padding: .1rem .42rem;
+      border-radius: 99px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .tag.more { background: rgba(99,102,241,.1); border-color: rgba(99,102,241,.2); color: #a5b4fc; }
+
+    .spinner, .feed-empty { text-align: center; color: var(--muted); padding: 2rem; font-size: .9rem; }
+
+    /* ── Panel visibility ── */
+    .panel { display: none; }
+    .panel.active { display: flex; flex-direction: column; gap: 1.1rem; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .78rem;
+      padding: 1.5rem 1.25rem;
+      border-top: 1px solid var(--border);
+      margin-top: .5rem;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    @media (max-width: 560px) {
+      .card { padding: 1.25rem; }
+      .btn  { padding: .6rem 1rem; }
+      .logo { font-size: 1.65rem; }
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
 
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">&#x1F6E1;</span>
-        <span class="logo-text">DarkWeb <span class="accent">Monitor</span></span>
-      </div>
-      <p class="tagline">Check if your data has been exposed in known breaches — powered by HaveIBeenPwned</p>
-    </header>
+<div class="app">
 
-    <!-- ── Password Checker ──────────────────────────────────────── -->
-    <section class="card" id="pwSection">
-      <h2><span class="section-icon">&#x1F511;</span> Password Breach Check</h2>
-      <p class="section-desc">Checks your password against 1 billion+ leaked passwords using k-anonymity — your full password is never sent anywhere.</p>
-      <div class="input-row">
-        <div class="pw-wrap">
-          <input id="pwInput" type="password" placeholder="Enter a password to check…" autocomplete="off" spellcheck="false" />
-          <button id="pwToggle" class="btn btn-ghost btn-sm" title="Show/hide">&#x1F441;</button>
-        </div>
-        <button id="pwBtn" class="btn btn-primary">Check Password</button>
-      </div>
-      <div id="pwResult" class="result-box hidden"></div>
-    </section>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span>&#x1F6E1;&#xFE0F;</span>
+      <span>DarkWeb <span class="accent">Monitor</span></span>
+    </div>
+    <p class="tagline">Check if your data has been exposed in known breaches &mdash; powered by HaveIBeenPwned</p>
+  </header>
 
-    <!-- ── Email Checker ─────────────────────────────────────────── -->
-    <section class="card" id="emailSection">
-      <h2><span class="section-icon">&#x2709;&#xFE0F;</span> Email Breach Check</h2>
-      <p class="section-desc">Find out which data breaches your email address appeared in. Requires a free HIBP API key — <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">get one free here</a>.</p>
-      <div class="input-row">
-        <input id="apiKeyInput" type="password" placeholder="Paste your free HIBP API key…" autocomplete="off" spellcheck="false" />
-      </div>
-      <div class="input-row">
-        <input id="emailInput" type="email" placeholder="your@email.com" autocomplete="off" spellcheck="false" />
-        <button id="emailBtn" class="btn btn-primary">Check Email</button>
-      </div>
-      <div id="emailResult" class="result-box hidden"></div>
-    </section>
-
-    <!-- ── Recent Breaches Feed ──────────────────────────────────── -->
-    <section class="card" id="feedSection">
-      <div class="feed-header">
-        <h2><span class="section-icon">&#x1F4E1;</span> Recent Known Breaches</h2>
-        <span id="feedCount" class="badge"></span>
-      </div>
-      <p class="section-desc">Latest confirmed data breaches from the HaveIBeenPwned database.</p>
-      <div class="feed-filters">
-        <input id="feedSearch" type="text" placeholder="Search breaches…" autocomplete="off" />
-        <select id="feedSort">
-          <option value="date-desc">Newest first</option>
-          <option value="date-asc">Oldest first</option>
-          <option value="size-desc">Largest first</option>
-        </select>
-      </div>
-      <div id="feedList" class="feed-list">
-        <div class="loading-spinner">Loading breach data…</div>
-      </div>
-    </section>
-
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="pw">&#x1F511; Password Check</button>
+    <button class="tab" data-tab="email">&#x2709;&#xFE0F; Email Check</button>
+    <button class="tab" data-tab="feed">&#x1F4E1; Breach Feed</button>
   </div>
 
-  <footer class="footer">
-    Breach data provided by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">HaveIBeenPwned</a>.
-    Passwords checked via k-anonymity — your password never leaves your browser intact.
-  </footer>
+  <!-- ── Panel: Password ── -->
+  <div class="card panel active" id="pw">
+    <h2>&#x1F511; Password Breach Check</h2>
+    <p class="desc">
+      Tests your password against <strong>1 billion+</strong> leaked passwords using k-anonymity &mdash;
+      only a 5-character hash prefix is sent. Your full password never leaves your device.
+    </p>
+    <div class="row">
+      <div class="pw-wrap">
+        <input id="pwInput" type="password" placeholder="Enter a password to check…" autocomplete="off" spellcheck="false" />
+        <button id="pwToggle" class="btn btn-ghost" title="Toggle visibility">&#x1F441;</button>
+      </div>
+      <button id="pwBtn" class="btn btn-primary">Check Password</button>
+    </div>
+    <div id="pwResult" class="result"></div>
+  </div>
 
-  <script src="app.js"></script>
+  <!-- ── Panel: Email ── -->
+  <div class="card panel" id="email">
+    <h2>&#x2709;&#xFE0F; Email Breach Check</h2>
+    <p class="desc">
+      Finds every breach your email appeared in. Needs a <strong>free</strong> HIBP API key &mdash;
+      <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">get yours here (free, instant)</a>.
+    </p>
+    <div class="row">
+      <input id="apiKey" type="password" placeholder="Paste your HIBP API key…" autocomplete="off" />
+    </div>
+    <div class="row">
+      <input id="emailInput" type="email" placeholder="your@email.com" autocomplete="off" />
+      <button id="emailBtn" class="btn btn-primary">Check Email</button>
+    </div>
+    <div id="emailResult" class="result"></div>
+  </div>
+
+  <!-- ── Panel: Feed ── -->
+  <div class="card panel" id="feed">
+    <div class="feed-top">
+      <h2>&#x1F4E1; Known Data Breaches</h2>
+      <span id="feedCount" class="badge b-cyan"></span>
+    </div>
+    <p class="desc">Live breach database from HaveIBeenPwned &mdash; searchable, sortable, no API key needed.</p>
+    <div class="feed-controls">
+      <input id="feedSearch" type="text" placeholder="Search by name, domain…" autocomplete="off" />
+      <select id="feedSort">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="size-desc">Largest first</option>
+      </select>
+    </div>
+    <div id="feedList" class="feed-list">
+      <div class="spinner">Loading breach data…</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Breach data by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">HaveIBeenPwned</a> &mdash;
+  Passwords checked via k-anonymity &mdash; your full password never leaves your browser.
+</footer>
+
+<script>
+'use strict';
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function show(el, html, type) {
+  el.className = 'result show ' + type;
+  el.innerHTML = html;
+}
+
+async function sha1(str) {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+// ── Password Checker ───────────────────────────────────────────────────────────
+const pwInput  = document.getElementById('pwInput');
+const pwBtn    = document.getElementById('pwBtn');
+const pwResult = document.getElementById('pwResult');
+const pwToggle = document.getElementById('pwToggle');
+
+pwToggle.addEventListener('click', () => {
+  const show = pwInput.type === 'password';
+  pwInput.type = show ? 'text' : 'password';
+  pwToggle.textContent = show ? '🙈' : '👁';
+});
+
+pwBtn.addEventListener('click', async () => {
+  const pw = pwInput.value;
+  if (!pw) return show(pwResult, 'Enter a password first.', 'warn');
+
+  pwBtn.disabled = true;
+  pwBtn.textContent = 'Checking…';
+
+  try {
+    const hash   = await sha1(pw);
+    const prefix = hash.slice(0, 5);
+    const suffix = hash.slice(5);
+
+    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      headers: { 'Add-Padding': 'true' }
+    });
+    if (!res.ok) throw new Error('API error ' + res.status);
+
+    const line = (await res.text()).split('\n').find(l => l.startsWith(suffix));
+    const count = line ? parseInt(line.split(':')[1].trim(), 10) : 0;
+
+    if (count === 0) {
+      show(pwResult,
+        '&#x2705; <strong>Not found</strong> in any known breach. Looks safe &mdash; but always use a unique password and a password manager.',
+        'safe');
+    } else {
+      show(pwResult,
+        `&#x26A0;&#xFE0F; <strong>Exposed ${count.toLocaleString()} times</strong> in known data breaches. Stop using this password immediately and change it everywhere you use it.`,
+        'danger');
+    }
+  } catch (e) {
+    show(pwResult, '&#x26A0;&#xFE0F; Error: ' + esc(e.message), 'warn');
+  } finally {
+    pwBtn.disabled = false;
+    pwBtn.textContent = 'Check Password';
+  }
+});
+
+pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') pwBtn.click(); });
+
+// ── Email Checker ─────────────────────────────────────────────────────────────
+const emailInput  = document.getElementById('emailInput');
+const apiKey      = document.getElementById('apiKey');
+const emailBtn    = document.getElementById('emailBtn');
+const emailResult = document.getElementById('emailResult');
+
+emailBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim();
+  const key   = apiKey.value.trim();
+
+  if (!key) {
+    return show(emailResult,
+      '&#x1F511; Paste your free HIBP API key first &mdash; <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">get one here</a>.',
+      'warn');
+  }
+  if (!email || !email.includes('@')) {
+    return show(emailResult, 'Enter a valid email address.', 'warn');
+  }
+
+  emailBtn.disabled = true;
+  emailBtn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      { headers: { 'hibp-api-key': key, 'user-agent': 'DarkWebMonitor' } }
+    );
+
+    if (res.status === 404) {
+      show(emailResult,
+        '&#x2705; <strong>Good news!</strong> This email was not found in any known breaches.',
+        'safe');
+    } else if (res.status === 401) {
+      show(emailResult, '&#x1F6AB; Invalid API key. Check it and try again.', 'warn');
+    } else if (res.status === 429) {
+      show(emailResult, '&#x23F3; Rate limited &mdash; wait a moment and try again.', 'warn');
+    } else if (!res.ok) {
+      show(emailResult, 'API error: ' + res.status, 'warn');
+    } else {
+      const breaches = await res.json();
+      renderEmailBreaches(breaches);
+    }
+  } catch (e) {
+    show(emailResult,
+      '&#x26A0;&#xFE0F; Network error. If running from a local file, try a local server (e.g. VS Code Live Server) to avoid CORS issues.',
+      'warn');
+  } finally {
+    emailBtn.disabled = false;
+    emailBtn.textContent = 'Check Email';
+  }
+});
+
+emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') emailBtn.click(); });
+
+function renderEmailBreaches(breaches) {
+  let html = `<div style="font-size:1rem;margin-bottom:.75rem">
+    &#x26A0;&#xFE0F; <strong>Found in ${breaches.length} breach${breaches.length === 1 ? '' : 'es'}</strong>
+  </div><div class="breach-list">`;
+
+  for (const b of breaches) {
+    const types = (b.DataClasses || []).slice(0, 5).join(', ');
+    html += `
+      <div class="bc">
+        <div class="bc-head">
+          <strong>${esc(b.Title)}</strong>
+          <span class="bc-date">${b.BreachDate ? b.BreachDate.slice(0,7) : 'Unknown'}</span>
+        </div>
+        <div class="bc-meta">
+          ${b.PwnCount ? `<span class="badge b-red">${(b.PwnCount/1e6).toFixed(1)}M accounts</span>` : ''}
+          ${!b.IsVerified ? '<span class="badge b-gray">Unverified</span>' : ''}
+          ${b.IsSensitive ? '<span class="badge b-orange">Sensitive</span>' : ''}
+        </div>
+        ${types ? `<div class="bc-types">Data exposed: ${esc(types)}${b.DataClasses.length > 5 ? ` +${b.DataClasses.length-5} more` : ''}</div>` : ''}
+      </div>`;
+  }
+  html += '</div>';
+  show(emailResult, html, 'danger');
+}
+
+// ── Breach Feed ───────────────────────────────────────────────────────────────
+const feedList   = document.getElementById('feedList');
+const feedSearch = document.getElementById('feedSearch');
+const feedSort   = document.getElementById('feedSort');
+const feedCount  = document.getElementById('feedCount');
+
+let allBreaches = [];
+
+async function loadFeed() {
+  try {
+    const res = await fetch('https://haveibeenpwned.com/api/v3/breaches');
+    if (!res.ok) throw new Error('Status ' + res.status);
+    allBreaches = await res.json();
+    feedCount.textContent = allBreaches.length + ' breaches';
+    renderFeed();
+  } catch (e) {
+    feedList.innerHTML = `<div class="feed-empty">&#x26A0;&#xFE0F; Could not load: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderFeed() {
+  const q = feedSearch.value.toLowerCase();
+  const s = feedSort.value;
+
+  let items = allBreaches.filter(b =>
+    b.Name.toLowerCase().includes(q) ||
+    b.Title.toLowerCase().includes(q) ||
+    (b.Domain || '').toLowerCase().includes(q)
+  );
+
+  if (s === 'date-desc') items.sort((a,b) => b.BreachDate.localeCompare(a.BreachDate));
+  else if (s === 'date-asc') items.sort((a,b) => a.BreachDate.localeCompare(b.BreachDate));
+  else items.sort((a,b) => (b.PwnCount||0) - (a.PwnCount||0));
+
+  if (!items.length) {
+    feedList.innerHTML = '<div class="feed-empty">No breaches match your search.</div>';
+    return;
+  }
+
+  feedList.innerHTML = items.slice(0, 100).map(b => {
+    const mil = b.PwnCount ? (b.PwnCount/1e6).toFixed(1)+'M' : '?';
+    const sev = b.PwnCount > 50e6 ? 'h' : b.PwnCount > 5e6 ? 'm' : 'l';
+    return `
+      <div class="fi ${sev}">
+        ${b.LogoPath
+          ? `<img src="${esc(b.LogoPath)}" alt="" class="fi-logo" loading="lazy" onerror="this.outerHTML='<div class=fi-logo-ph>?</div>'" />`
+          : '<div class="fi-logo-ph">?</div>'}
+        <div class="fi-body">
+          <div class="fi-title">${esc(b.Title)}</div>
+          <div class="fi-meta">
+            <span>${b.BreachDate ? b.BreachDate.slice(0,10) : 'Unknown'}</span>
+            <span class="dot">&middot;</span>
+            <span class="cnt ${sev}">${mil} accounts</span>
+            ${!b.IsVerified ? '<span class="dot">&middot;</span><span style="font-style:italic">Unverified</span>' : ''}
+          </div>
+          ${b.DataClasses ? `<div class="tags">${
+            b.DataClasses.slice(0,4).map(t => `<span class="tag">${esc(t)}</span>`).join('')
+          }${b.DataClasses.length > 4 ? `<span class="tag more">+${b.DataClasses.length-4}</span>` : ''}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+feedSearch.addEventListener('input', renderFeed);
+feedSort.addEventListener('change', renderFeed);
+
+loadFeed();
+</script>
+
 </body>
 </html>
