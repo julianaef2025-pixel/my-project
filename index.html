@@ -1,108 +1,807 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceScan — Browser Face Detection</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #43e97b;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --radius: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(19,19,26,0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.5px; }
+  header span { font-size: 0.78rem; color: var(--muted); margin-left: 8px; }
+  .badge {
+    margin-left: auto;
+    background: rgba(67,233,123,0.12);
+    color: var(--green);
+    border: 1px solid rgba(67,233,123,0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  main {
+    width: 100%;
+    max-width: 1100px;
+    padding: 32px 24px 64px;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .steps {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .step {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .step.active { background: rgba(108,99,255,0.15); border-color: var(--accent); color: var(--accent); }
+  .step.done { background: rgba(67,233,123,0.08); border-color: rgba(67,233,123,0.3); color: var(--green); }
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem;
+  }
+  .step.active .step-num { background: var(--accent); color: #fff; }
+  .step.done .step-num { background: var(--green); color: #000; }
+
+  .camera-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .cam-wrap {
+    position: relative;
+    width: 100%;
+    background: #000;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+  }
+  #video, #canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  #canvas { z-index: 2; }
+  #video { z-index: 1; transform: scaleX(-1); }
+  .cam-placeholder {
+    position: absolute;
+    inset: 0; z-index: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+  }
+  .cam-placeholder svg { opacity: 0.3; }
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    z-index: 5;
+    animation: scan 2s linear infinite;
+    display: none;
+  }
+  @keyframes scan {
+    0%   { top: 0%;   opacity: 1; }
+    95%  { top: 100%; opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+  .corner {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: rgba(108,99,255,0.6);
+    border-style: solid;
+    z-index: 7;
+    pointer-events: none;
+  }
+  .c-tl { top: 12%; left: 12%; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+  .c-tr { top: 12%; right: 12%; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+  .c-bl { bottom: 12%; left: 12%; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+  .c-br { bottom: 12%; right: 12%; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+
+  .cam-controls {
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:not(:disabled):hover { background: #7c75ff; transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost { background: var(--surface2); color: var(--text); }
+  .btn-ghost:not(:disabled):hover { background: var(--border); }
+  .btn-sm { padding: 7px 14px; font-size: 0.78rem; }
+
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-body { padding: 16px 18px; }
+
+  .status-bar {
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .dot.green { background: var(--green); animation: pulse 1.5s infinite; }
+  .dot.accent { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .result-item { background: var(--surface2); border-radius: 10px; padding: 10px 12px; }
+  .result-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .result-value { font-size: 1rem; font-weight: 700; }
+  .result-value.accent { color: var(--accent); }
+  .result-value.green { color: var(--green); }
+  .result-value.pink { color: var(--accent2); }
+
+  .emo-list { display: flex; flex-direction: column; gap: 6px; }
+  .emo-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+  .emo-name { width: 80px; text-transform: capitalize; color: var(--muted); }
+  .emo-bar-wrap { flex: 1; background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; }
+  .emo-bar { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.6s ease; }
+  .emo-pct { width: 34px; text-align: right; font-size: 0.72rem; color: var(--muted); }
+
+  #landmarkCanvas {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: none;
+    background: #000;
+  }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 16px 16px;
+  }
+  .upload-area:hover { border-color: var(--accent); color: var(--accent); }
+  .upload-area input { display: none; }
+
+  #faceCropWrap { display: none; margin-bottom: 12px; text-align: center; }
+  #faceCropCanvas { border-radius: 10px; border: 2px solid var(--accent); max-width: 140px; }
+  .crop-actions { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+  .service-list { display: flex; flex-direction: column; gap: 10px; }
+  .service-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .service-btn:hover { border-color: var(--accent); background: rgba(108,99,255,0.08); }
+  .service-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .service-info { flex: 1; }
+  .service-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+  .service-desc { font-size: 0.72rem; color: var(--muted); }
+  .service-arrow { color: var(--muted); }
+
+  .tip-box {
+    background: rgba(108,99,255,0.08);
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .tip-box strong { color: var(--accent); }
+
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+  .text-muted { color: var(--muted); font-size: 0.82rem; }
+</style>
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
-      </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
+<header>
+  <div class="logo">🔍</div>
+  <h1>FaceScan</h1>
+  <span>Browser-local face detection</span>
+  <div class="badge">🔒 100% On-Device</div>
+</header>
 
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
-        </div>
-
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
-      </div>
-
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
-      </div>
-    </section>
-
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
-      </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
+<main>
+  <div class="steps">
+    <div class="step active" id="step1"><span class="step-num">1</span> Capture</div>
+    <div class="step" id="step2"><span class="step-num">2</span> Detect</div>
+    <div class="step" id="step3"><span class="step-num">3</span> Search</div>
   </div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-  <script src="app.js"></script>
+  <!-- Camera panel -->
+  <div class="camera-panel">
+    <div class="cam-wrap" id="camWrap">
+      <div class="cam-placeholder" id="placeholder">
+        <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+          <circle cx="12" cy="13" r="3" stroke-width="1.5"/>
+        </svg>
+        <p>Start camera or upload a photo</p>
+      </div>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="scan-line" id="scanLine"></div>
+      <div class="corner c-tl"></div>
+      <div class="corner c-tr"></div>
+      <div class="corner c-bl"></div>
+      <div class="corner c-br"></div>
+    </div>
+
+    <div class="cam-controls">
+      <button class="btn btn-primary" id="btnCamera" onclick="startCamera()">
+        📷 Start Camera
+      </button>
+      <button class="btn btn-ghost hidden" id="btnCapture" onclick="capturePhoto()">
+        📸 Capture Photo
+      </button>
+      <button class="btn btn-outline hidden" id="btnRetake" onclick="retake()">
+        ↩ Retake
+      </button>
+      <button class="btn btn-primary hidden" id="btnDetect" onclick="detectFace()">
+        🧠 Detect Face
+      </button>
+    </div>
+
+    <label class="upload-area" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/*" onchange="loadFromFile(event)">
+      📁 Or click / drag &amp; drop a photo here
+    </label>
+
+    <div class="status-bar">
+      <div class="dot accent" id="statusDot"></div>
+      <span id="statusText">Loading AI models…</span>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <div class="card" id="resultsCard">
+      <div class="card-head">🎯 Detection Results</div>
+      <div class="card-body">
+        <p class="text-muted" id="noResultsMsg">Capture or upload a photo then click <strong style="color:var(--accent)">Detect Face</strong>.</p>
+
+        <canvas id="landmarkCanvas"></canvas>
+
+        <div class="result-grid hidden" id="resultGrid">
+          <div class="result-item">
+            <div class="result-label">Faces found</div>
+            <div class="result-value accent" id="rFaces">—</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Estimated age</div>
+            <div class="result-value green" id="rAge">—</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Gender</div>
+            <div class="result-value" id="rGender">—</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Confidence</div>
+            <div class="result-value pink" id="rConf">—</div>
+          </div>
+        </div>
+
+        <div id="faceCropWrap">
+          <canvas id="faceCropCanvas"></canvas>
+          <div class="crop-actions">
+            <button class="btn btn-sm btn-outline" onclick="downloadCrop()">⬇ Download</button>
+            <button class="btn btn-sm btn-ghost" onclick="copyCrop()">📋 Copy</button>
+          </div>
+        </div>
+
+        <div class="hidden" id="emotionWrap">
+          <p class="text-muted" style="font-size:0.75rem;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Expressions</p>
+          <div class="emo-list" id="emoList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">🔎 Reverse Image Search</div>
+      <div class="card-body">
+        <div class="tip-box">
+          <strong>How to use:</strong> Download or copy the face crop above, then paste or upload it into any service below to find where the face appears online.
+        </div>
+        <div class="service-list">
+          <a class="service-btn" href="https://lens.google.com/" target="_blank" rel="noopener">
+            <div class="service-icon" style="background:rgba(66,133,244,0.15)">🔵</div>
+            <div class="service-info">
+              <div class="service-name">Google Lens</div>
+              <div class="service-desc">Largest web index, drag &amp; drop photo</div>
+            </div>
+            <span class="service-arrow">↗</span>
+          </a>
+          <a class="service-btn" href="https://tineye.com/" target="_blank" rel="noopener">
+            <div class="service-icon" style="background:rgba(255,101,60,0.15)">🔴</div>
+            <div class="service-info">
+              <div class="service-name">TinEye</div>
+              <div class="service-desc">Exact &amp; near-duplicate image matches</div>
+            </div>
+            <span class="service-arrow">↗</span>
+          </a>
+          <a class="service-btn" href="https://yandex.com/images/" target="_blank" rel="noopener">
+            <div class="service-icon" style="background:rgba(255,204,0,0.15)">🟡</div>
+            <div class="service-info">
+              <div class="service-name">Yandex Images</div>
+              <div class="service-desc">Strong face &amp; person recognition</div>
+            </div>
+            <span class="service-arrow">↗</span>
+          </a>
+          <a class="service-btn" href="https://pimeyes.com/" target="_blank" rel="noopener">
+            <div class="service-icon" style="background:rgba(108,99,255,0.15)">🟣</div>
+            <div class="service-info">
+              <div class="service-name">PimEyes</div>
+              <div class="service-desc">Dedicated face search engine</div>
+            </div>
+            <span class="service-arrow">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  let modelsLoaded = false;
+  let stream = null;
+  let capturedCanvas = null;
+
+  const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+
+  function setStatus(msg, type) {
+    document.getElementById('statusText').textContent = msg;
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot' + (type ? ' ' + type : '');
+  }
+
+  function show(...ids) { ids.forEach(id => document.getElementById(id).classList.remove('hidden')); }
+  function hide(...ids) { ids.forEach(id => document.getElementById(id).classList.add('hidden')); }
+
+  function setStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('step' + i);
+      el.classList.remove('active','done');
+      if (i < n) el.classList.add('done');
+      if (i === n) el.classList.add('active');
+    });
+  }
+
+  function toast(msg, ms = 2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  async function loadModels() {
+    setStatus('Loading AI models… (first load may take ~10s)', 'accent');
+    try {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+      await faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+      modelsLoaded = true;
+      setStatus('Ready — start camera or upload a photo', 'green');
+    } catch(e) {
+      setStatus('Model load failed — check your network and reload', '');
+      console.error('Model load error:', e);
+    }
+  }
+
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+      });
+      const video = document.getElementById('video');
+      video.srcObject = stream;
+      video.style.display = 'block';
+      hide('placeholder', 'btnCamera');
+      show('btnCapture');
+      setStatus('Camera live — position face and capture', 'green');
+    } catch(e) {
+      setStatus('Camera denied — please upload a photo instead', '');
+      toast('Camera access denied. Use the upload area below.');
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const wrap = document.getElementById('camWrap');
+    canvas.width = wrap.clientWidth;
+    canvas.height = wrap.clientHeight;
+    const ctx = canvas.getContext('2d');
+    // draw mirrored (selfie orientation)
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+    capturedCanvas = canvas;
+
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.style.display = 'none';
+
+    hide('btnCapture');
+    show('btnRetake', 'btnDetect');
+    setStatus('Photo captured — click Detect Face', 'green');
+    setStep(2);
+  }
+
+  function retake() {
+    const canvas = document.getElementById('canvas');
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('video').style.display = 'block';
+    document.getElementById('scanLine').style.display = 'none';
+    hide('btnRetake', 'btnDetect', 'resultGrid', 'faceCropWrap', 'emotionWrap', 'landmarkCanvas');
+    document.getElementById('noResultsMsg').style.display = '';
+    document.getElementById('landmarkCanvas').style.display = 'none';
+    capturedCanvas = null;
+    setStep(1);
+    startCamera();
+  }
+
+  function loadFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.getElementById('canvas');
+        const wrap = document.getElementById('camWrap');
+        canvas.width = wrap.clientWidth;
+        canvas.height = wrap.clientHeight;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width  - img.width  * scale) / 2;
+        const y = (canvas.height - img.height * scale) / 2;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        capturedCanvas = canvas;
+        document.getElementById('video').style.display = 'none';
+        hide('placeholder', 'btnCamera', 'btnCapture');
+        show('btnRetake', 'btnDetect');
+        setStatus('Image loaded — click Detect Face', 'green');
+        setStep(2);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // drag & drop
+  const uploadArea = document.getElementById('uploadArea');
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = 'var(--accent)'; });
+  uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = ''; });
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      loadFromFile({ target: { files: [file] } });
+    }
+  });
+
+  async function detectFace() {
+    if (!modelsLoaded) { toast('Models still loading, please wait a moment…'); return; }
+    if (!capturedCanvas) { toast('No image to analyse — capture or upload first'); return; }
+
+    setStatus('Scanning for faces…', 'accent');
+    document.getElementById('scanLine').style.display = 'block';
+    document.getElementById('btnDetect').disabled = true;
+
+    try {
+      const detections = await faceapi
+        .detectAllFaces(capturedCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.35 }))
+        .withFaceLandmarks(true)
+        .withAgeAndGender()
+        .withFaceExpressions();
+
+      document.getElementById('scanLine').style.display = 'none';
+      document.getElementById('btnDetect').disabled = false;
+
+      if (!detections || detections.length === 0) {
+        setStatus('No face found — try better lighting or a clearer photo', '');
+        toast('No face detected. Try better lighting or move closer.');
+        return;
+      }
+
+      renderResults(detections[0], detections.length);
+      setStep(3);
+      setStatus(`${detections.length} face${detections.length > 1 ? 's' : ''} detected`, 'green');
+
+    } catch(err) {
+      document.getElementById('scanLine').style.display = 'none';
+      document.getElementById('btnDetect').disabled = false;
+      setStatus('Detection error — see console', '');
+      console.error(err);
+    }
+  }
+
+  function renderResults(det, count) {
+    const { box } = det.detection;
+    const age    = Math.round(det.age);
+    const gender = det.gender;
+    const conf   = Math.round(det.detection.score * 100);
+
+    document.getElementById('noResultsMsg').style.display = 'none';
+    document.getElementById('rFaces').textContent  = count;
+    document.getElementById('rAge').textContent    = `~${age} yrs`;
+    document.getElementById('rGender').textContent = gender.charAt(0).toUpperCase() + gender.slice(1);
+    document.getElementById('rConf').textContent   = conf + '%';
+    show('resultGrid');
+
+    drawLandmarks(det);
+    extractCrop(box);
+    renderEmotions(det.expressions);
+  }
+
+  function drawLandmarks(det) {
+    const lc  = document.getElementById('landmarkCanvas');
+    const src = capturedCanvas;
+    lc.width  = src.width;
+    lc.height = src.height;
+    lc.style.display = 'block';
+
+    const ctx = lc.getContext('2d');
+    ctx.drawImage(src, 0, 0);
+
+    const pts = det.landmarks.positions;
+
+    // landmark groups [start, end, closed?]
+    const groups = [
+      [0,  16, false],  // jaw
+      [17, 21, false],  // left brow
+      [22, 26, false],  // right brow
+      [27, 30, false],  // nose bridge
+      [30, 35, true ],  // nose bottom
+      [36, 41, true ],  // left eye
+      [42, 47, true ],  // right eye
+      [48, 59, true ],  // outer lip
+      [60, 67, true ],  // inner lip
+    ];
+
+    ctx.strokeStyle = 'rgba(108,99,255,0.6)';
+    ctx.lineWidth = 1.2;
+    groups.forEach(([s, e, close]) => {
+      ctx.beginPath();
+      ctx.moveTo(pts[s].x, pts[s].y);
+      for (let i = s+1; i <= e; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      if (close) ctx.closePath();
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = '#a099ff';
+    pts.forEach(pt => {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // bounding box
+    const { box } = det.detection;
+    ctx.strokeStyle = '#6c63ff';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#6c63ff';
+    ctx.shadowBlur = 10;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+    ctx.shadowBlur = 0;
+
+    // age/gender label
+    ctx.fillStyle = '#6c63ff';
+    ctx.fillRect(box.x, box.y - 24, box.width < 80 ? 80 : box.width, 24);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Segoe UI, sans-serif';
+    ctx.fillText(`${det.gender}, ~${Math.round(det.age)}y (${Math.round(det.detection.score*100)}%)`, box.x + 6, box.y - 7);
+  }
+
+  function extractCrop(box) {
+    const pad = 0.25;
+    const src = capturedCanvas;
+    const px = Math.max(0, box.x - box.width  * pad);
+    const py = Math.max(0, box.y - box.height * pad);
+    const pw = Math.min(src.width  - px, box.width  * (1 + 2*pad));
+    const ph = Math.min(src.height - py, box.height * (1 + 2*pad));
+
+    const fc = document.getElementById('faceCropCanvas');
+    fc.width  = pw;
+    fc.height = ph;
+    fc.getContext('2d').drawImage(src, px, py, pw, ph, 0, 0, pw, ph);
+    document.getElementById('faceCropWrap').style.display = 'block';
+  }
+
+  function renderEmotions(expressions) {
+    const sorted = Object.entries(expressions).sort((a,b) => b[1]-a[1]).slice(0,6);
+    const colors = { happy:'#43e97b', surprised:'#6c63ff', neutral:'#8b8ba0', sad:'#5b9bd5', angry:'#ff6584', fearful:'#f7971e', disgusted:'#a8edea' };
+    document.getElementById('emoList').innerHTML = sorted.map(([name, score]) => {
+      const pct = Math.round(score * 100);
+      const color = colors[name] || 'var(--accent)';
+      return `<div class="emo-row">
+        <span class="emo-name">${name}</span>
+        <div class="emo-bar-wrap"><div class="emo-bar" style="width:${pct}%;background:${color}"></div></div>
+        <span class="emo-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+    show('emotionWrap');
+  }
+
+  function downloadCrop() {
+    const fc = document.getElementById('faceCropCanvas');
+    const a  = document.createElement('a');
+    a.href     = fc.toDataURL('image/png');
+    a.download = 'face-crop.png';
+    a.click();
+    toast('Face crop downloaded — paste it into a search service!');
+  }
+
+  async function copyCrop() {
+    const fc = document.getElementById('faceCropCanvas');
+    try {
+      await new Promise((res, rej) => fc.toBlob(async blob => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          res();
+        } catch(e) { rej(e); }
+      }));
+      toast('Copied! Paste directly into Google Lens, Yandex, or TinEye');
+    } catch(e) {
+      toast('Clipboard blocked — use Download instead');
+    }
+  }
+
+  // Wait for face-api.js deferred script then load models
+  window.addEventListener('DOMContentLoaded', () => {
+    const poll = setInterval(() => {
+      if (typeof faceapi !== 'undefined') {
+        clearInterval(poll);
+        loadModels();
+      }
+    }, 100);
+  });
+</script>
 </body>
 </html>
