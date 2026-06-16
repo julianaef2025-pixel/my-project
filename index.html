@@ -3,106 +3,1525 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Ball Drop — Selfie Game</title>
+  <style>
+    /* ============================================================
+       RESET & VARIABLES
+    ============================================================ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #07071a;
+      --surface:   rgba(255,255,255,0.05);
+      --border:    rgba(255,255,255,0.12);
+      --a1:        #ff2d78;
+      --a2:        #00d4ff;
+      --a3:        #a855f7;
+      --text:      #f0f0ff;
+      --dim:       rgba(240,240,255,0.48);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* animated ambient blobs */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 15% 20%, rgba(168,85,247,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 80%, rgba(0,212,255,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,45,120,.06) 0%, transparent 70%);
+    }
+
+    /* ============================================================
+       SCREEN SYSTEM
+    ============================================================ */
+    .screen {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(.97);
+    }
+
+    /* ============================================================
+       SHARED COMPONENTS
+    ============================================================ */
+    .panel {
+      background: var(--surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(168,85,247,.2), 0 0 120px rgba(0,212,255,.08);
+    }
+
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 15px 20px;
+      background: linear-gradient(135deg, var(--a1), var(--a3));
+      border: none; border-radius: 14px;
+      color: #fff; font-size: 1.02rem; font-weight: 700;
+      cursor: pointer; letter-spacing: .4px;
+      transition: transform .18s, box-shadow .18s;
+    }
+    .btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,45,120,.45); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-ghost {
+      padding: 14px 20px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      color: var(--text); font-size: .94rem; font-weight: 600;
+      cursor: pointer; transition: border-color .18s, background .18s;
+    }
+    .btn-ghost:hover { border-color: var(--a3); background: rgba(168,85,247,.12); }
+
+    .micro-label {
+      font-size: .72rem; font-weight: 700; color: var(--dim);
+      text-transform: uppercase; letter-spacing: 1.6px;
+    }
+
+    /* ============================================================
+       SETUP SCREEN
+    ============================================================ */
+    #setupScreen .panel {
+      width: 460px;
+      padding: 48px 44px;
+      text-align: center;
+    }
+
+    .game-logo {
+      font-size: 2.9rem; font-weight: 900; letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--a1) 0%, var(--a3) 50%, var(--a2) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .game-tagline {
+      color: var(--dim); font-size: .9rem; line-height: 1.55;
+      margin-bottom: 38px;
+    }
+
+    .count-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .count-btn {
+      aspect-ratio: 1;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      border-radius: 14px;
+      color: var(--text); font-size: 1.35rem; font-weight: 700;
+      cursor: pointer;
+      transition: border-color .18s, background .18s, transform .18s, box-shadow .18s;
+    }
+    .count-btn:hover  { border-color: var(--a3); background: rgba(168,85,247,.14); transform: translateY(-2px); }
+    .count-btn.active {
+      border-color: var(--a1);
+      background: rgba(255,45,120,.22);
+      box-shadow: 0 0 18px rgba(255,45,120,.45);
+      color: #fff;
+    }
+
+    /* ============================================================
+       CAMERA SCREEN
+    ============================================================ */
+    #cameraScreen .panel {
+      width: 500px;
+      padding: 38px 40px;
+      text-align: center;
+    }
+
+    .cam-title {
+      font-size: 1.55rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--a2), var(--a3));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .cam-sub { color: var(--dim); font-size: .88rem; margin-bottom: 18px; }
+
+    /* progress dots */
+    .progress-row {
+      display: flex; gap: 7px; justify-content: center;
+      margin-bottom: 22px;
+    }
+    .pdot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--border); transition: all .28s;
+    }
+    .pdot.done   { background: var(--a2); box-shadow: 0 0 8px var(--a2); }
+    .pdot.active { background: var(--a1); box-shadow: 0 0 14px var(--a1); transform: scale(1.35); }
+
+    /* video circle */
+    .video-ring {
+      position: relative;
+      width: 260px; height: 260px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid var(--a2);
+      box-shadow: 0 0 28px rgba(0,212,255,.35);
+    }
+
+    .video-ring video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .cam-flash {
+      position: absolute; inset: 0;
+      background: #fff;
+      opacity: 0; pointer-events: none;
+      transition: opacity .08s;
+    }
+    .cam-flash.go { opacity: 1; }
+
+    .countdown-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5rem; font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(255,255,255,.8);
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s;
+    }
+    .countdown-overlay.show { opacity: 1; }
+
+    /* shutter button */
+    .shutter {
+      width: 68px; height: 68px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--a1), var(--a3));
+      border: 4px solid rgba(255,255,255,.22);
+      font-size: 1.7rem;
+      cursor: pointer; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 28px rgba(255,45,120,.55);
+      transition: transform .18s, box-shadow .18s;
+    }
+    .shutter:hover  { transform: scale(1.1); box-shadow: 0 0 44px rgba(255,45,120,.75); }
+    .shutter:active { transform: scale(.92); }
+    .shutter:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+    /* thumbnails */
+    .thumbs-row {
+      display: flex; gap: 9px; justify-content: center; align-items: center;
+      min-height: 60px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .thumb, .thumb-ph {
+      width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+      overflow: hidden;
+    }
+    .thumb {
+      border: 2px solid var(--a2);
+      box-shadow: 0 0 10px rgba(0,212,255,.4);
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-ph {
+      border: 2px dashed var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--dim); font-size: 1.1rem; font-weight: 700;
+    }
+
+    .cam-actions { display: flex; gap: 10px; }
+    .cam-actions .btn-primary { flex: 2; }
+    .cam-actions .btn-ghost   { flex: 1; }
+
+    .no-cam-note {
+      font-size: .8rem; color: var(--dim);
+      margin-top: 10px;
+    }
+
+    /* ============================================================
+       GAME SCREEN
+    ============================================================ */
+    #gameScreen {
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .game-hud {
+      width: 640px;
+      display: flex; align-items: center; gap: 20px;
+    }
+
+    .hud-logo {
+      font-size: 1.15rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--a1), var(--a2));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hud-stat {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .hud-stat-val {
+      font-size: 1.7rem; font-weight: 900;
+      line-height: 1;
+    }
+    .hud-stat-val.cyan   { color: var(--a2); text-shadow: 0 0 16px rgba(0,212,255,.6); }
+    .hud-stat-val.violet { color: var(--a3); text-shadow: 0 0 16px rgba(168,85,247,.6); }
+
+    .hud-spacer { flex: 1; }
+
+    #gameCanvas {
+      display: block;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(168,85,247,.18), 0 0 80px rgba(0,212,255,.08);
+    }
+
+    /* ============================================================
+       RESULTS SCREEN
+    ============================================================ */
+    #resultsScreen .panel {
+      width: 490px;
+      padding: 44px 40px;
+      text-align: center;
+    }
+
+    .results-title {
+      font-size: 2.4rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--a2), var(--a1), var(--a3));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .final-score {
+      font-size: 3.8rem; font-weight: 900;
+      color: var(--a2);
+      text-shadow: 0 0 36px rgba(0,212,255,.75);
+      margin: 16px 0 24px;
+    }
+
+    .breakdown { display: flex; flex-direction: column; gap: 9px; margin-bottom: 28px; }
+
+    .brow {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,.04);
+      border-radius: 12px; padding: 11px 15px;
+    }
+
+    .brow-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+      border: 2px solid var(--a2);
+    }
+    .brow-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .brow-info { flex: 1; text-align: left; }
+    .brow-name { font-weight: 700; font-size: .92rem; }
+    .brow-slot { font-size: .78rem; color: var(--dim); }
+
+    .brow-pts { font-weight: 800; font-size: 1.08rem; }
+
+    /* ============================================================
+       FLOATING SCORE POP
+    ============================================================ */
+    .score-pop {
+      position: fixed; pointer-events: none; z-index: 200;
+      font-size: 2.1rem; font-weight: 900;
+      animation: floatPop 1.3s ease-out forwards;
+    }
+    @keyframes floatPop {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-90px) scale(1.5); }
+    }
+
+    /* ============================================================
+       CONFETTI (results)
+    ============================================================ */
+    .confetti-canvas {
+      position: fixed; inset: 0; z-index: 150;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
-      </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
+  <!-- ══════════════════════════════════════════════════════════
+       SETUP SCREEN
+  ══════════════════════════════════════════════════════════ -->
+  <div id="setupScreen" class="screen">
+    <div class="panel">
+      <div class="game-logo">BALL DROP</div>
+      <p class="game-tagline">Pick your ball count, snap a selfie for each one,<br>then watch them smash through the spike pyramid!</p>
 
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
-        </div>
+      <p class="micro-label" style="text-align:left; margin-bottom:14px;">How many balls?</p>
+      <div class="count-grid" id="countGrid"></div>
 
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
-      </div>
-
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
-      </div>
-    </section>
-
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
-      </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
+      <button class="btn-primary" id="setupNext" disabled>📸 Take Selfies →</button>
+    </div>
   </div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-  <script src="app.js"></script>
+  <!-- ══════════════════════════════════════════════════════════
+       CAMERA SCREEN
+  ══════════════════════════════════════════════════════════ -->
+  <div id="cameraScreen" class="screen hidden">
+    <div class="panel">
+      <div class="cam-title" id="camTitle">Ball 1 of ?</div>
+      <div class="cam-sub"  id="camSub">Strike a pose!</div>
+
+      <div class="progress-row" id="progressRow"></div>
+
+      <div class="video-ring">
+        <video id="camFeed" autoplay playsinline muted></video>
+        <div class="cam-flash" id="camFlash"></div>
+        <div class="countdown-overlay" id="countdownOverlay"></div>
+      </div>
+
+      <button class="shutter" id="shutterBtn" title="Take photo">📷</button>
+
+      <div class="thumbs-row" id="thumbsRow"></div>
+
+      <div class="cam-actions">
+        <button class="btn-ghost" id="camBack">← Back</button>
+        <button class="btn-primary" id="camStart" disabled>🚀 Start Game</button>
+      </div>
+
+      <p class="no-cam-note" id="noCamNote"></p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       GAME SCREEN
+  ══════════════════════════════════════════════════════════ -->
+  <div id="gameScreen" class="screen hidden">
+    <div class="game-hud">
+      <span class="hud-logo">BALL DROP</span>
+      <div class="hud-stat">
+        <span class="micro-label">Balls Left</span>
+        <span class="hud-stat-val violet" id="hudLeft">—</span>
+      </div>
+      <div class="hud-stat">
+        <span class="micro-label">Active</span>
+        <span class="hud-stat-val cyan" id="hudActive">0</span>
+      </div>
+      <div class="hud-spacer"></div>
+      <div class="hud-stat">
+        <span class="micro-label">Score</span>
+        <span class="hud-stat-val cyan" id="hudScore">0</span>
+      </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       RESULTS SCREEN
+  ══════════════════════════════════════════════════════════ -->
+  <div id="resultsScreen" class="screen hidden">
+    <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+    <div class="panel">
+      <div class="results-title">🎉 Game Over!</div>
+      <div class="micro-label">Total Score</div>
+      <div class="final-score" id="finalScore">0</div>
+      <div class="breakdown" id="breakdown"></div>
+      <button class="btn-primary" id="playAgain">🔄 Play Again</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       JAVASCRIPT
+  ══════════════════════════════════════════════════════════ -->
+  <script>
+  'use strict';
+
+  /* ============================================================
+     CONSTANTS
+  ============================================================ */
+  const CW        = 620;    // canvas width
+  const CH        = 760;    // canvas height
+  const GRAVITY   = 1050;   // px / s²
+  const BALL_R    = 22;     // ball radius
+  const PEG_CR    = 10;     // peg collision radius
+  const PEG_VS    = 13;     // peg visual half-size (spike tip)
+  const REST      = 0.52;   // restitution coefficient
+  const FRICTION  = 0.985;  // per-frame velocity damping
+  const MAX_LIVE  = 4;      // max balls active simultaneously
+  const SPAWN_GAP = 650;    // ms between ball spawns
+  const WALL_L    = 28;     // left wall x
+  const WALL_R    = CW - 28;// right wall x
+
+  const PEG_ROWS  = 12;     // number of peg rows
+  const ROW_H     = 52;     // vertical distance between rows
+  const COL_SP    = 48;     // horizontal peg spacing
+  const PEGS_TOP  = 85;     // y-coordinate of first peg row
+
+  const SLOT_N    = 9;      // number of scoring slots at the bottom
+  const SLOT_MX   = [1, 2, 5, 10, 100, 10, 5, 2, 1]; // multipliers
+  const SLOT_CL   = [      // slot colours
+    '#6b7280','#3b82f6','#a855f7','#f59e0b',
+    '#ef4444',
+    '#f59e0b','#a855f7','#3b82f6','#6b7280'
+  ];
+
+  const BALL_PALETTE = [
+    '#ff2d78','#00d4ff','#a855f7','#fbbf24',
+    '#34d399','#f97316','#ec4899','#60a5fa'
+  ];
+
+  const FACE_FALLBACK = ['😎','🤩','😜','🥳','😏','🤪','😇','🥸'];
+
+  /* ============================================================
+     GAME STATE
+  ============================================================ */
+  const S = {
+    screen:    'setup',
+    ballCount: 0,
+    photos:    [],      // HTMLImageElement[] — one per ball
+    captured:  0,
+    stream:    null,    // MediaStream
+    pegs:      [],
+    slots:     [],
+    allBalls:  [],      // every Ball created this round
+    liveBalls: [],      // currently falling
+    queue:     [],      // waiting to be spawned
+    nextSpawn: 0,       // timestamp after which next spawn is allowed
+    score:     0,
+    results:   [],      // { ball, si, points, mx }
+    raf:       null,    // requestAnimationFrame handle
+    lastT:     null,    // previous frame timestamp
+  };
+
+  /* ============================================================
+     DOM HELPERS
+  ============================================================ */
+  const SCREENS = {
+    setup:   document.getElementById('setupScreen'),
+    camera:  document.getElementById('cameraScreen'),
+    game:    document.getElementById('gameScreen'),
+    results: document.getElementById('resultsScreen'),
+  };
+
+  const $ = id => document.getElementById(id);
+
+  const gameCanvas  = $('gameCanvas');
+  const ctx         = gameCanvas.getContext('2d');
+  const confettiCvs = $('confettiCanvas');
+  const confettiCtx = confettiCvs.getContext('2d');
+
+  /* ============================================================
+     SCREEN TRANSITIONS
+  ============================================================ */
+  function showScreen(name) {
+    Object.entries(SCREENS).forEach(([k, el]) => {
+      el.classList.toggle('hidden', k !== name);
+    });
+    S.screen = name;
+  }
+
+  /* ============================================================
+     SETUP SCREEN — build the ball-count grid
+  ============================================================ */
+  (function initSetup() {
+    const grid = $('countGrid');
+    for (let i = 1; i <= 8; i++) {
+      const b = document.createElement('button');
+      b.className   = 'count-btn';
+      b.textContent = i;
+      b.dataset.n   = i;
+      b.addEventListener('click', () => {
+        S.ballCount = i;
+        document.querySelectorAll('.count-btn')
+          .forEach(x => x.classList.toggle('active', +x.dataset.n === i));
+        $('setupNext').disabled = false;
+      });
+      grid.appendChild(b);
+    }
+  })();
+
+  $('setupNext').addEventListener('click', () => {
+    if (!S.ballCount) return;
+    initCameraScreen();
+    showScreen('camera');
+  });
+
+  /* ============================================================
+     CAMERA SCREEN
+  ============================================================ */
+  function initCameraScreen() {
+    S.photos   = [];
+    S.captured = 0;
+    refreshCameraUI();
+    launchCamera();
+  }
+
+  /* Rebuild all dynamic camera-screen elements from S.photos / S.captured */
+  function refreshCameraUI() {
+    const n   = S.ballCount;
+    const cur = S.captured;
+
+    $('camTitle').textContent = cur < n
+      ? `Ball ${cur + 1} of ${n}`
+      : `All ${n} selfies done!`;
+
+    $('camSub').textContent = cur < n
+      ? `Selfie #${cur + 1} — look alive! 😄`
+      : 'Ready to launch. Hit Start!';
+
+    // --- progress dots ---
+    const row = $('progressRow');
+    row.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.className = 'pdot'
+        + (i < cur ? ' done' : i === cur ? ' active' : '');
+      row.appendChild(d);
+    }
+
+    // --- thumbnails ---
+    const tr = $('thumbsRow');
+    tr.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      if (S.photos[i]) {
+        const wrap = document.createElement('div');
+        wrap.className = 'thumb';
+        const img = document.createElement('img');
+        img.src   = S.photos[i].src;
+        wrap.appendChild(img);
+        tr.appendChild(wrap);
+      } else {
+        const ph = document.createElement('div');
+        ph.className   = 'thumb-ph';
+        ph.textContent = i + 1;
+        tr.appendChild(ph);
+      }
+    }
+
+    $('shutterBtn').disabled = cur >= n;
+    $('camStart').disabled   = cur < n;
+  }
+
+  /* Start webcam feed */
+  async function launchCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 320 } },
+        audio: false,
+      });
+      S.stream           = stream;
+      $('camFeed').srcObject = stream;
+      $('noCamNote').textContent = '';
+    } catch (err) {
+      console.warn('Camera unavailable:', err);
+      $('noCamNote').textContent =
+        '⚠️ No camera found — fun emoji avatars will be used instead.';
+      autoFillEmoji();
+    }
+  }
+
+  /* Stop all camera tracks */
+  function stopCamera() {
+    if (S.stream) {
+      S.stream.getTracks().forEach(t => t.stop());
+      S.stream = null;
+    }
+  }
+
+  /* When camera is unavailable fill every slot with a coloured emoji canvas */
+  function autoFillEmoji() {
+    for (let i = S.captured; i < S.ballCount; i++) {
+      S.photos[i] = makeEmojiImage(i);
+    }
+    S.captured = S.ballCount;
+    refreshCameraUI();
+  }
+
+  /* Create a 280×280 coloured canvas image with an emoji face */
+  function makeEmojiImage(idx) {
+    const c   = document.createElement('canvas');
+    c.width = c.height = 280;
+    const x   = c.getContext('2d');
+    x.fillStyle = BALL_PALETTE[idx % BALL_PALETTE.length];
+    x.fillRect(0, 0, 280, 280);
+    x.font          = '110px serif';
+    x.textAlign     = 'center';
+    x.textBaseline  = 'middle';
+    x.fillText(FACE_FALLBACK[idx % FACE_FALLBACK.length], 140, 140);
+    const img = new Image();
+    img.src   = c.toDataURL();
+    return img;
+  }
+
+  /* ---------- countdown → capture flow ---------- */
+  let shootCooldown = false;
+
+  $('shutterBtn').addEventListener('click', () => {
+    if (shootCooldown || S.captured >= S.ballCount) return;
+    shootCooldown = true;
+    runCountdown(3, () => {
+      captureFrame();
+      shootCooldown = false;
+    });
+  });
+
+  /* Display 3‥2‥1 in the video ring then call done() */
+  function runCountdown(from, done) {
+    const overlay = $('countdownOverlay');
+    let n = from;
+    overlay.textContent = n;
+    overlay.classList.add('show');
+    const iv = setInterval(() => {
+      n--;
+      if (n <= 0) {
+        clearInterval(iv);
+        overlay.classList.remove('show');
+        done();
+      } else {
+        overlay.textContent = n;
+      }
+    }, 700);
+  }
+
+  /* Grab the current video frame and store it as S.photos[cur] */
+  function captureFrame() {
+    // white flash
+    const flash = $('camFlash');
+    flash.classList.add('go');
+    setTimeout(() => flash.classList.remove('go'), 180);
+
+    const c = document.createElement('canvas');
+    c.width = c.height = 280;
+    const x    = c.getContext('2d');
+    const feed = $('camFeed');
+
+    if (S.stream && feed.readyState >= 2) {
+      // un-mirror the CSS scaleX(-1) so the stored image is natural orientation
+      x.save();
+      x.translate(280, 0);
+      x.scale(-1, 1);
+      x.drawImage(feed, 0, 0, 280, 280);
+      x.restore();
+    } else {
+      // fallback coloured frame
+      x.fillStyle = BALL_PALETTE[S.captured % BALL_PALETTE.length];
+      x.fillRect(0, 0, 280, 280);
+      x.font = '100px serif';
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(FACE_FALLBACK[S.captured % FACE_FALLBACK.length], 140, 140);
+    }
+
+    const img = new Image();
+    img.src         = c.toDataURL('image/jpeg', 0.88);
+    S.photos[S.captured] = img;
+    S.captured++;
+    refreshCameraUI();
+
+    // tiny bounce feedback on the shutter button
+    const btn       = $('shutterBtn');
+    btn.style.transform = 'scale(.88)';
+    setTimeout(() => (btn.style.transform = ''), 140);
+  }
+
+  $('camBack').addEventListener('click', () => {
+    stopCamera();
+    showScreen('setup');
+  });
+
+  $('camStart').addEventListener('click', () => {
+    stopCamera();
+    initGame();
+    showScreen('game');
+  });
+
+  /* ============================================================
+     BALL CLASS
+  ============================================================ */
+  class Ball {
+    constructor(id, img) {
+      this.id       = id;
+      this.image    = img;
+      this.r        = BALL_R;
+      this.color    = BALL_PALETTE[id % BALL_PALETTE.length];
+
+      // physics
+      this.x = 0; this.y = 0;
+      this.vx = 0; this.vy = 0;
+
+      // visuals
+      this.spin    = 0;
+      this.spinSpd = (Math.random() - .5) * 6;
+      this.gPhi    = Math.random() * Math.PI * 2;  // glow phase offset
+      this.trail   = [];
+
+      // state
+      this.landed  = false;
+      this.active  = false;
+      this.slotIdx = -1;
+    }
+
+    /* Place the ball above the canvas ready to fall */
+    spawn() {
+      this.x      = CW / 2 + (Math.random() - .5) * 80;
+      this.y      = -this.r * 2.5;
+      this.vx     = (Math.random() - .5) * 140;
+      this.vy     = 60;
+      this.active = true;
+    }
+
+    /* Step physics one frame */
+    update(dt) {
+      if (!this.active || this.landed) return;
+
+      // record trail
+      this.trail.push({ x: this.x, y: this.y });
+      if (this.trail.length > 9) this.trail.shift();
+
+      // gravity
+      this.vy += GRAVITY * dt;
+
+      // position update
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+
+      // rotation
+      this.spin += this.spinSpd * dt;
+
+      // air friction
+      this.vx *= Math.pow(FRICTION, dt * 60);
+
+      // left wall
+      if (this.x - this.r < WALL_L) {
+        this.x  = WALL_L + this.r;
+        this.vx = Math.abs(this.vx) * REST + 25;
+      }
+      // right wall
+      if (this.x + this.r > WALL_R) {
+        this.x  = WALL_R - this.r;
+        this.vx = -(Math.abs(this.vx) * REST + 25);
+      }
+    }
+
+    /* Draw the ball, its glow, trail, and index label */
+    draw(c, t) {
+      if (!this.active) return;
+
+      // ---- trail ----
+      this.trail.forEach((pt, i) => {
+        const alpha = (i / this.trail.length) * 0.27;
+        const r     = this.r * (i / this.trail.length) * 0.52;
+        const hex   = Math.floor(alpha * 255).toString(16).padStart(2, '0');
+        c.beginPath();
+        c.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+        c.fillStyle = this.color + hex;
+        c.fill();
+      });
+
+      // ---- glow halo ----
+      const glow = Math.sin(t * 2.2 + this.gPhi) * 0.3 + 0.7;
+      c.save();
+      c.shadowColor = this.color;
+      c.shadowBlur  = 14 * glow;
+
+      // ---- clip to circle, draw face ----
+      c.beginPath();
+      c.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      c.clip();
+
+      if (this.image && this.image.complete && this.image.naturalWidth > 0) {
+        c.translate(this.x, this.y);
+        c.rotate(this.spin);
+        c.drawImage(this.image, -this.r, -this.r, this.r * 2, this.r * 2);
+      } else {
+        c.fillStyle = this.color;
+        c.fill();
+      }
+      c.restore();
+
+      // ---- glowing ring ----
+      c.save();
+      c.shadowColor = this.color;
+      c.shadowBlur  = 12;
+      c.beginPath();
+      c.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      c.strokeStyle = this.color;
+      c.lineWidth   = 2.5;
+      c.stroke();
+      c.restore();
+
+      // ---- index label below ball ----
+      c.fillStyle    = 'rgba(255,255,255,.85)';
+      c.font         = `bold ${Math.round(this.r * .65)}px sans-serif`;
+      c.textAlign    = 'center';
+      c.textBaseline = 'top';
+      c.fillText(this.id + 1, this.x, this.y + this.r + 3);
+    }
+
+    /* Returns true when the ball has fully crossed the slot boundary */
+    hasLanded() {
+      return this.y - this.r > CH - 72;
+    }
+  }
+
+  /* ============================================================
+     PEG GENERATION — triangular grid
+  ============================================================ */
+  function buildPegs() {
+    const pegs = [];
+    for (let row = 0; row < PEG_ROWS; row++) {
+      const count  = row + 3;             // row 0 → 3 pegs, row 11 → 14 pegs
+      const rowW   = (count - 1) * COL_SP;
+      const startX = (CW - rowW) / 2;
+      const y      = PEGS_TOP + row * ROW_H;
+
+      for (let col = 0; col < count; col++) {
+        pegs.push({
+          x: startX + col * COL_SP,
+          y,
+          r:    PEG_CR,
+          hitT: 0,       // timestamp of last collision (for hit flash)
+          row,
+          col,
+        });
+      }
+    }
+    return pegs;
+  }
+
+  /* ============================================================
+     SLOT GENERATION — equal-width buckets at the bottom
+  ============================================================ */
+  function buildSlots() {
+    const w = (WALL_R - WALL_L) / SLOT_N;
+    return SLOT_MX.map((mx, i) => ({
+      x:     WALL_L + i * w,
+      w,
+      mx,
+      color: SLOT_CL[i],
+      pulseT: 0,          // timestamp of last ball landing (for pulse glow)
+    }));
+  }
+
+  /* ============================================================
+     HIT PARTICLES — burst on peg collision
+  ============================================================ */
+  const hitParticles = [];
+
+  function spawnHitParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 80 + Math.random() * 160;
+      hitParticles.push({
+        x, y,
+        vx:    Math.cos(angle) * speed,
+        vy:    Math.sin(angle) * speed - 60,
+        life:  1,
+        size:  2 + Math.random() * 3,
+        color,
+      });
+    }
+  }
+
+  /* ============================================================
+     PHYSICS — ball vs peg (spike tip = circle of radius PEG_CR)
+  ============================================================ */
+  function collideBallPeg(ball, peg) {
+    const dx = ball.x - peg.x;
+    const dy = ball.y - peg.y;
+    const d2 = dx * dx + dy * dy;
+    const mn = ball.r + peg.r;
+
+    if (d2 >= mn * mn || d2 < 0.001) return false;
+
+    const d  = Math.sqrt(d2);
+    const nx = dx / d;
+    const ny = dy / d;
+
+    // push ball out of overlap
+    const ov = mn - d;
+    ball.x += nx * ov;
+    ball.y += ny * ov;
+
+    // reflect velocity along collision normal
+    const dot = ball.vx * nx + ball.vy * ny;
+    ball.vx = (ball.vx - 2 * dot * nx) * REST;
+    ball.vy = (ball.vy - 2 * dot * ny) * REST;
+
+    // tiny random horizontal nudge to break symmetry
+    ball.vx += (Math.random() - .5) * 55;
+
+    // record hit for glow
+    peg.hitT = performance.now();
+    spawnHitParticles(peg.x, peg.y, ball.color);
+    return true;
+  }
+
+  /* ============================================================
+     PHYSICS — ball vs ball elastic collision
+  ============================================================ */
+  function collideBallBall(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d2 = dx * dx + dy * dy;
+    const mn = a.r + b.r;
+
+    if (d2 >= mn * mn || d2 < 0.001) return;
+
+    const d  = Math.sqrt(d2);
+    const nx = dx / d;
+    const ny = dy / d;
+
+    // separate
+    const ov = (mn - d) * .5;
+    a.x -= nx * ov;  a.y -= ny * ov;
+    b.x += nx * ov;  b.y += ny * ov;
+
+    // exchange momentum along collision axis
+    const dvx = a.vx - b.vx;
+    const dvy = a.vy - b.vy;
+    const dot = dvx * nx + dvy * ny;
+
+    if (dot > 0) {
+      const imp = dot * REST;
+      a.vx -= imp * nx;  a.vy -= imp * ny;
+      b.vx += imp * nx;  b.vy += imp * ny;
+    }
+  }
+
+  /* ============================================================
+     GAME INITIALISATION
+  ============================================================ */
+  function initGame() {
+    gameCanvas.width  = CW;
+    gameCanvas.height = CH;
+
+    S.pegs      = buildPegs();
+    S.slots     = buildSlots();
+    S.allBalls  = [];
+    S.liveBalls = [];
+    S.results   = [];
+    S.queue     = [];
+    S.score     = 0;
+    S.lastT     = null;
+    S.nextSpawn = performance.now() + 400;
+    hitParticles.length = 0;
+
+    // Create all Ball objects and push to queue
+    for (let i = 0; i < S.ballCount; i++) {
+      const ball = new Ball(i, S.photos[i]);
+      S.allBalls.push(ball);
+      S.queue.push(ball);
+    }
+
+    updateHUD();
+
+    if (S.raf) cancelAnimationFrame(S.raf);
+    S.raf = requestAnimationFrame(gameLoop);
+  }
+
+  /* ============================================================
+     BALL SPAWNING — release one ball from the queue when ready
+  ============================================================ */
+  function trySpawn(now) {
+    if (S.liveBalls.length >= MAX_LIVE) return;
+    if (!S.queue.length)               return;
+    if (now < S.nextSpawn)             return;
+
+    const ball      = S.queue.shift();
+    ball.spawn();
+    S.liveBalls.push(ball);
+    S.nextSpawn = now + SPAWN_GAP;
+    updateHUD();
+  }
+
+  /* ============================================================
+     SCORING — detect when a ball reaches the slot area
+  ============================================================ */
+  function checkLanding(ball) {
+    if (ball.landed || !ball.hasLanded()) return;
+
+    // determine which slot it fell into
+    let si = 0;
+    for (let i = 0; i < S.slots.length; i++) {
+      if (ball.x >= S.slots[i].x && ball.x < S.slots[i].x + S.slots[i].w) {
+        si = i;
+        break;
+      }
+    }
+
+    const slot   = S.slots[si];
+    const points = 100 * slot.mx;
+
+    ball.landed  = true;
+    ball.active  = false;
+    slot.pulseT  = performance.now();
+    S.score     += points;
+    S.results.push({ ball, si, points, mx: slot.mx });
+
+    // remove from live list
+    const idx = S.liveBalls.indexOf(ball);
+    if (idx !== -1) S.liveBalls.splice(idx, 1);
+
+    updateHUD();
+    showScorePop(ball.x, CH - 72, `×${slot.mx}`, slot.color);
+  }
+
+  /* Refresh the in-game HUD stats */
+  function updateHUD() {
+    $('hudLeft').textContent   = S.queue.length + S.liveBalls.length;
+    $('hudActive').textContent = S.liveBalls.length;
+    $('hudScore').textContent  = S.score.toLocaleString();
+  }
+
+  /* Floating multiplier text that drifts upward then fades out */
+  function showScorePop(cx, cy, text, color) {
+    const rect = gameCanvas.getBoundingClientRect();
+    const pop  = document.createElement('div');
+    pop.className       = 'score-pop';
+    pop.textContent     = text;
+    pop.style.color      = color;
+    pop.style.textShadow = `0 0 22px ${color}`;
+    pop.style.left       = rect.left + cx + 'px';
+    pop.style.top        = rect.top  + cy + 'px';
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 1400);
+  }
+
+  /* ============================================================
+     MAIN GAME LOOP
+  ============================================================ */
+  function gameLoop(ts) {
+    if (!S.lastT) S.lastT = ts;
+    const dt = Math.min((ts - S.lastT) / 1000, 0.034); // cap at ~30 fps equivalent
+    S.lastT  = ts;
+
+    // spawn next ball if conditions allow
+    trySpawn(ts);
+
+    // update positions
+    S.liveBalls.forEach(b => b.update(dt));
+
+    // ball–peg collisions (all combinations)
+    S.liveBalls.forEach(b => S.pegs.forEach(p => collideBallPeg(b, p)));
+
+    // ball–ball collisions (each pair once)
+    for (let i = 0; i < S.liveBalls.length; i++)
+      for (let j = i + 1; j < S.liveBalls.length; j++)
+        collideBallBall(S.liveBalls[i], S.liveBalls[j]);
+
+    // check for landings (copy array because checkLanding mutates S.liveBalls)
+    [...S.liveBalls].forEach(b => checkLanding(b));
+
+    // age and gravity for hit particles
+    updateParticles(dt);
+
+    // draw everything
+    render(ts / 1000);
+
+    // game-over condition: nothing left in queue or air
+    if (S.queue.length === 0 && S.liveBalls.length === 0) {
+      setTimeout(showResults, 900);
+      return;
+    }
+
+    S.raf = requestAnimationFrame(gameLoop);
+  }
+
+  /* ============================================================
+     PARTICLE UPDATE
+  ============================================================ */
+  function updateParticles(dt) {
+    for (let i = hitParticles.length - 1; i >= 0; i--) {
+      const p = hitParticles[i];
+      p.life -= dt * 2.2;
+      p.x    += p.vx * dt;
+      p.y    += p.vy * dt;
+      p.vy   += 400 * dt;   // mini gravity pulls particles down
+      if (p.life <= 0) hitParticles.splice(i, 1);
+    }
+  }
+
+  /* ============================================================
+     RENDERING — master render call
+  ============================================================ */
+  function render(t) {
+    ctx.clearRect(0, 0, CW, CH);
+    drawBackground(t);
+    drawWalls(t);
+    drawSlots(t);
+    drawPegs(t);
+    drawHitParticles();
+    S.allBalls.forEach(b => b.draw(ctx, t));
+    drawLaunchTube(t);
+  }
+
+  /* ---- background gradient + subtle dot grid ---- */
+  function drawBackground(t) {
+    // main gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, CH);
+    bg.addColorStop(0,   '#0d0d2b');
+    bg.addColorStop(.55, '#090918');
+    bg.addColorStop(1,   '#040410');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, CW, CH);
+
+    // faint dot grid overlay
+    ctx.save();
+    ctx.globalAlpha = 0.055;
+    ctx.fillStyle   = '#a0a8ff';
+    const gs = 30;
+    for (let gx = gs; gx < CW; gx += gs)
+      for (let gy = gs; gy < CH; gy += gs) {
+        ctx.beginPath();
+        ctx.arc(gx, gy, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    ctx.restore();
+  }
+
+  /* ---- side walls with animated glow ---- */
+  function drawWalls(t) {
+    const pulse = Math.sin(t * 1.8) * 0.12 + 0.6;
+
+    ctx.save();
+    ctx.shadowColor = `rgba(168,85,247,${pulse})`;
+    ctx.shadowBlur  = 16;
+
+    // left wall fill
+    const gL = ctx.createLinearGradient(0, 0, WALL_L, 0);
+    gL.addColorStop(0, 'rgba(168,85,247,.55)');
+    gL.addColorStop(1, 'rgba(168,85,247,.12)');
+    ctx.fillStyle = gL;
+    ctx.fillRect(0, 0, WALL_L, CH);
+
+    // right wall fill
+    const gR = ctx.createLinearGradient(WALL_R, 0, CW, 0);
+    gR.addColorStop(0, 'rgba(168,85,247,.12)');
+    gR.addColorStop(1, 'rgba(168,85,247,.55)');
+    ctx.fillStyle = gR;
+    ctx.fillRect(WALL_R, 0, CW - WALL_R, CH);
+
+    // bright inner edges
+    ctx.strokeStyle = `rgba(168,85,247,${.5 + pulse * .3})`;
+    ctx.lineWidth   = 2;
+    ctx.beginPath(); ctx.moveTo(WALL_L, 0); ctx.lineTo(WALL_L, CH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(WALL_R, 0); ctx.lineTo(WALL_R, CH); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- scoring slots at the bottom of the board ---- */
+  function drawSlots(t) {
+    const TOP = CH - 72;
+    const H   = 72;
+    const now = performance.now();
+
+    S.slots.forEach(slot => {
+      const sinceP = (now - slot.pulseT) / 1000;
+      const pulse  = slot.pulseT > 0 ? Math.max(0, 1 - sinceP * 1.8) : 0;
+
+      ctx.save();
+      if (pulse > 0) {
+        ctx.shadowColor = slot.color;
+        ctx.shadowBlur  = 30 * pulse;
+      }
+
+      // slot background
+      const g = ctx.createLinearGradient(slot.x, TOP, slot.x, TOP + H);
+      g.addColorStop(0, slot.color + '44');
+      g.addColorStop(1, slot.color + 'aa');
+      ctx.fillStyle = g;
+      ctx.fillRect(slot.x, TOP, slot.w, H);
+
+      // landing flash overlay
+      if (pulse > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${pulse * .35})`;
+        ctx.fillRect(slot.x, TOP, slot.w, H);
+      }
+      ctx.restore();
+
+      // border
+      ctx.strokeStyle = 'rgba(255,255,255,.13)';
+      ctx.lineWidth   = 1;
+      ctx.strokeRect(slot.x, TOP, slot.w, H);
+
+      // multiplier text
+      ctx.save();
+      ctx.shadowColor    = slot.color;
+      ctx.shadowBlur     = 8;
+      ctx.fillStyle      = '#fff';
+      ctx.font           = `bold ${slot.w < 56 ? 11 : 13}px sans-serif`;
+      ctx.textAlign      = 'center';
+      ctx.textBaseline   = 'middle';
+      ctx.fillText(`×${slot.mx}`, slot.x + slot.w / 2, TOP + H / 2);
+      ctx.restore();
+    });
+
+    // mini divider spikes between slots
+    ctx.fillStyle = 'rgba(200,200,240,.45)';
+    for (let i = 1; i < SLOT_N; i++) {
+      const x = WALL_L + i * ((WALL_R - WALL_L) / SLOT_N);
+      ctx.beginPath();
+      ctx.moveTo(x,     TOP);
+      ctx.lineTo(x - 5, TOP - 16);
+      ctx.lineTo(x + 5, TOP - 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  /* ---- spike pegs — upward-pointing triangles with animated glow ---- */
+  function drawPegs(t) {
+    const now = performance.now();
+
+    S.pegs.forEach(peg => {
+      const sinceHit = (now - peg.hitT) / 1000;
+      const hitGlow  = peg.hitT > 0 ? Math.max(0, 1 - sinceHit / 0.38) : 0;
+      const idleP    = Math.sin(t * 1.6 + peg.row * .55) * .12 + .18;
+
+      ctx.save();
+      ctx.shadowColor = hitGlow > 0
+        ? `rgba(255,255,80,${hitGlow})`
+        : `rgba(0,212,255,${idleP})`;
+      ctx.shadowBlur = hitGlow > 0 ? 22 * hitGlow : 8;
+
+      const s  = PEG_VS;
+      const px = peg.x;
+      const py = peg.y;
+
+      // upward-pointing spike
+      ctx.beginPath();
+      ctx.moveTo(px,           py - s);           // tip (top)
+      ctx.lineTo(px + s * .78, py + s * .62);     // bottom-right
+      ctx.lineTo(px - s * .78, py + s * .62);     // bottom-left
+      ctx.closePath();
+
+      // gradient from bright tip to darker base
+      const grad = ctx.createLinearGradient(px, py - s, px, py + s * .62);
+      if (hitGlow > 0) {
+        grad.addColorStop(0, `rgba(255,255,160,${.75 + hitGlow * .25})`);
+        grad.addColorStop(1, `rgba(255,210,20, ${.45 + hitGlow * .2})`);
+      } else {
+        grad.addColorStop(0, 'rgba(190,230,255,.92)');
+        grad.addColorStop(1, 'rgba(110,185,255,.50)');
+      }
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.strokeStyle = hitGlow > 0
+        ? `rgba(255,255,120,${.85 + hitGlow * .15})`
+        : 'rgba(210,240,255,.65)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  /* ---- render hit burst particles ---- */
+  function drawHitParticles() {
+    hitParticles.forEach(p => {
+      const a   = Math.max(0, p.life);
+      const hex = Math.floor(a * 220).toString(16).padStart(2, '0');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + hex;
+      ctx.fill();
+    });
+  }
+
+  /* ---- launch tube at top centre where balls enter ---- */
+  function drawLaunchTube(t) {
+    const cx    = CW / 2;
+    const tubeW = 34;
+    const tubeH = 55;
+
+    ctx.save();
+
+    // tube body
+    const tg = ctx.createLinearGradient(cx - tubeW / 2, 0, cx + tubeW / 2, 0);
+    tg.addColorStop(0,  'rgba(168,85,247,.45)');
+    tg.addColorStop(.5, 'rgba(168,85,247,.12)');
+    tg.addColorStop(1,  'rgba(168,85,247,.45)');
+    ctx.fillStyle = tg;
+    ctx.fillRect(cx - tubeW / 2, 0, tubeW, tubeH);
+
+    // animated pulse border
+    const gp = Math.sin(t * 3) * .2 + .4;
+    ctx.shadowColor = `rgba(168,85,247,${gp})`;
+    ctx.shadowBlur  = 12;
+    ctx.strokeStyle = `rgba(168,85,247,${.5 + gp * .3})`;
+    ctx.lineWidth   = 1.5;
+    ctx.strokeRect(cx - tubeW / 2, 0, tubeW, tubeH);
+    ctx.restore();
+
+    // "DROP" label above tube
+    ctx.save();
+    ctx.font          = 'bold 9px sans-serif';
+    ctx.textAlign     = 'center';
+    ctx.textBaseline  = 'top';
+    ctx.fillStyle     = 'rgba(168,85,247,.7)';
+    ctx.fillText('DROP', cx, 2);
+    ctx.restore();
+  }
+
+  /* ============================================================
+     RESULTS SCREEN — build scorecard and show it
+  ============================================================ */
+  function showResults() {
+    $('finalScore').textContent = S.score.toLocaleString();
+
+    const bd = $('breakdown');
+    bd.innerHTML = '';
+
+    S.results.forEach(r => {
+      const slot = S.slots[r.si];
+      const row  = document.createElement('div');
+      row.className = 'brow';
+
+      // avatar (selfie thumbnail)
+      const av = document.createElement('div');
+      av.className = 'brow-avatar';
+      if (r.ball.image && r.ball.image.src) {
+        const img = document.createElement('img');
+        img.src   = r.ball.image.src;
+        av.appendChild(img);
+      } else {
+        av.style.background = r.ball.color;
+      }
+
+      // name + slot
+      const info = document.createElement('div');
+      info.className = 'brow-info';
+
+      const nm = document.createElement('div');
+      nm.className   = 'brow-name';
+      nm.textContent = `Ball ${r.ball.id + 1}`;
+
+      const sl = document.createElement('div');
+      sl.className   = 'brow-slot';
+      sl.textContent = `Landed in ×${r.mx} slot`;
+      sl.style.color = slot.color;
+
+      info.appendChild(nm);
+      info.appendChild(sl);
+
+      // points
+      const pts = document.createElement('div');
+      pts.className   = 'brow-pts';
+      pts.textContent = `+${r.points.toLocaleString()}`;
+      pts.style.color = slot.color;
+
+      row.appendChild(av);
+      row.appendChild(info);
+      row.appendChild(pts);
+      bd.appendChild(row);
+    });
+
+    showScreen('results');
+    launchConfetti();
+  }
+
+  /* ============================================================
+     CONFETTI ANIMATION on the results screen
+  ============================================================ */
+  const confettiPieces = [];
+  let confettiRaf = null;
+
+  function launchConfetti() {
+    confettiCvs.width  = window.innerWidth;
+    confettiCvs.height = window.innerHeight;
+    confettiPieces.length = 0;
+
+    const colors = ['#ff2d78','#00d4ff','#a855f7','#fbbf24','#34d399','#f97316'];
+
+    // spawn 140 pieces across the top
+    for (let i = 0; i < 140; i++) {
+      confettiPieces.push({
+        x:    Math.random() * confettiCvs.width,
+        y:    -10 - Math.random() * 200,
+        vx:   (Math.random() - .5) * 4,
+        vy:   2 + Math.random() * 4,
+        rot:  Math.random() * Math.PI * 2,
+        rotV: (Math.random() - .5) * .2,
+        w:    6 + Math.random() * 8,
+        h:    3 + Math.random() * 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      });
+    }
+
+    if (confettiRaf) cancelAnimationFrame(confettiRaf);
+
+    (function tick() {
+      confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+      let anyVisible = false;
+
+      confettiPieces.forEach(p => {
+        p.x   += p.vx;
+        p.y   += p.vy;
+        p.rot += p.rotV;
+        p.vy  += 0.06;   // gentle gravity on confetti
+
+        if (p.y < confettiCvs.height + 20) {
+          anyVisible = true;
+          const life = Math.max(0, 1 - p.y / (confettiCvs.height * 1.1));
+          confettiCtx.save();
+          confettiCtx.globalAlpha = life;
+          confettiCtx.translate(p.x, p.y);
+          confettiCtx.rotate(p.rot);
+          confettiCtx.fillStyle = p.color;
+          confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          confettiCtx.restore();
+        }
+      });
+
+      if (anyVisible) {
+        confettiRaf = requestAnimationFrame(tick);
+      } else {
+        confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+      }
+    })();
+  }
+
+  /* ============================================================
+     PLAY AGAIN — reset everything back to the setup screen
+  ============================================================ */
+  $('playAgain').addEventListener('click', () => {
+    // stop confetti
+    if (confettiRaf) { cancelAnimationFrame(confettiRaf); confettiRaf = null; }
+    confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+
+    // reset state
+    S.ballCount = 0;
+    S.photos    = [];
+    S.captured  = 0;
+
+    // deselect count buttons
+    document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+    $('setupNext').disabled = true;
+
+    showScreen('setup');
+  });
+
+  /* ============================================================
+     BOOT
+  ============================================================ */
+  showScreen('setup');
+  </script>
 </body>
 </html>
