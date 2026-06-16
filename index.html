@@ -11,14 +11,14 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg:        #07071a;
-      --surface:   rgba(255,255,255,0.05);
-      --border:    rgba(255,255,255,0.12);
-      --a1:        #ff2d78;
-      --a2:        #00d4ff;
-      --a3:        #a855f7;
-      --text:      #f0f0ff;
-      --dim:       rgba(240,240,255,0.48);
+      --bg:      #07071a;
+      --surface: rgba(255,255,255,0.05);
+      --border:  rgba(255,255,255,0.12);
+      --a1:      #ff2d78;
+      --a2:      #00d4ff;
+      --a3:      #a855f7;
+      --text:    #f0f0ff;
+      --dim:     rgba(240,240,255,0.48);
     }
 
     html, body {
@@ -33,9 +33,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding-bottom: 34px; /* room for footer */
     }
 
-    /* animated ambient blobs */
     body::before {
       content: '';
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -164,7 +164,6 @@
 
     .cam-sub { color: var(--dim); font-size: .88rem; margin-bottom: 18px; }
 
-    /* progress dots */
     .progress-row {
       display: flex; gap: 7px; justify-content: center;
       margin-bottom: 22px;
@@ -176,7 +175,6 @@
     .pdot.done   { background: var(--a2); box-shadow: 0 0 8px var(--a2); }
     .pdot.active { background: var(--a1); box-shadow: 0 0 14px var(--a1); transform: scale(1.35); }
 
-    /* video circle */
     .video-ring {
       position: relative;
       width: 260px; height: 260px;
@@ -186,7 +184,6 @@
       border: 3px solid var(--a2);
       box-shadow: 0 0 28px rgba(0,212,255,.35);
     }
-
     .video-ring video {
       width: 100%; height: 100%;
       object-fit: cover;
@@ -212,7 +209,6 @@
     }
     .countdown-overlay.show { opacity: 1; }
 
-    /* shutter button */
     .shutter {
       width: 68px; height: 68px; border-radius: 50%;
       background: linear-gradient(135deg, var(--a1), var(--a3));
@@ -227,7 +223,6 @@
     .shutter:active { transform: scale(.92); }
     .shutter:disabled { opacity: .35; cursor: not-allowed; transform: none; }
 
-    /* thumbnails */
     .thumbs-row {
       display: flex; gap: 9px; justify-content: center; align-items: center;
       min-height: 60px; flex-wrap: wrap;
@@ -253,21 +248,18 @@
     .cam-actions .btn-primary { flex: 2; }
     .cam-actions .btn-ghost   { flex: 1; }
 
-    .no-cam-note {
-      font-size: .8rem; color: var(--dim);
-      margin-top: 10px;
-    }
+    .no-cam-note { font-size: .8rem; color: var(--dim); margin-top: 10px; }
 
     /* ============================================================
        GAME SCREEN
     ============================================================ */
     #gameScreen {
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .game-hud {
-      width: 640px;
+      width: 490px;
       display: flex; align-items: center; gap: 20px;
     }
 
@@ -278,12 +270,9 @@
       -webkit-text-fill-color: transparent;
     }
 
-    .hud-stat {
-      display: flex; flex-direction: column; align-items: center;
-    }
+    .hud-stat { display: flex; flex-direction: column; align-items: center; }
     .hud-stat-val {
-      font-size: 1.7rem; font-weight: 900;
-      line-height: 1;
+      font-size: 1.7rem; font-weight: 900; line-height: 1;
     }
     .hud-stat-val.cyan   { color: var(--a2); text-shadow: 0 0 16px rgba(0,212,255,.6); }
     .hud-stat-val.violet { color: var(--a3); text-shadow: 0 0 16px rgba(168,85,247,.6); }
@@ -294,7 +283,7 @@
       display: block;
       border-radius: 16px;
       border: 1px solid var(--border);
-      box-shadow: 0 0 40px rgba(168,85,247,.18), 0 0 80px rgba(0,212,255,.08);
+      box-shadow: 0 0 50px rgba(168,85,247,.22), 0 0 100px rgba(0,212,255,.1);
     }
 
     /* ============================================================
@@ -339,11 +328,10 @@
     .brow-info { flex: 1; text-align: left; }
     .brow-name { font-weight: 700; font-size: .92rem; }
     .brow-slot { font-size: .78rem; color: var(--dim); }
-
-    .brow-pts { font-weight: 800; font-size: 1.08rem; }
+    .brow-pts  { font-weight: 800; font-size: 1.08rem; }
 
     /* ============================================================
-       FLOATING SCORE POP
+       SCORE POP
     ============================================================ */
     .score-pop {
       position: fixed; pointer-events: none; z-index: 200;
@@ -356,12 +344,30 @@
     }
 
     /* ============================================================
-       CONFETTI (results)
+       CONFETTI
     ============================================================ */
     .confetti-canvas {
       position: fixed; inset: 0; z-index: 150;
       pointer-events: none;
     }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 34px;
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      background: rgba(5,5,20,.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,.07);
+      z-index: 500;
+      font-size: .74rem; letter-spacing: .5px;
+    }
+    .footer-dev  { color: rgba(168,85,247,.75); font-weight: 600; }
+    .footer-sep  { color: rgba(255,255,255,.2); }
+    .footer-cool { color: rgba(0,212,255,.65); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -372,9 +378,9 @@
   <div id="setupScreen" class="screen">
     <div class="panel">
       <div class="game-logo">BALL DROP</div>
-      <p class="game-tagline">Pick your ball count, snap a selfie for each one,<br>then watch them smash through the spike pyramid!</p>
+      <p class="game-tagline">Snap a selfie for each ball, then send them<br>crashing through the spike tube!</p>
 
-      <p class="micro-label" style="text-align:left; margin-bottom:14px;">How many balls?</p>
+      <p class="micro-label" style="text-align:left;margin-bottom:14px;">How many balls?</p>
       <div class="count-grid" id="countGrid"></div>
 
       <button class="btn-primary" id="setupNext" disabled>📸 Take Selfies →</button>
@@ -402,8 +408,8 @@
       <div class="thumbs-row" id="thumbsRow"></div>
 
       <div class="cam-actions">
-        <button class="btn-ghost" id="camBack">← Back</button>
-        <button class="btn-primary" id="camStart" disabled>🚀 Start Game</button>
+        <button class="btn-ghost"    id="camBack" >← Back</button>
+        <button class="btn-primary"  id="camStart" disabled>🚀 Start Game</button>
       </div>
 
       <p class="no-cam-note" id="noCamNote"></p>
@@ -448,46 +454,59 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════════════════════ -->
+  <footer>
+    <span class="footer-dev">Developed by Denys</span>
+    <span class="footer-sep">·</span>
+    <span class="footer-cool">luke and blair are cool</span>
+  </footer>
+
+  <!-- ══════════════════════════════════════════════════════════
        JAVASCRIPT
   ══════════════════════════════════════════════════════════ -->
   <script>
   'use strict';
 
   /* ============================================================
-     CONSTANTS
+     CONSTANTS — tube layout, bigger spikes, narrower channel
   ============================================================ */
-  const CW        = 620;    // canvas width
-  const CH        = 760;    // canvas height
-  const GRAVITY   = 1050;   // px / s²
-  const BALL_R    = 22;     // ball radius
-  const PEG_CR    = 10;     // peg collision radius
-  const PEG_VS    = 13;     // peg visual half-size (spike tip)
-  const REST      = 0.52;   // restitution coefficient
-  const FRICTION  = 0.985;  // per-frame velocity damping
-  const MAX_LIVE  = 4;      // max balls active simultaneously
-  const SPAWN_GAP = 650;    // ms between ball spawns
-  const WALL_L    = 28;     // left wall x
-  const WALL_R    = CW - 28;// right wall x
+  const CW       = 490;       // canvas width
+  const CH       = 850;       // canvas height
+  const GRAVITY  = 1080;      // px / s²
+  const BALL_R   = 22;        // ball radius
+  const REST     = 0.58;      // restitution (bounciness)
+  const FRICTION = 0.988;     // per-frame horizontal damping
+  const MAX_LIVE = 4;         // max balls active at once
+  const SPAWN_GAP = 700;      // ms between spawns
+  const WALL_L   = 52;        // inner left wall x
+  const WALL_R   = 438;       // inner right wall x
 
-  const PEG_ROWS  = 12;     // number of peg rows
-  const ROW_H     = 52;     // vertical distance between rows
-  const COL_SP    = 48;     // horizontal peg spacing
-  const PEGS_TOP  = 85;     // y-coordinate of first peg row
-
-  const SLOT_N    = 9;      // number of scoring slots at the bottom
-  const SLOT_MX   = [1, 2, 5, 10, 100, 10, 5, 2, 1]; // multipliers
-  const SLOT_CL   = [      // slot colours
-    '#6b7280','#3b82f6','#a855f7','#f59e0b',
-    '#ef4444',
-    '#f59e0b','#a855f7','#3b82f6','#6b7280'
-  ];
+  /* Slots at the bottom */
+  const SLOT_N  = 7;
+  const SLOT_MX = [1, 3, 10, 50, 10, 3, 1];
+  const SLOT_CL = ['#6b7280','#3b82f6','#a855f7','#ef4444','#a855f7','#3b82f6','#6b7280'];
 
   const BALL_PALETTE = [
     '#ff2d78','#00d4ff','#a855f7','#fbbf24',
     '#34d399','#f97316','#ec4899','#60a5fa'
   ];
-
   const FACE_FALLBACK = ['😎','🤩','😜','🥳','😏','🤪','😇','🥸'];
+
+  /* ============================================================
+     SPIKE DEFINITIONS
+     Each spike is a large triangle from one wall pointing inward.
+     'bh' = base half-height (how tall the base on the wall is).
+     Tip position forces ball to the opposite gap.
+  ============================================================ */
+  const SPIKE_DEFS = [
+    { side:'left',  cy: 150, tipX: 348, bh: 50, color:'#00d4ff'  },
+    { side:'right', cy: 290, tipX: 142, bh: 50, color:'#a855f7'  },
+    { side:'left',  cy: 430, tipX: 360, bh: 62, color:'#ff2d78'  },
+    { side:'right', cy: 560, tipX: 130, bh: 62, color:'#fbbf24'  },
+    { side:'left',  cy: 670, tipX: 345, bh: 44, color:'#34d399'  },
+    { side:'right', cy: 755, tipX: 145, bh: 44, color:'#f97316'  },
+  ];
 
   /* ============================================================
      GAME STATE
@@ -495,23 +514,23 @@
   const S = {
     screen:    'setup',
     ballCount: 0,
-    photos:    [],      // HTMLImageElement[] — one per ball
+    photos:    [],
     captured:  0,
-    stream:    null,    // MediaStream
-    pegs:      [],
+    stream:    null,
+    obstacles: [],
     slots:     [],
-    allBalls:  [],      // every Ball created this round
-    liveBalls: [],      // currently falling
-    queue:     [],      // waiting to be spawned
-    nextSpawn: 0,       // timestamp after which next spawn is allowed
+    allBalls:  [],
+    liveBalls: [],
+    queue:     [],
+    nextSpawn: 0,
     score:     0,
-    results:   [],      // { ball, si, points, mx }
-    raf:       null,    // requestAnimationFrame handle
-    lastT:     null,    // previous frame timestamp
+    results:   [],
+    raf:       null,
+    lastT:     null,
   };
 
   /* ============================================================
-     DOM HELPERS
+     DOM REFS
   ============================================================ */
   const SCREENS = {
     setup:   document.getElementById('setupScreen'),
@@ -520,8 +539,7 @@
     results: document.getElementById('resultsScreen'),
   };
 
-  const $ = id => document.getElementById(id);
-
+  const $         = id => document.getElementById(id);
   const gameCanvas  = $('gameCanvas');
   const ctx         = gameCanvas.getContext('2d');
   const confettiCvs = $('confettiCanvas');
@@ -531,22 +549,22 @@
      SCREEN TRANSITIONS
   ============================================================ */
   function showScreen(name) {
-    Object.entries(SCREENS).forEach(([k, el]) => {
-      el.classList.toggle('hidden', k !== name);
-    });
+    Object.entries(SCREENS).forEach(([k, el]) =>
+      el.classList.toggle('hidden', k !== name)
+    );
     S.screen = name;
   }
 
   /* ============================================================
-     SETUP SCREEN — build the ball-count grid
+     SETUP SCREEN
   ============================================================ */
   (function initSetup() {
     const grid = $('countGrid');
     for (let i = 1; i <= 8; i++) {
       const b = document.createElement('button');
-      b.className   = 'count-btn';
+      b.className = 'count-btn';
       b.textContent = i;
-      b.dataset.n   = i;
+      b.dataset.n = i;
       b.addEventListener('click', () => {
         S.ballCount = i;
         document.querySelectorAll('.count-btn')
@@ -573,7 +591,6 @@
     launchCamera();
   }
 
-  /* Rebuild all dynamic camera-screen elements from S.photos / S.captured */
   function refreshCameraUI() {
     const n   = S.ballCount;
     const cur = S.captured;
@@ -581,22 +598,18 @@
     $('camTitle').textContent = cur < n
       ? `Ball ${cur + 1} of ${n}`
       : `All ${n} selfies done!`;
-
     $('camSub').textContent = cur < n
       ? `Selfie #${cur + 1} — look alive! 😄`
       : 'Ready to launch. Hit Start!';
 
-    // --- progress dots ---
     const row = $('progressRow');
     row.innerHTML = '';
     for (let i = 0; i < n; i++) {
       const d = document.createElement('div');
-      d.className = 'pdot'
-        + (i < cur ? ' done' : i === cur ? ' active' : '');
+      d.className = 'pdot' + (i < cur ? ' done' : i === cur ? ' active' : '');
       row.appendChild(d);
     }
 
-    // --- thumbnails ---
     const tr = $('thumbsRow');
     tr.innerHTML = '';
     for (let i = 0; i < n; i++) {
@@ -604,12 +617,12 @@
         const wrap = document.createElement('div');
         wrap.className = 'thumb';
         const img = document.createElement('img');
-        img.src   = S.photos[i].src;
+        img.src = S.photos[i].src;
         wrap.appendChild(img);
         tr.appendChild(wrap);
       } else {
         const ph = document.createElement('div');
-        ph.className   = 'thumb-ph';
+        ph.className = 'thumb-ph';
         ph.textContent = i + 1;
         tr.appendChild(ph);
       }
@@ -619,137 +632,100 @@
     $('camStart').disabled   = cur < n;
   }
 
-  /* Start webcam feed */
   async function launchCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 320 } },
         audio: false,
       });
-      S.stream           = stream;
+      S.stream = stream;
       $('camFeed').srcObject = stream;
       $('noCamNote').textContent = '';
     } catch (err) {
       console.warn('Camera unavailable:', err);
-      $('noCamNote').textContent =
-        '⚠️ No camera found — fun emoji avatars will be used instead.';
+      $('noCamNote').textContent = '⚠️ No camera — emoji avatars will be used instead.';
       autoFillEmoji();
     }
   }
 
-  /* Stop all camera tracks */
   function stopCamera() {
-    if (S.stream) {
-      S.stream.getTracks().forEach(t => t.stop());
-      S.stream = null;
-    }
+    if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
   }
 
-  /* When camera is unavailable fill every slot with a coloured emoji canvas */
   function autoFillEmoji() {
-    for (let i = S.captured; i < S.ballCount; i++) {
-      S.photos[i] = makeEmojiImage(i);
-    }
+    for (let i = S.captured; i < S.ballCount; i++) S.photos[i] = makeEmojiImage(i);
     S.captured = S.ballCount;
     refreshCameraUI();
   }
 
-  /* Create a 280×280 coloured canvas image with an emoji face */
   function makeEmojiImage(idx) {
-    const c   = document.createElement('canvas');
+    const c = document.createElement('canvas');
     c.width = c.height = 280;
-    const x   = c.getContext('2d');
+    const x = c.getContext('2d');
     x.fillStyle = BALL_PALETTE[idx % BALL_PALETTE.length];
     x.fillRect(0, 0, 280, 280);
-    x.font          = '110px serif';
-    x.textAlign     = 'center';
-    x.textBaseline  = 'middle';
+    x.font = '110px serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText(FACE_FALLBACK[idx % FACE_FALLBACK.length], 140, 140);
     const img = new Image();
-    img.src   = c.toDataURL();
+    img.src = c.toDataURL();
     return img;
   }
 
-  /* ---------- countdown → capture flow ---------- */
   let shootCooldown = false;
 
   $('shutterBtn').addEventListener('click', () => {
     if (shootCooldown || S.captured >= S.ballCount) return;
     shootCooldown = true;
-    runCountdown(3, () => {
-      captureFrame();
-      shootCooldown = false;
-    });
+    runCountdown(3, () => { captureFrame(); shootCooldown = false; });
   });
 
-  /* Display 3‥2‥1 in the video ring then call done() */
   function runCountdown(from, done) {
-    const overlay = $('countdownOverlay');
+    const ov = $('countdownOverlay');
     let n = from;
-    overlay.textContent = n;
-    overlay.classList.add('show');
+    ov.textContent = n; ov.classList.add('show');
     const iv = setInterval(() => {
       n--;
-      if (n <= 0) {
-        clearInterval(iv);
-        overlay.classList.remove('show');
-        done();
-      } else {
-        overlay.textContent = n;
-      }
+      if (n <= 0) { clearInterval(iv); ov.classList.remove('show'); done(); }
+      else ov.textContent = n;
     }, 700);
   }
 
-  /* Grab the current video frame and store it as S.photos[cur] */
   function captureFrame() {
-    // white flash
     const flash = $('camFlash');
     flash.classList.add('go');
     setTimeout(() => flash.classList.remove('go'), 180);
 
     const c = document.createElement('canvas');
     c.width = c.height = 280;
-    const x    = c.getContext('2d');
+    const x = c.getContext('2d');
     const feed = $('camFeed');
 
     if (S.stream && feed.readyState >= 2) {
-      // un-mirror the CSS scaleX(-1) so the stored image is natural orientation
       x.save();
-      x.translate(280, 0);
-      x.scale(-1, 1);
+      x.translate(280, 0); x.scale(-1, 1);
       x.drawImage(feed, 0, 0, 280, 280);
       x.restore();
     } else {
-      // fallback coloured frame
       x.fillStyle = BALL_PALETTE[S.captured % BALL_PALETTE.length];
       x.fillRect(0, 0, 280, 280);
-      x.font = '100px serif';
-      x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = '100px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
       x.fillText(FACE_FALLBACK[S.captured % FACE_FALLBACK.length], 140, 140);
     }
 
     const img = new Image();
-    img.src         = c.toDataURL('image/jpeg', 0.88);
+    img.src = c.toDataURL('image/jpeg', 0.88);
     S.photos[S.captured] = img;
     S.captured++;
     refreshCameraUI();
 
-    // tiny bounce feedback on the shutter button
-    const btn       = $('shutterBtn');
+    const btn = $('shutterBtn');
     btn.style.transform = 'scale(.88)';
     setTimeout(() => (btn.style.transform = ''), 140);
   }
 
-  $('camBack').addEventListener('click', () => {
-    stopCamera();
-    showScreen('setup');
-  });
-
-  $('camStart').addEventListener('click', () => {
-    stopCamera();
-    initGame();
-    showScreen('game');
-  });
+  $('camBack').addEventListener('click',  () => { stopCamera(); showScreen('setup'); });
+  $('camStart').addEventListener('click', () => { stopCamera(); initGame(); showScreen('game'); });
 
   /* ============================================================
      BALL CLASS
@@ -760,87 +736,64 @@
       this.image    = img;
       this.r        = BALL_R;
       this.color    = BALL_PALETTE[id % BALL_PALETTE.length];
-
-      // physics
-      this.x = 0; this.y = 0;
-      this.vx = 0; this.vy = 0;
-
-      // visuals
-      this.spin    = 0;
-      this.spinSpd = (Math.random() - .5) * 6;
-      this.gPhi    = Math.random() * Math.PI * 2;  // glow phase offset
-      this.trail   = [];
-
-      // state
-      this.landed  = false;
-      this.active  = false;
-      this.slotIdx = -1;
+      this.x = 0; this.y = 0; this.vx = 0; this.vy = 0;
+      this.spin     = 0;
+      this.spinSpd  = (Math.random() - .5) * 6;
+      this.gPhi     = Math.random() * Math.PI * 2;
+      this.trail    = [];
+      this.landed   = false;
+      this.active   = false;
     }
 
-    /* Place the ball above the canvas ready to fall */
     spawn() {
-      this.x      = CW / 2 + (Math.random() - .5) * 80;
-      this.y      = -this.r * 2.5;
-      this.vx     = (Math.random() - .5) * 140;
-      this.vy     = 60;
+      this.x  = (WALL_L + WALL_R) / 2 + (Math.random() - .5) * 60;
+      this.y  = -this.r * 3;
+      this.vx = (Math.random() - .5) * 120;
+      this.vy = 50;
       this.active = true;
     }
 
-    /* Step physics one frame */
     update(dt) {
       if (!this.active || this.landed) return;
 
-      // record trail
       this.trail.push({ x: this.x, y: this.y });
-      if (this.trail.length > 9) this.trail.shift();
+      if (this.trail.length > 10) this.trail.shift();
 
-      // gravity
-      this.vy += GRAVITY * dt;
-
-      // position update
-      this.x += this.vx * dt;
-      this.y += this.vy * dt;
-
-      // rotation
+      this.vy  += GRAVITY * dt;
+      this.x   += this.vx * dt;
+      this.y   += this.vy * dt;
       this.spin += this.spinSpd * dt;
+      this.vx  *= Math.pow(FRICTION, dt * 60);
 
-      // air friction
-      this.vx *= Math.pow(FRICTION, dt * 60);
-
-      // left wall
       if (this.x - this.r < WALL_L) {
         this.x  = WALL_L + this.r;
-        this.vx = Math.abs(this.vx) * REST + 25;
+        this.vx = Math.abs(this.vx) * REST + 30;
       }
-      // right wall
       if (this.x + this.r > WALL_R) {
         this.x  = WALL_R - this.r;
-        this.vx = -(Math.abs(this.vx) * REST + 25);
+        this.vx = -(Math.abs(this.vx) * REST + 30);
       }
     }
 
-    /* Draw the ball, its glow, trail, and index label */
     draw(c, t) {
       if (!this.active) return;
 
-      // ---- trail ----
+      /* trail */
       this.trail.forEach((pt, i) => {
-        const alpha = (i / this.trail.length) * 0.27;
-        const r     = this.r * (i / this.trail.length) * 0.52;
-        const hex   = Math.floor(alpha * 255).toString(16).padStart(2, '0');
+        const a   = (i / this.trail.length) * 0.25;
+        const r   = this.r * (i / this.trail.length) * 0.5;
+        const hex = Math.floor(a * 255).toString(16).padStart(2, '0');
         c.beginPath();
         c.arc(pt.x, pt.y, r, 0, Math.PI * 2);
         c.fillStyle = this.color + hex;
         c.fill();
       });
 
-      // ---- glow halo ----
       const glow = Math.sin(t * 2.2 + this.gPhi) * 0.3 + 0.7;
+
       c.save();
       c.shadowColor = this.color;
-      c.shadowBlur  = 14 * glow;
-
-      // ---- clip to circle, draw face ----
+      c.shadowBlur  = 16 * glow;
       c.beginPath();
       c.arc(this.x, this.y, this.r, 0, Math.PI * 2);
       c.clip();
@@ -855,58 +808,57 @@
       }
       c.restore();
 
-      // ---- glowing ring ----
+      /* ring */
       c.save();
       c.shadowColor = this.color;
-      c.shadowBlur  = 12;
+      c.shadowBlur  = 14;
       c.beginPath();
       c.arc(this.x, this.y, this.r, 0, Math.PI * 2);
       c.strokeStyle = this.color;
-      c.lineWidth   = 2.5;
+      c.lineWidth   = 2.8;
       c.stroke();
       c.restore();
 
-      // ---- index label below ball ----
-      c.fillStyle    = 'rgba(255,255,255,.85)';
-      c.font         = `bold ${Math.round(this.r * .65)}px sans-serif`;
+      /* number label */
+      c.fillStyle    = 'rgba(255,255,255,.88)';
+      c.font         = `bold ${Math.round(this.r * .62)}px sans-serif`;
       c.textAlign    = 'center';
       c.textBaseline = 'top';
       c.fillText(this.id + 1, this.x, this.y + this.r + 3);
     }
 
-    /* Returns true when the ball has fully crossed the slot boundary */
-    hasLanded() {
-      return this.y - this.r > CH - 72;
-    }
+    hasLanded() { return this.y - this.r > CH - 80; }
   }
 
   /* ============================================================
-     PEG GENERATION — triangular grid
+     OBSTACLE GENERATION — 6 large alternating spike triangles
   ============================================================ */
-  function buildPegs() {
-    const pegs = [];
-    for (let row = 0; row < PEG_ROWS; row++) {
-      const count  = row + 3;             // row 0 → 3 pegs, row 11 → 14 pegs
-      const rowW   = (count - 1) * COL_SP;
-      const startX = (CW - rowW) / 2;
-      const y      = PEGS_TOP + row * ROW_H;
+  function buildObstacles() {
+    return SPIKE_DEFS.map((d, i) => {
+      const wx = d.side === 'left' ? WALL_L : WALL_R;
+      const wallTop    = { x: wx,    y: d.cy - d.bh };
+      const wallBottom = { x: wx,    y: d.cy + d.bh };
+      const tip        = { x: d.tipX, y: d.cy       };
 
-      for (let col = 0; col < count; col++) {
-        pegs.push({
-          x: startX + col * COL_SP,
-          y,
-          r:    PEG_CR,
-          hitT: 0,       // timestamp of last collision (for hit flash)
-          row,
-          col,
-        });
-      }
-    }
-    return pegs;
+      return {
+        vertices:   [wallTop, wallBottom, tip],
+        faceEdges: [
+          { a: wallTop,    b: tip        },
+          { a: tip,        b: wallBottom },
+        ],
+        side:    d.side,
+        cx:      d.tipX,
+        cy:      d.cy,
+        bh:      d.bh,
+        hitT:    0,
+        color:   d.color,
+        label:   ['I','II','III','IV','V','VI'][i],
+      };
+    });
   }
 
   /* ============================================================
-     SLOT GENERATION — equal-width buckets at the bottom
+     SLOT GENERATION
   ============================================================ */
   function buildSlots() {
     const w = (WALL_R - WALL_L) / SLOT_N;
@@ -915,62 +867,78 @@
       w,
       mx,
       color: SLOT_CL[i],
-      pulseT: 0,          // timestamp of last ball landing (for pulse glow)
+      pulseT: 0,
     }));
   }
 
   /* ============================================================
-     HIT PARTICLES — burst on peg collision
+     HIT PARTICLES
   ============================================================ */
   const hitParticles = [];
 
-  function spawnHitParticles(x, y, color) {
-    for (let i = 0; i < 8; i++) {
+  function spawnHitParticles(x, y, color, count) {
+    for (let i = 0; i < (count || 10); i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 80 + Math.random() * 160;
+      const speed = 100 + Math.random() * 220;
       hitParticles.push({
         x, y,
         vx:    Math.cos(angle) * speed,
-        vy:    Math.sin(angle) * speed - 60,
+        vy:    Math.sin(angle) * speed - 80,
         life:  1,
-        size:  2 + Math.random() * 3,
+        size:  2.5 + Math.random() * 3.5,
         color,
       });
     }
   }
 
   /* ============================================================
-     PHYSICS — ball vs peg (spike tip = circle of radius PEG_CR)
+     PHYSICS — closest point on a line segment
   ============================================================ */
-  function collideBallPeg(ball, peg) {
-    const dx = ball.x - peg.x;
-    const dy = ball.y - peg.y;
-    const d2 = dx * dx + dy * dy;
-    const mn = ball.r + peg.r;
+  function closestPtOnSeg(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq < 0.001) return { x: ax, y: ay };
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return { x: ax + t * dx, y: ay + t * dy };
+  }
 
-    if (d2 >= mn * mn || d2 < 0.001) return false;
+  /* ============================================================
+     PHYSICS — ball vs spike obstacle
+     Only tests the two face edges (tip faces), not the wall base.
+  ============================================================ */
+  function collideBallObstacle(ball, obs) {
+    let hit = false;
 
-    const d  = Math.sqrt(d2);
-    const nx = dx / d;
-    const ny = dy / d;
+    for (const edge of obs.faceEdges) {
+      const cp = closestPtOnSeg(ball.x, ball.y, edge.a.x, edge.a.y, edge.b.x, edge.b.y);
+      const dx = ball.x - cp.x;
+      const dy = ball.y - cp.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // push ball out of overlap
-    const ov = mn - d;
-    ball.x += nx * ov;
-    ball.y += ny * ov;
+      if (dist < ball.r && dist > 0.001) {
+        const nx = dx / dist;
+        const ny = dy / dist;
 
-    // reflect velocity along collision normal
-    const dot = ball.vx * nx + ball.vy * ny;
-    ball.vx = (ball.vx - 2 * dot * nx) * REST;
-    ball.vy = (ball.vy - 2 * dot * ny) * REST;
+        /* push ball out of overlap */
+        ball.x += nx * (ball.r - dist);
+        ball.y += ny * (ball.r - dist);
 
-    // tiny random horizontal nudge to break symmetry
-    ball.vx += (Math.random() - .5) * 55;
+        /* reflect velocity along edge normal */
+        const dot = ball.vx * nx + ball.vy * ny;
+        if (dot < 0) {
+          ball.vx -= (1 + REST) * dot * nx;
+          ball.vy -= (1 + REST) * dot * ny;
+        }
 
-    // record hit for glow
-    peg.hitT = performance.now();
-    spawnHitParticles(peg.x, peg.y, ball.color);
-    return true;
+        /* small random horizontal kick to prevent sticking */
+        ball.vx += (Math.random() - .5) * 50;
+
+        obs.hitT = performance.now();
+        spawnHitParticles(cp.x, cp.y, ball.color, 8);
+        hit = true;
+      }
+    }
+    return hit;
   }
 
   /* ============================================================
@@ -981,38 +949,32 @@
     const dy = b.y - a.y;
     const d2 = dx * dx + dy * dy;
     const mn = a.r + b.r;
-
     if (d2 >= mn * mn || d2 < 0.001) return;
 
     const d  = Math.sqrt(d2);
-    const nx = dx / d;
-    const ny = dy / d;
-
-    // separate
+    const nx = dx / d, ny = dy / d;
     const ov = (mn - d) * .5;
-    a.x -= nx * ov;  a.y -= ny * ov;
-    b.x += nx * ov;  b.y += ny * ov;
 
-    // exchange momentum along collision axis
-    const dvx = a.vx - b.vx;
-    const dvy = a.vy - b.vy;
+    a.x -= nx * ov; a.y -= ny * ov;
+    b.x += nx * ov; b.y += ny * ov;
+
+    const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
     const dot = dvx * nx + dvy * ny;
-
     if (dot > 0) {
       const imp = dot * REST;
-      a.vx -= imp * nx;  a.vy -= imp * ny;
-      b.vx += imp * nx;  b.vy += imp * ny;
+      a.vx -= imp * nx; a.vy -= imp * ny;
+      b.vx += imp * nx; b.vy += imp * ny;
     }
   }
 
   /* ============================================================
-     GAME INITIALISATION
+     GAME INIT
   ============================================================ */
   function initGame() {
     gameCanvas.width  = CW;
     gameCanvas.height = CH;
 
-    S.pegs      = buildPegs();
+    S.obstacles = buildObstacles();
     S.slots     = buildSlots();
     S.allBalls  = [];
     S.liveBalls = [];
@@ -1020,10 +982,9 @@
     S.queue     = [];
     S.score     = 0;
     S.lastT     = null;
-    S.nextSpawn = performance.now() + 400;
+    S.nextSpawn = performance.now() + 500;
     hitParticles.length = 0;
 
-    // Create all Ball objects and push to queue
     for (let i = 0; i < S.ballCount; i++) {
       const ball = new Ball(i, S.photos[i]);
       S.allBalls.push(ball);
@@ -1031,20 +992,19 @@
     }
 
     updateHUD();
-
     if (S.raf) cancelAnimationFrame(S.raf);
     S.raf = requestAnimationFrame(gameLoop);
   }
 
   /* ============================================================
-     BALL SPAWNING — release one ball from the queue when ready
+     BALL SPAWNING
   ============================================================ */
   function trySpawn(now) {
     if (S.liveBalls.length >= MAX_LIVE) return;
     if (!S.queue.length)               return;
     if (now < S.nextSpawn)             return;
 
-    const ball      = S.queue.shift();
+    const ball  = S.queue.shift();
     ball.spawn();
     S.liveBalls.push(ball);
     S.nextSpawn = now + SPAWN_GAP;
@@ -1052,18 +1012,14 @@
   }
 
   /* ============================================================
-     SCORING — detect when a ball reaches the slot area
+     LANDING / SCORING
   ============================================================ */
   function checkLanding(ball) {
     if (ball.landed || !ball.hasLanded()) return;
 
-    // determine which slot it fell into
     let si = 0;
     for (let i = 0; i < S.slots.length; i++) {
-      if (ball.x >= S.slots[i].x && ball.x < S.slots[i].x + S.slots[i].w) {
-        si = i;
-        break;
-      }
+      if (ball.x >= S.slots[i].x && ball.x < S.slots[i].x + S.slots[i].w) { si = i; break; }
     }
 
     const slot   = S.slots[si];
@@ -1075,22 +1031,19 @@
     S.score     += points;
     S.results.push({ ball, si, points, mx: slot.mx });
 
-    // remove from live list
     const idx = S.liveBalls.indexOf(ball);
     if (idx !== -1) S.liveBalls.splice(idx, 1);
 
     updateHUD();
-    showScorePop(ball.x, CH - 72, `×${slot.mx}`, slot.color);
+    showScorePop(ball.x, CH - 80, `×${slot.mx}`, slot.color);
   }
 
-  /* Refresh the in-game HUD stats */
   function updateHUD() {
     $('hudLeft').textContent   = S.queue.length + S.liveBalls.length;
     $('hudActive').textContent = S.liveBalls.length;
     $('hudScore').textContent  = S.score.toLocaleString();
   }
 
-  /* Floating multiplier text that drifts upward then fades out */
   function showScorePop(cx, cy, text, color) {
     const rect = gameCanvas.getBoundingClientRect();
     const pop  = document.createElement('div');
@@ -1098,8 +1051,8 @@
     pop.textContent     = text;
     pop.style.color      = color;
     pop.style.textShadow = `0 0 22px ${color}`;
-    pop.style.left       = rect.left + cx + 'px';
-    pop.style.top        = rect.top  + cy + 'px';
+    pop.style.left       = (rect.left + cx) + 'px';
+    pop.style.top        = (rect.top  + cy) + 'px';
     document.body.appendChild(pop);
     setTimeout(() => pop.remove(), 1400);
   }
@@ -1109,33 +1062,27 @@
   ============================================================ */
   function gameLoop(ts) {
     if (!S.lastT) S.lastT = ts;
-    const dt = Math.min((ts - S.lastT) / 1000, 0.034); // cap at ~30 fps equivalent
-    S.lastT  = ts;
+    const dt = Math.min((ts - S.lastT) / 1000, 0.034);
+    S.lastT = ts;
 
-    // spawn next ball if conditions allow
     trySpawn(ts);
 
-    // update positions
     S.liveBalls.forEach(b => b.update(dt));
 
-    // ball–peg collisions (all combinations)
-    S.liveBalls.forEach(b => S.pegs.forEach(p => collideBallPeg(b, p)));
+    /* ball ↔ spike collisions */
+    S.liveBalls.forEach(b => S.obstacles.forEach(o => collideBallObstacle(b, o)));
 
-    // ball–ball collisions (each pair once)
+    /* ball ↔ ball collisions */
     for (let i = 0; i < S.liveBalls.length; i++)
       for (let j = i + 1; j < S.liveBalls.length; j++)
         collideBallBall(S.liveBalls[i], S.liveBalls[j]);
 
-    // check for landings (copy array because checkLanding mutates S.liveBalls)
+    /* check landings */
     [...S.liveBalls].forEach(b => checkLanding(b));
 
-    // age and gravity for hit particles
     updateParticles(dt);
-
-    // draw everything
     render(ts / 1000);
 
-    // game-over condition: nothing left in queue or air
     if (S.queue.length === 0 && S.liveBalls.length === 0) {
       setTimeout(showResults, 900);
       return;
@@ -1150,185 +1097,222 @@
   function updateParticles(dt) {
     for (let i = hitParticles.length - 1; i >= 0; i--) {
       const p = hitParticles[i];
-      p.life -= dt * 2.2;
+      p.life -= dt * 2.0;
       p.x    += p.vx * dt;
       p.y    += p.vy * dt;
-      p.vy   += 400 * dt;   // mini gravity pulls particles down
+      p.vy   += 480 * dt;
       if (p.life <= 0) hitParticles.splice(i, 1);
     }
   }
 
   /* ============================================================
-     RENDERING — master render call
+     RENDERING — master call
   ============================================================ */
   function render(t) {
     ctx.clearRect(0, 0, CW, CH);
     drawBackground(t);
     drawWalls(t);
     drawSlots(t);
-    drawPegs(t);
+    drawObstacles(t);
     drawHitParticles();
     S.allBalls.forEach(b => b.draw(ctx, t));
     drawLaunchTube(t);
   }
 
-  /* ---- background gradient + subtle dot grid ---- */
+  /* ---- background: dark gradient + vertical light streaks for tube depth ---- */
   function drawBackground(t) {
-    // main gradient
+    /* main gradient */
     const bg = ctx.createLinearGradient(0, 0, 0, CH);
-    bg.addColorStop(0,   '#0d0d2b');
-    bg.addColorStop(.55, '#090918');
+    bg.addColorStop(0,   '#0c0c28');
+    bg.addColorStop(.5,  '#080814');
     bg.addColorStop(1,   '#040410');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, CW, CH);
 
-    // faint dot grid overlay
-    ctx.save();
-    ctx.globalAlpha = 0.055;
-    ctx.fillStyle   = '#a0a8ff';
-    const gs = 30;
-    for (let gx = gs; gx < CW; gx += gs)
-      for (let gy = gs; gy < CH; gy += gs) {
-        ctx.beginPath();
-        ctx.arc(gx, gy, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    ctx.restore();
+    /* vertical speed-line streaks inside tube */
+    const tubeW = WALL_R - WALL_L;
+    for (let i = 0; i < 7; i++) {
+      const lx    = WALL_L + (i + 1) * (tubeW / 8);
+      const phase = Math.sin(t * 0.6 + i * 1.1);
+      const alpha = (phase * 0.04 + 0.05);
+      ctx.strokeStyle = `rgba(160,180,255,${alpha})`;
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, CH);
+      ctx.stroke();
+    }
+
+    /* subtle center glow — the channel is "lit" */
+    const cx   = (WALL_L + WALL_R) / 2;
+    const glow = ctx.createRadialGradient(cx, CH * .45, 0, cx, CH * .45, tubeW * .6);
+    glow.addColorStop(0,   'rgba(80,60,140,.12)');
+    glow.addColorStop(1,   'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(WALL_L, 0, tubeW, CH);
   }
 
-  /* ---- side walls with animated glow ---- */
+  /* ---- walls: thick glowing purple slabs on both sides ---- */
   function drawWalls(t) {
-    const pulse = Math.sin(t * 1.8) * 0.12 + 0.6;
+    const pulse = Math.sin(t * 1.6) * 0.1 + 0.65;
 
     ctx.save();
     ctx.shadowColor = `rgba(168,85,247,${pulse})`;
-    ctx.shadowBlur  = 16;
+    ctx.shadowBlur  = 22;
 
-    // left wall fill
+    /* left wall slab */
     const gL = ctx.createLinearGradient(0, 0, WALL_L, 0);
-    gL.addColorStop(0, 'rgba(168,85,247,.55)');
-    gL.addColorStop(1, 'rgba(168,85,247,.12)');
+    gL.addColorStop(0,   'rgba(168,85,247,.75)');
+    gL.addColorStop(.6,  'rgba(168,85,247,.30)');
+    gL.addColorStop(1,   'rgba(168,85,247,.10)');
     ctx.fillStyle = gL;
     ctx.fillRect(0, 0, WALL_L, CH);
 
-    // right wall fill
+    /* right wall slab */
     const gR = ctx.createLinearGradient(WALL_R, 0, CW, 0);
-    gR.addColorStop(0, 'rgba(168,85,247,.12)');
-    gR.addColorStop(1, 'rgba(168,85,247,.55)');
+    gR.addColorStop(0,   'rgba(168,85,247,.10)');
+    gR.addColorStop(.4,  'rgba(168,85,247,.30)');
+    gR.addColorStop(1,   'rgba(168,85,247,.75)');
     ctx.fillStyle = gR;
     ctx.fillRect(WALL_R, 0, CW - WALL_R, CH);
 
-    // bright inner edges
-    ctx.strokeStyle = `rgba(168,85,247,${.5 + pulse * .3})`;
-    ctx.lineWidth   = 2;
+    /* bright inner edges */
+    ctx.strokeStyle = `rgba(168,85,247,${.55 + pulse * .25})`;
+    ctx.lineWidth   = 2.5;
     ctx.beginPath(); ctx.moveTo(WALL_L, 0); ctx.lineTo(WALL_L, CH); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(WALL_R, 0); ctx.lineTo(WALL_R, CH); ctx.stroke();
     ctx.restore();
   }
 
-  /* ---- scoring slots at the bottom of the board ---- */
+  /* ---- scoring slots at the bottom ---- */
   function drawSlots(t) {
-    const TOP = CH - 72;
-    const H   = 72;
+    const TOP = CH - 82;
+    const H   = 82;
     const now = performance.now();
 
     S.slots.forEach(slot => {
       const sinceP = (now - slot.pulseT) / 1000;
-      const pulse  = slot.pulseT > 0 ? Math.max(0, 1 - sinceP * 1.8) : 0;
+      const pulse  = slot.pulseT > 0 ? Math.max(0, 1 - sinceP * 1.6) : 0;
 
       ctx.save();
-      if (pulse > 0) {
-        ctx.shadowColor = slot.color;
-        ctx.shadowBlur  = 30 * pulse;
-      }
+      if (pulse > 0) { ctx.shadowColor = slot.color; ctx.shadowBlur = 35 * pulse; }
 
-      // slot background
       const g = ctx.createLinearGradient(slot.x, TOP, slot.x, TOP + H);
-      g.addColorStop(0, slot.color + '44');
-      g.addColorStop(1, slot.color + 'aa');
+      g.addColorStop(0, slot.color + '40');
+      g.addColorStop(1, slot.color + 'bb');
       ctx.fillStyle = g;
       ctx.fillRect(slot.x, TOP, slot.w, H);
 
-      // landing flash overlay
       if (pulse > 0) {
-        ctx.fillStyle = `rgba(255,255,255,${pulse * .35})`;
+        ctx.fillStyle = `rgba(255,255,255,${pulse * .38})`;
         ctx.fillRect(slot.x, TOP, slot.w, H);
       }
       ctx.restore();
 
-      // border
-      ctx.strokeStyle = 'rgba(255,255,255,.13)';
+      ctx.strokeStyle = 'rgba(255,255,255,.12)';
       ctx.lineWidth   = 1;
       ctx.strokeRect(slot.x, TOP, slot.w, H);
 
-      // multiplier text
       ctx.save();
-      ctx.shadowColor    = slot.color;
-      ctx.shadowBlur     = 8;
-      ctx.fillStyle      = '#fff';
-      ctx.font           = `bold ${slot.w < 56 ? 11 : 13}px sans-serif`;
-      ctx.textAlign      = 'center';
-      ctx.textBaseline   = 'middle';
+      ctx.shadowColor   = slot.color;
+      ctx.shadowBlur    = 10;
+      ctx.fillStyle     = '#fff';
+      ctx.font          = `bold ${slot.w < 58 ? 12 : 14}px sans-serif`;
+      ctx.textAlign     = 'center';
+      ctx.textBaseline  = 'middle';
       ctx.fillText(`×${slot.mx}`, slot.x + slot.w / 2, TOP + H / 2);
       ctx.restore();
     });
 
-    // mini divider spikes between slots
-    ctx.fillStyle = 'rgba(200,200,240,.45)';
+    /* mini divider spikes between slots */
+    ctx.fillStyle = 'rgba(200,200,240,.4)';
     for (let i = 1; i < SLOT_N; i++) {
       const x = WALL_L + i * ((WALL_R - WALL_L) / SLOT_N);
       ctx.beginPath();
       ctx.moveTo(x,     TOP);
-      ctx.lineTo(x - 5, TOP - 16);
-      ctx.lineTo(x + 5, TOP - 16);
+      ctx.lineTo(x - 5, TOP - 18);
+      ctx.lineTo(x + 5, TOP - 18);
       ctx.closePath();
       ctx.fill();
     }
   }
 
-  /* ---- spike pegs — upward-pointing triangles with animated glow ---- */
-  function drawPegs(t) {
+  /* ---- big spike obstacles — the main visual feature ---- */
+  function drawObstacles(t) {
     const now = performance.now();
 
-    S.pegs.forEach(peg => {
-      const sinceHit = (now - peg.hitT) / 1000;
-      const hitGlow  = peg.hitT > 0 ? Math.max(0, 1 - sinceHit / 0.38) : 0;
-      const idleP    = Math.sin(t * 1.6 + peg.row * .55) * .12 + .18;
+    S.obstacles.forEach(obs => {
+      const sinceHit = (now - obs.hitT) / 1000;
+      const hitGlow  = obs.hitT > 0 ? Math.max(0, 1 - sinceHit / 0.45) : 0;
+      const idlePulse = Math.sin(t * 1.2 + S.obstacles.indexOf(obs) * 0.9) * 0.15 + 0.25;
+
+      const [wallTop, wallBottom, tip] = obs.vertices;
 
       ctx.save();
+
+      /* outer area glow */
       ctx.shadowColor = hitGlow > 0
-        ? `rgba(255,255,80,${hitGlow})`
-        : `rgba(0,212,255,${idleP})`;
-      ctx.shadowBlur = hitGlow > 0 ? 22 * hitGlow : 8;
+        ? `rgba(255,255,80,${.7 + hitGlow * .3})`
+        : `${obs.color}${Math.floor((idlePulse) * 255).toString(16).padStart(2,'0')}`;
+      ctx.shadowBlur = hitGlow > 0 ? 40 * hitGlow : 18;
 
-      const s  = PEG_VS;
-      const px = peg.x;
-      const py = peg.y;
+      /* spike face fill — gradient from wall to tip */
+      const grad = ctx.createLinearGradient(
+        wallTop.x, obs.cy,
+        tip.x, tip.y
+      );
 
-      // upward-pointing spike
-      ctx.beginPath();
-      ctx.moveTo(px,           py - s);           // tip (top)
-      ctx.lineTo(px + s * .78, py + s * .62);     // bottom-right
-      ctx.lineTo(px - s * .78, py + s * .62);     // bottom-left
-      ctx.closePath();
-
-      // gradient from bright tip to darker base
-      const grad = ctx.createLinearGradient(px, py - s, px, py + s * .62);
       if (hitGlow > 0) {
-        grad.addColorStop(0, `rgba(255,255,160,${.75 + hitGlow * .25})`);
-        grad.addColorStop(1, `rgba(255,210,20, ${.45 + hitGlow * .2})`);
+        grad.addColorStop(0, `rgba(255,255,180,${.2 + hitGlow * .4})`);
+        grad.addColorStop(1, `rgba(255,255,80,${.8 + hitGlow * .2})`);
       } else {
-        grad.addColorStop(0, 'rgba(190,230,255,.92)');
-        grad.addColorStop(1, 'rgba(110,185,255,.50)');
+        /* parse the hex color to rgba */
+        const r = parseInt(obs.color.slice(1,3),16);
+        const g = parseInt(obs.color.slice(3,5),16);
+        const b = parseInt(obs.color.slice(5,7),16);
+        grad.addColorStop(0, `rgba(${r},${g},${b},.18)`);
+        grad.addColorStop(.6, `rgba(${r},${g},${b},.55)`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},.95)`);
       }
+
+      ctx.beginPath();
+      ctx.moveTo(wallTop.x,    wallTop.y);
+      ctx.lineTo(wallBottom.x, wallBottom.y);
+      ctx.lineTo(tip.x,        tip.y);
+      ctx.closePath();
       ctx.fillStyle = grad;
       ctx.fill();
 
+      /* bright outline along the spike faces */
+      ctx.beginPath();
+      ctx.moveTo(wallTop.x, wallTop.y);
+      ctx.lineTo(tip.x, tip.y);
+      ctx.lineTo(wallBottom.x, wallBottom.y);
       ctx.strokeStyle = hitGlow > 0
-        ? `rgba(255,255,120,${.85 + hitGlow * .15})`
-        : 'rgba(210,240,255,.65)';
-      ctx.lineWidth = 1.5;
+        ? `rgba(255,255,100,${.9 + hitGlow * .1})`
+        : obs.color + 'dd';
+      ctx.lineWidth = hitGlow > 0 ? 3 : 2;
       ctx.stroke();
+
+      /* glowing tip dot */
+      ctx.shadowColor = hitGlow > 0 ? '#ffff50' : obs.color;
+      ctx.shadowBlur  = hitGlow > 0 ? 30 * hitGlow : 20 * idlePulse;
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, hitGlow > 0 ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = hitGlow > 0 ? '#ffffff' : obs.color;
+      ctx.fill();
+
+      /* interior sheen line along top face */
+      const midX = (wallTop.x + tip.x) / 2;
+      const midY = (wallTop.y + tip.y) / 2;
+      ctx.strokeStyle = `rgba(255,255,255,${.08 + idlePulse * .06})`;
+      ctx.lineWidth   = 1;
+      ctx.shadowBlur  = 0;
+      ctx.beginPath();
+      ctx.moveTo(wallTop.x + (obs.side === 'left' ? 4 : -4), wallTop.y + 8);
+      ctx.lineTo(midX, midY);
+      ctx.stroke();
+
       ctx.restore();
     });
   }
@@ -1345,43 +1329,39 @@
     });
   }
 
-  /* ---- launch tube at top centre where balls enter ---- */
+  /* ---- launch tube at top centre ---- */
   function drawLaunchTube(t) {
-    const cx    = CW / 2;
-    const tubeW = 34;
-    const tubeH = 55;
+    const cx    = (WALL_L + WALL_R) / 2;
+    const tubeW = 36;
+    const tubeH = 60;
 
     ctx.save();
-
-    // tube body
     const tg = ctx.createLinearGradient(cx - tubeW / 2, 0, cx + tubeW / 2, 0);
-    tg.addColorStop(0,  'rgba(168,85,247,.45)');
-    tg.addColorStop(.5, 'rgba(168,85,247,.12)');
-    tg.addColorStop(1,  'rgba(168,85,247,.45)');
+    tg.addColorStop(0,  'rgba(168,85,247,.5)');
+    tg.addColorStop(.5, 'rgba(168,85,247,.14)');
+    tg.addColorStop(1,  'rgba(168,85,247,.5)');
     ctx.fillStyle = tg;
     ctx.fillRect(cx - tubeW / 2, 0, tubeW, tubeH);
 
-    // animated pulse border
-    const gp = Math.sin(t * 3) * .2 + .4;
+    const gp = Math.sin(t * 3.2) * .18 + .45;
     ctx.shadowColor = `rgba(168,85,247,${gp})`;
-    ctx.shadowBlur  = 12;
-    ctx.strokeStyle = `rgba(168,85,247,${.5 + gp * .3})`;
+    ctx.shadowBlur  = 14;
+    ctx.strokeStyle = `rgba(168,85,247,${.5 + gp * .35})`;
     ctx.lineWidth   = 1.5;
     ctx.strokeRect(cx - tubeW / 2, 0, tubeW, tubeH);
     ctx.restore();
 
-    // "DROP" label above tube
     ctx.save();
-    ctx.font          = 'bold 9px sans-serif';
-    ctx.textAlign     = 'center';
-    ctx.textBaseline  = 'top';
-    ctx.fillStyle     = 'rgba(168,85,247,.7)';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle    = 'rgba(168,85,247,.72)';
     ctx.fillText('DROP', cx, 2);
     ctx.restore();
   }
 
   /* ============================================================
-     RESULTS SCREEN — build scorecard and show it
+     RESULTS SCREEN
   ============================================================ */
   function showResults() {
     $('finalScore').textContent = S.score.toLocaleString();
@@ -1394,34 +1374,28 @@
       const row  = document.createElement('div');
       row.className = 'brow';
 
-      // avatar (selfie thumbnail)
       const av = document.createElement('div');
       av.className = 'brow-avatar';
       if (r.ball.image && r.ball.image.src) {
         const img = document.createElement('img');
-        img.src   = r.ball.image.src;
+        img.src = r.ball.image.src;
         av.appendChild(img);
       } else {
         av.style.background = r.ball.color;
       }
 
-      // name + slot
       const info = document.createElement('div');
       info.className = 'brow-info';
-
       const nm = document.createElement('div');
       nm.className   = 'brow-name';
       nm.textContent = `Ball ${r.ball.id + 1}`;
-
       const sl = document.createElement('div');
       sl.className   = 'brow-slot';
       sl.textContent = `Landed in ×${r.mx} slot`;
       sl.style.color = slot.color;
-
       info.appendChild(nm);
       info.appendChild(sl);
 
-      // points
       const pts = document.createElement('div');
       pts.className   = 'brow-pts';
       pts.textContent = `+${r.points.toLocaleString()}`;
@@ -1438,7 +1412,7 @@
   }
 
   /* ============================================================
-     CONFETTI ANIMATION on the results screen
+     CONFETTI
   ============================================================ */
   const confettiPieces = [];
   let confettiRaf = null;
@@ -1449,16 +1423,14 @@
     confettiPieces.length = 0;
 
     const colors = ['#ff2d78','#00d4ff','#a855f7','#fbbf24','#34d399','#f97316'];
-
-    // spawn 140 pieces across the top
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 150; i++) {
       confettiPieces.push({
         x:    Math.random() * confettiCvs.width,
         y:    -10 - Math.random() * 200,
-        vx:   (Math.random() - .5) * 4,
-        vy:   2 + Math.random() * 4,
+        vx:   (Math.random() - .5) * 5,
+        vy:   2.5 + Math.random() * 4,
         rot:  Math.random() * Math.PI * 2,
-        rotV: (Math.random() - .5) * .2,
+        rotV: (Math.random() - .5) * .22,
         w:    6 + Math.random() * 8,
         h:    3 + Math.random() * 5,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -1469,16 +1441,11 @@
 
     (function tick() {
       confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
-      let anyVisible = false;
-
+      let any = false;
       confettiPieces.forEach(p => {
-        p.x   += p.vx;
-        p.y   += p.vy;
-        p.rot += p.rotV;
-        p.vy  += 0.06;   // gentle gravity on confetti
-
+        p.x += p.vx; p.y += p.vy; p.rot += p.rotV; p.vy += 0.06;
         if (p.y < confettiCvs.height + 20) {
-          anyVisible = true;
+          any = true;
           const life = Math.max(0, 1 - p.y / (confettiCvs.height * 1.1));
           confettiCtx.save();
           confettiCtx.globalAlpha = life;
@@ -1489,32 +1456,22 @@
           confettiCtx.restore();
         }
       });
-
-      if (anyVisible) {
-        confettiRaf = requestAnimationFrame(tick);
-      } else {
-        confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
-      }
+      if (any) confettiRaf = requestAnimationFrame(tick);
+      else confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
     })();
   }
 
   /* ============================================================
-     PLAY AGAIN — reset everything back to the setup screen
+     PLAY AGAIN
   ============================================================ */
   $('playAgain').addEventListener('click', () => {
-    // stop confetti
     if (confettiRaf) { cancelAnimationFrame(confettiRaf); confettiRaf = null; }
     confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
-
-    // reset state
     S.ballCount = 0;
     S.photos    = [];
     S.captured  = 0;
-
-    // deselect count buttons
     document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
     $('setupNext').disabled = true;
-
     showScreen('setup');
   });
 
