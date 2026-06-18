@@ -1,108 +1,2435 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MINOS — SIGINT UFO SCANNER v2.4</title>
+<style>
+/* ================================================================
+   MINOS SIGINT SCANNER — STYLESHEET
+   Terminal-green CRT aesthetic, aerospace tracking display
+   ================================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --g:    #00ff41;
+  --g2:   #00cc33;
+  --g3:   #007a1e;
+  --g4:   #003a0d;
+  --glow: rgba(0,255,65,0.35);
+  --red:  #ff3300;
+  --amb:  #ffaa00;
+  --blu:  #00ccff;
+  --bg:   #000500;
+  --pbg:  rgba(0,8,2,0.94);
+  --bdr:  rgba(0,255,65,0.28);
+  --fnt:  'Courier New', Courier, monospace;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--g);
+  font-family: var(--fnt);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* CRT phosphor scanlines */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none; z-index: 9000;
+}
+
+/* CRT vignette burn */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 55%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none; z-index: 8999;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-columns: 1fr 270px;
+  grid-template-rows: 38px 1fr 210px;
+  width: 100vw; height: 100vh;
+  gap: 3px; padding: 4px;
+}
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+#header {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px;
+  border: 1px solid var(--bdr);
+  background: var(--pbg);
+  font-size: 10px; letter-spacing: 1.5px;
+}
+
+.title-block { display: flex; align-items: baseline; gap: 12px; }
+
+.title-main {
+  font-size: 16px; font-weight: bold;
+  color: var(--g);
+  text-shadow: 0 0 8px var(--g), 0 0 20px var(--g);
+  letter-spacing: 6px;
+}
+
+.title-sub { font-size: 8px; letter-spacing: 2px; color: var(--g3); }
+
+.hdr-stats { display: flex; gap: 18px; align-items: center; }
+
+.hdr-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+
+.hdr-lbl { font-size: 7px; letter-spacing: 1px; color: var(--g3); }
+
+.hdr-val {
+  font-size: 11px; letter-spacing: 1px;
+  color: var(--g);
+  text-shadow: 0 0 5px var(--g);
+}
+
+.hdr-val.red   { color: var(--red);  text-shadow: 0 0 5px var(--red); }
+.hdr-val.amber { color: var(--amb);  text-shadow: 0 0 5px var(--amb); }
+.hdr-val.blue  { color: var(--blu);  text-shadow: 0 0 5px var(--blu); }
+
+#clock {
+  font-size: 13px; letter-spacing: 3px;
+  color: var(--amb);
+  text-shadow: 0 0 8px var(--amb);
+  min-width: 120px; text-align: right;
+}
+
+/* ── MAIN VIEW ──────────────────────────────────────────────── */
+#main-view {
+  position: relative;
+  border: 1px solid var(--bdr);
+  background: #000;
+  overflow: hidden;
+}
+
+#video-feed {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+}
+
+#motion-canvas,
+#overlay-canvas,
+#reticle-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+
+#reticle-canvas { cursor: crosshair; }
+
+/* Vertical scan line animation */
+.v-scan {
+  position: absolute; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0,255,65,0.12) 40%,
+    rgba(0,255,65,0.12) 60%,
+    transparent 100%);
+  animation: scanDown 5s linear infinite;
+  pointer-events: none; z-index: 6;
+}
+@keyframes scanDown {
+  0%   { top: -2px; }
+  100% { top: 100%; }
+}
+
+/* Corner bracket decorations */
+.corner {
+  position: absolute; width: 22px; height: 22px;
+  border-color: var(--g); border-style: solid;
+  opacity: 0.7; z-index: 10; pointer-events: none;
+}
+.corner.tl { top: 8px;    left: 8px;   border-width: 2px 0 0 2px; }
+.corner.tr { top: 8px;    right: 8px;  border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 8px; left: 8px;   border-width: 0 0 2px 2px; }
+.corner.br { bottom: 8px; right: 8px;  border-width: 0 2px 2px 0; }
+
+/* HUD text labels on video */
+.hud-txt {
+  position: absolute; z-index: 20;
+  font-size: 9px; letter-spacing: 1px;
+  color: var(--g2); pointer-events: none;
+  text-shadow: 0 0 4px var(--bg);
+}
+#hud-tl { top: 12px;    left: 12px; }
+#hud-tr { top: 12px;    right: 12px; text-align: right; }
+#hud-bl { bottom: 12px; left: 12px; }
+#hud-br { bottom: 12px; right: 12px; text-align: right; }
+
+/* Centre mode indicator */
+#mode-banner {
+  position: absolute; top: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--g); text-shadow: 0 0 8px var(--g);
+  pointer-events: none; z-index: 20;
+  white-space: nowrap;
+}
+
+/* Motion flash badge */
+#motion-badge {
+  position: absolute; bottom: 30px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--red); text-shadow: 0 0 10px var(--red);
+  background: rgba(0,0,0,0.72);
+  padding: 3px 14px;
+  border: 1px solid var(--red);
+  display: none; z-index: 50; pointer-events: none;
+  animation: badgePulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes badgePulse { from { opacity: 0.65; } to { opacity: 1; } }
+
+/* ── RIGHT PANEL ─────────────────────────────────────────────── */
+#right-panel {
+  display: flex; flex-direction: column; gap: 3px;
+  overflow: hidden;
+}
+
+/* Radar */
+#radar-wrap {
+  border: 1px solid var(--bdr);
+  background: var(--pbg);
+  padding: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+
+.panel-lbl {
+  font-size: 8px; letter-spacing: 2px; color: var(--g3);
+  width: 100%; display: flex; justify-content: space-between;
+  align-items: center;
+}
+
+#radar-canvas {
+  border: 1px solid rgba(0,255,65,0.18);
+  border-radius: 50%;
+  box-shadow: inset 0 0 18px rgba(0,255,65,0.06);
+}
+
+/* Target inspection */
+#tgt-wrap {
+  flex: 1; border: 1px solid var(--bdr);
+  background: var(--pbg); padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow: hidden;
+}
+
+#tgt-canvas {
+  width: 100%; min-height: 85px; max-height: 120px;
+  border: 1px solid rgba(0,255,65,0.2);
+  background: #000;
+  object-fit: contain;
+}
+
+#tgt-data {
+  font-size: 8px; letter-spacing: 0.5px;
+  line-height: 1.65; color: var(--g3);
+  overflow-y: auto;
+}
+#tgt-data span { color: var(--g); }
+
+/* Signal bars */
+#sig-wrap {
+  border: 1px solid var(--bdr);
+  background: var(--pbg); padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+#sig-bars {
+  display: flex; align-items: flex-end;
+  gap: 2px; height: 32px;
+}
+
+.sig-bar {
+  flex: 1; background: var(--g);
+  box-shadow: 0 0 4px var(--g);
+  border-radius: 1px 1px 0 0;
+  transition: height 0.1s ease-out;
+  min-height: 2px;
+}
+.sig-bar.dead { background: var(--g4); box-shadow: none; }
+.sig-bar.warn { background: var(--amb); box-shadow: 0 0 4px var(--amb); }
+.sig-bar.crit { background: var(--red); box-shadow: 0 0 4px var(--red); }
+
+/* ── BOTTOM SECTION ─────────────────────────────────────────── */
+#bottom {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 270px;
+  gap: 3px;
+}
+
+/* Controls */
+#controls {
+  border: 1px solid var(--bdr);
+  background: var(--pbg);
+  padding: 7px 12px;
+  display: flex; flex-direction: column; gap: 5px;
+  overflow-y: auto;
+}
+#controls::-webkit-scrollbar { width: 4px; }
+#controls::-webkit-scrollbar-thumb { background: var(--g4); border-radius: 2px; }
+
+.ctrl-lbl {
+  font-size: 8px; letter-spacing: 2px; color: var(--g3);
+  border-bottom: 1px solid var(--bdr);
+  padding-bottom: 3px; margin-bottom: 1px;
+}
+
+.btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* Buttons */
+.btn {
+  background: transparent;
+  border: 1px solid var(--g3);
+  color: var(--g);
+  font-family: var(--fnt);
+  font-size: 8px; letter-spacing: 1px;
+  padding: 4px 9px; cursor: pointer;
+  transition: all 0.08s;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: rgba(0,255,65,0.09);
+  border-color: var(--g);
+  box-shadow: 0 0 7px var(--glow);
+  text-shadow: 0 0 5px var(--g);
+}
+.btn:active { background: rgba(0,255,65,0.22); }
+.btn.on {
+  background: rgba(0,255,65,0.12);
+  border-color: var(--g);
+  box-shadow: 0 0 10px var(--glow);
+  text-shadow: 0 0 6px var(--g);
+}
+.btn.locked-btn {
+  border-color: var(--red);
+  color: var(--red);
+  animation: lockBlink 0.9s ease-in-out infinite;
+}
+@keyframes lockBlink {
+  0%,100% { box-shadow: 0 0 5px rgba(255,51,0,0.35); }
+  50%      { box-shadow: 0 0 14px rgba(255,51,0,0.75); }
+}
+.btn.danger {
+  border-color: rgba(255,51,0,0.4);
+  color: var(--red);
+}
+.btn.danger:hover {
+  background: rgba(255,51,0,0.12);
+  border-color: var(--red);
+  box-shadow: 0 0 8px rgba(255,51,0,0.4);
+}
+.btn.amber-btn {
+  border-color: rgba(255,170,0,0.4);
+  color: var(--amb);
+}
+.btn.amber-btn:hover {
+  background: rgba(255,170,0,0.1);
+  border-color: var(--amb);
+  box-shadow: 0 0 7px rgba(255,170,0,0.4);
+}
+
+/* Sliders */
+#sliders-section { display: flex; flex-direction: column; gap: 3px; }
+#sliders-section.hidden { display: none; }
+
+.sl-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 8px; letter-spacing: 1px;
+}
+.sl-lbl { flex: 0 0 118px; color: var(--g3); }
+.sl-inp {
+  flex: 1;
+  -webkit-appearance: none; appearance: none;
+  height: 3px;
+  background: rgba(0,255,65,0.18);
+  outline: none; border-radius: 1px;
+}
+.sl-inp::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--g);
+  cursor: pointer;
+  box-shadow: 0 0 5px var(--g);
+}
+.sl-val { flex: 0 0 34px; text-align: right; color: var(--g); }
+
+/* Terminal command input */
+#term-row {
+  display: flex; gap: 6px; align-items: center;
+  margin-top: 2px;
+}
+#term-prompt { font-size: 9px; color: var(--g); white-space: nowrap; }
+#term-input {
+  flex: 1;
+  background: rgba(0,255,65,0.05);
+  border: 1px solid var(--g3);
+  color: var(--g);
+  font-family: var(--fnt);
+  font-size: 9px; letter-spacing: 1px;
+  padding: 3px 6px; outline: none;
+}
+#term-input:focus { border-color: var(--g); box-shadow: 0 0 5px var(--glow); }
+
+/* ── LOG PANEL ──────────────────────────────────────────────── */
+#log-panel {
+  border: 1px solid var(--bdr);
+  background: var(--pbg);
+  padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+  overflow: hidden;
+}
+#log-out {
+  flex: 1; overflow-y: auto;
+  font-size: 8.5px; line-height: 1.5; letter-spacing: 0.3px;
+}
+#log-out::-webkit-scrollbar { width: 4px; }
+#log-out::-webkit-scrollbar-thumb { background: var(--g4); }
+.le   { color: var(--g3); padding: 0.5px 0; }
+.le.a { color: var(--red); }
+.le.i { color: var(--g); }
+.le.w { color: var(--amb); }
+.le.b { color: var(--blu); }
+
+/* ── LOADING SCREEN ─────────────────────────────────────────── */
+#boot {
+  position: fixed; inset: 0;
+  background: #000300; z-index: 99999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+}
+#boot-title {
+  font-size: 32px; letter-spacing: 10px;
+  color: var(--g);
+  text-shadow: 0 0 20px var(--g), 0 0 50px var(--g);
+}
+#boot-sub { font-size: 10px; letter-spacing: 3px; color: var(--g3); text-align: center; }
+#boot-bar-wrap {
+  width: 320px; height: 3px;
+  background: rgba(0,255,65,0.1);
+  border: 1px solid var(--bdr);
+}
+#boot-bar {
+  height: 100%; background: var(--g);
+  box-shadow: 0 0 10px var(--g);
+  width: 0%; transition: width 0.12s linear;
+}
+#boot-log {
+  width: 320px; height: 90px;
+  overflow-y: auto; font-size: 8px;
+  letter-spacing: 0.5px; color: var(--g3);
+}
+#boot-log::-webkit-scrollbar { display: none; }
+
+/* ── ANIMATIONS ─────────────────────────────────────────────── */
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+.blink { animation: blink 1s step-end infinite; }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 38px 1fr 180px;
+  }
+  #right-panel { display: none; }
+  #bottom { grid-template-columns: 1fr; }
+}
+</style>
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
-      </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
 
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
+<!-- ================================================================
+     BOOT OVERLAY
+     ================================================================ -->
+<div id="boot">
+  <div id="boot-title">M I N O S</div>
+  <div id="boot-sub">SIGINT MOTION INTELLIGENCE NETWORK OBSERVATION SYSTEM v2.4</div>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <div id="boot-log"></div>
+</div>
 
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
-        </div>
+<!-- ================================================================
+     MAIN APP
+     ================================================================ -->
+<div id="app">
 
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
+  <!-- ── HEADER ── -->
+  <div id="header">
+    <div class="title-block">
+      <span class="title-main">MINOS</span>
+      <span class="title-sub">SIGINT UFO SCANNER</span>
+    </div>
+    <div class="hdr-stats">
+      <div class="hdr-item">
+        <span class="hdr-lbl">SYSTEM</span>
+        <span class="hdr-val" id="h-sys">BOOT</span>
       </div>
-
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">BLOBS</span>
+        <span class="hdr-val" id="h-blobs">0</span>
       </div>
-    </section>
-
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">LOCKED</span>
+        <span class="hdr-val" id="h-lock">NO</span>
       </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
+      <div class="hdr-item">
+        <span class="hdr-lbl">TRACK ID</span>
+        <span class="hdr-val" id="h-tid">--</span>
       </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">SPEED</span>
+        <span class="hdr-val" id="h-spd">0.00</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">DETECTIONS</span>
+        <span class="hdr-val blue" id="h-det">0</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">CLASS</span>
+        <span class="hdr-val amber" id="h-cls">---</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
+      <div class="hdr-item">
+        <span class="hdr-lbl">CONF</span>
+        <span class="hdr-val" id="h-conf">0%</span>
       </div>
-    </section>
+      <div class="hdr-item">
+        <span class="hdr-lbl">FPS</span>
+        <span class="hdr-val" id="h-fps">--</span>
+      </div>
+    </div>
+    <div id="clock">00:00:00 UTC</div>
   </div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-  <script src="app.js"></script>
+  <!-- ── MAIN VIDEO VIEW ── -->
+  <div id="main-view">
+    <video id="video-feed" autoplay playsinline muted></video>
+    <canvas id="motion-canvas"></canvas>
+    <canvas id="overlay-canvas"></canvas>
+    <canvas id="reticle-canvas"></canvas>
+
+    <div class="v-scan"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div id="mode-banner">◆ STANDBY ◆</div>
+
+    <div class="hud-txt" id="hud-tl">MODE: PASSIVE | CAM: REAR</div>
+    <div class="hud-txt" id="hud-tr">ZOOM: 1.00x | BLUR: 2</div>
+    <div class="hud-txt" id="hud-bl">NO TARGET</div>
+    <div class="hud-txt" id="hud-br">FPS: --</div>
+
+    <div id="motion-badge">◉ MOTION DETECTED</div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div id="right-panel">
+
+    <!-- Radar -->
+    <div id="radar-wrap">
+      <div class="panel-lbl">
+        <span>◈ RADAR SWEEP ◈</span>
+        <span id="radar-deg" style="color:var(--g)">000°</span>
+      </div>
+      <canvas id="radar-canvas" width="244" height="244"></canvas>
+    </div>
+
+    <!-- Target inspection -->
+    <div id="tgt-wrap">
+      <div class="panel-lbl">
+        <span>◈ TARGET INSPECTION ◈</span>
+        <span id="tgt-age" style="color:var(--g)">--f</span>
+      </div>
+      <canvas id="tgt-canvas"></canvas>
+      <div id="tgt-data">
+        <div>POS X/Y : <span id="td-pos">---, ---</span></div>
+        <div>VEL X/Y : <span id="td-vel">---, ---</span></div>
+        <div>AREA    : <span id="td-area">---</span> px²</div>
+        <div>BRIGHT  : <span id="td-bright">---</span>%</div>
+        <div>CONF    : <span id="td-conf">---</span>%</div>
+        <div>CLASS   : <span id="td-class">---</span></div>
+        <div>TRACK   : <span id="td-track">---</span></div>
+      </div>
+    </div>
+
+    <!-- Signal strength -->
+    <div id="sig-wrap">
+      <div class="panel-lbl">
+        <span>◈ SIGNAL STRENGTH ◈</span>
+        <span id="sig-val" style="color:var(--g)">0 dBm</span>
+      </div>
+      <div id="sig-bars"></div>
+    </div>
+
+  </div>
+
+  <!-- ── BOTTOM ── -->
+  <div id="bottom">
+
+    <!-- Controls panel -->
+    <div id="controls">
+      <div class="ctrl-lbl">◈ CONTROL PANEL — MINOS SIGINT v2.4 ◈</div>
+
+      <!-- Row 1: primary actions -->
+      <div class="btn-row">
+        <button class="btn" id="btn-cap"
+          title="Lock strongest motion blob near reticle (double-click canvas)">CAPTURE RETICLE</button>
+        <button class="btn danger" id="btn-ulk"
+          title="Release current tracking lock">UNLOCK TARGET</button>
+        <button class="btn" id="btn-flow"
+          title="Toggle optical flow vector overlay">FLOW OFF</button>
+        <button class="btn" id="btn-radar"
+          title="Toggle radar sweep display">RADAR ON</button>
+        <button class="btn amber-btn" id="btn-snap"
+          title="Run AI object classification on locked target">SNAP YOLO</button>
+      </div>
+
+      <!-- Row 2: camera / zoom / mode -->
+      <div class="btn-row">
+        <button class="btn" id="btn-mode"
+          title="Cycle PASSIVE → ACTIVE → AGGRESSIVE">MODE: PASSIVE</button>
+        <button class="btn" id="btn-zin"
+          title="Digital zoom in (+0.25x)">ZOOM +</button>
+        <button class="btn" id="btn-zout"
+          title="Digital zoom out (-0.25x)">ZOOM −</button>
+        <button class="btn" id="btn-cam"
+          title="Switch front / rear camera">CAM SWITCH</button>
+        <button class="btn" id="btn-sliders"
+          title="Show / hide sliders panel">SLIDERS HIDE</button>
+      </div>
+
+      <!-- Row 3: toggles -->
+      <div class="btn-row">
+        <button class="btn" id="btn-trail"
+          title="Show motion trail history on tracked target">TRAIL OFF</button>
+        <button class="btn" id="btn-grid"
+          title="Toggle measurement grid overlay">GRID OFF</button>
+        <button class="btn" id="btn-night"
+          title="Night-vision green enhancement filter">NIGHT OFF</button>
+        <button class="btn" id="btn-pred"
+          title="Show Kalman prediction arc">PREDICT OFF</button>
+        <button class="btn" id="btn-audio"
+          title="Enable audio alert beeps on motion">AUDIO OFF</button>
+        <button class="btn danger" id="btn-clr"
+          title="Clear event log">CLR LOG</button>
+      </div>
+
+      <!-- Sliders panel -->
+      <div id="sliders-section">
+        <div class="sl-row">
+          <span class="sl-lbl">MOTION THRESHOLD</span>
+          <input type="range" class="sl-inp" id="sl-thresh" min="2" max="60" value="10">
+          <span class="sl-val" id="sv-thresh">10</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">MIN BLOB AREA</span>
+          <input type="range" class="sl-inp" id="sl-area" min="10" max="3000" value="80">
+          <span class="sl-val" id="sv-area">80</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">MAX TRACK POINTS</span>
+          <input type="range" class="sl-inp" id="sl-maxpt" min="20" max="500" value="180">
+          <span class="sl-val" id="sv-maxpt">180</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">LOCK RADIUS (px)</span>
+          <input type="range" class="sl-inp" id="sl-lockr" min="20" max="350" value="90">
+          <span class="sl-val" id="sv-lockr">90</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">FLOW RADIUS (px)</span>
+          <input type="range" class="sl-inp" id="sl-flowr" min="10" max="200" value="60">
+          <span class="sl-val" id="sv-flowr">60</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">BLUR KERNEL</span>
+          <input type="range" class="sl-inp" id="sl-blur" min="0" max="12" value="2">
+          <span class="sl-val" id="sv-blur">2</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">TRAIL LENGTH (f)</span>
+          <input type="range" class="sl-inp" id="sl-trail" min="5" max="150" value="40">
+          <span class="sl-val" id="sv-trail">40</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">MIN CONFIDENCE %</span>
+          <input type="range" class="sl-inp" id="sl-conf" min="5" max="95" value="40">
+          <span class="sl-val" id="sv-conf">40</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">MAX ZOOM (×10)</span>
+          <input type="range" class="sl-inp" id="sl-mzoom" min="10" max="40" value="30">
+          <span class="sl-val" id="sv-mzoom">3.0</span>
+        </div>
+      </div>
+
+      <!-- Terminal input -->
+      <div id="term-row">
+        <span id="term-prompt">MINOS&gt;</span>
+        <input type="text" id="term-input"
+          placeholder="type help for commands"
+          spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Event log -->
+    <div id="log-panel">
+      <div class="panel-lbl"
+        style="border-bottom:1px solid var(--bdr);padding-bottom:3px;margin-bottom:2px;">
+        <span>◈ SIGINT EVENT LOG ◈</span>
+        <span id="log-count" style="color:var(--g)">0</span>
+      </div>
+      <div id="log-out"></div>
+    </div>
+
+  </div><!-- /bottom -->
+</div><!-- /app -->
+
+<!-- ================================================================
+     JAVASCRIPT — MINOS CORE ENGINE
+     All computer vision, tracking, rendering, and UI logic
+     ================================================================ -->
+<script>
+'use strict';
+
+// ================================================================
+//  BOOT SEQUENCE
+// ================================================================
+const BOOT_MSGS = [
+  'MINOS CORE INITIALIZING...',
+  'LOADING KALMAN 2D PREDICTION ENGINE...',
+  'OPTICAL FLOW: LUCAS-KANADE ALGORITHM LOADED',
+  'BACKGROUND SUBTRACTION: FRAME-DIFFERENCING ARMED',
+  'BLOB DETECTION: BFS CONNECTED-COMPONENT LABELER READY',
+  'RADAR SWEEP SUBSYSTEM: ONLINE',
+  'RETICLE TARGETING ARRAY: ARMED',
+  'AI CLASSIFICATION MODULE: STANDBY',
+  'AUDIO ALERT SUBSYSTEM: INITIALIZED',
+  'REQUESTING CAMERA DEVICE ACCESS...',
+  'ESTABLISHING VIDEO STREAM...',
+  'SIGINT PROTOCOLS: ACTIVE',
+  'THREAT ASSESSMENT MODULE: STANDBY',
+  'ALL SYSTEMS NOMINAL — AWAITING TARGETS',
+];
+
+const bootLog = document.getElementById('boot-log');
+const bootBar = document.getElementById('boot-bar');
+let bootIdx   = 0;
+
+function bootStep() {
+  if (bootIdx >= BOOT_MSGS.length) {
+    setTimeout(() => {
+      const b = document.getElementById('boot');
+      b.style.transition = 'opacity 0.6s';
+      b.style.opacity    = '0';
+      setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 700);
+    }, 250);
+    return;
+  }
+  const line = document.createElement('div');
+  line.textContent = '> ' + BOOT_MSGS[bootIdx];
+  line.style.color = bootIdx === BOOT_MSGS.length - 1
+    ? 'var(--g)' : 'rgba(0,200,50,0.5)';
+  bootLog.appendChild(line);
+  bootLog.scrollTop = bootLog.scrollHeight;
+  bootBar.style.width = ((bootIdx + 1) / BOOT_MSGS.length * 100) + '%';
+  bootIdx++;
+  setTimeout(bootStep, 160 + Math.random() * 110);
+}
+setTimeout(bootStep, 300);
+
+// ================================================================
+//  GLOBAL STATE
+// ================================================================
+const S = {
+  // Camera
+  stream:     null,
+  facingMode: 'environment',
+  cameras:    [],
+  camIdx:     0,
+
+  // Digital zoom
+  zoom:    1.0,
+  maxZoom: 3.0,
+  minZoom: 1.0,
+
+  // Detection state
+  prevFrame:  null,      // Uint8ClampedArray of previous RGBA frame
+  blobs:      [],
+  frameN:     0,
+  fps:        0,
+  fpsAccum:   0,
+  lastFpsTs:  performance.now(),
+
+  // Tracking
+  locked:      false,
+  target:      null,     // {x,y,w,h,vx,vy,area,brightness,age,id,class,conf,lastSeen}
+  trackSerial: 0,
+  trail:       [],       // [{x,y,t}]
+  kalman:      null,
+
+  // Optical flow
+  flowOn:   false,
+  flowVecs: [],
+
+  // Prediction arc
+  predOn: false,
+
+  // Feature toggles
+  mode:       'PASSIVE', // PASSIVE | ACTIVE | AGGRESSIVE
+  radarOn:    true,
+  trailOn:    false,
+  gridOn:     false,
+  nightOn:    false,
+  slidersOn:  true,
+  audioOn:    false,
+
+  // Slider values
+  thresh:   10,
+  minArea:  80,
+  maxPts:   180,
+  lockR:    90,
+  flowR:    60,
+  blurK:    2,
+  trailLen: 40,
+  minConf:  40,
+
+  // Reticle position (normalised 0..1)
+  rx: 0.5, ry: 0.5,
+
+  // Radar sweep angle (degrees)
+  radarAng: 0,
+
+  // Session stats
+  totalDet:     0,
+  sessionStart: Date.now(),
+
+  // YOLO running flag
+  yoloRunning: false,
+
+  // Audio context (lazy)
+  audioCtx: null,
+};
+
+// ================================================================
+//  KALMAN FILTER — 2D position + velocity state
+//  State: [x, y, vx, vy]
+//  Simple scalar approximation (no full matrix inversion needed)
+// ================================================================
+class Kalman2D {
+  constructor(x, y) {
+    this.x   = x;  this.y   = y;
+    this.vx  = 0;  this.vy  = 0;
+    // Diagonal error covariance elements
+    this.px  = 10; this.py  = 10;
+    this.pvx = 8;  this.pvy = 8;
+    this.Q   = 0.08; // process noise variance
+    this.R   = 6.0;  // measurement noise variance
+  }
+
+  // Prediction step: advance state by one frame
+  predict(dt) {
+    dt = dt || 1;
+    this.x  += this.vx * dt;
+    this.y  += this.vy * dt;
+    // Grow uncertainty
+    this.px  += this.Q;
+    this.py  += this.Q;
+    this.pvx += this.Q;
+    this.pvy += this.Q;
+    return { x: this.x, y: this.y };
+  }
+
+  // Update step: incorporate measurement
+  update(mx, my) {
+    const kx  = this.px  / (this.px  + this.R);
+    const ky  = this.py  / (this.py  + this.R);
+    const kvx = this.pvx / (this.pvx + this.R);
+    const kvy = this.pvy / (this.pvy + this.R);
+    const ex  = mx - this.x;
+    const ey  = my - this.y;
+    this.x   += kx  * ex;
+    this.y   += ky  * ey;
+    this.vx  += kvx * ex * 0.12;
+    this.vy  += kvy * ey * 0.12;
+    this.px   *= (1 - kx);
+    this.py   *= (1 - ky);
+    this.pvx  *= (1 - kvx);
+    this.pvy  *= (1 - kvy);
+    return { x: this.x, y: this.y };
+  }
+
+  speed()  { return Math.hypot(this.vx, this.vy); }
+  angle()  { return Math.atan2(this.vy, this.vx); }
+
+  // Project N future positions using current velocity
+  predictN(n) {
+    const pts = [];
+    let px = this.x, py = this.y;
+    let pvx = this.vx, pvy = this.vy;
+    for (let i = 0; i < n; i++) {
+      px += pvx; py += pvy;
+      pts.push({ x: px, y: py });
+    }
+    return pts;
+  }
+}
+
+// ================================================================
+//  AUDIO ALERTS (Web Audio API — lazy init)
+// ================================================================
+function getAudioCtx() {
+  if (!S.audioCtx) {
+    S.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return S.audioCtx;
+}
+
+function beep(freq, dur, vol, type) {
+  if (!S.audioOn) return;
+  freq = freq || 880; dur = dur || 0.08;
+  vol  = vol  || 0.08; type = type || 'square';
+  try {
+    const ctx  = getAudioCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+
+function lockBeep() {
+  beep(1200, 0.12, 0.1, 'square');
+  setTimeout(function() { beep(1600, 0.08, 0.08, 'square'); }, 130);
+}
+
+function detBeep()   { beep(660, 0.06, 0.06, 'sawtooth'); }
+function unlockBeep() {
+  beep(440, 0.15, 0.08, 'triangle');
+  setTimeout(function() { beep(300, 0.1, 0.06, 'triangle'); }, 160);
+}
+
+// ================================================================
+//  LOGGING
+// ================================================================
+const logOut = document.getElementById('log-out');
+const logCnt = document.getElementById('log-count');
+let logTotal = 0;
+const MAX_LOG = 100;
+
+function log(msg, type) {
+  type = type || '';
+  logTotal++;
+  logCnt.textContent = logTotal;
+  var ts  = new Date().toTimeString().slice(0, 8);
+  var el  = document.createElement('div');
+  el.className   = 'le ' + type;
+  el.textContent = '[' + ts + '] ' + msg;
+  logOut.appendChild(el);
+  if (logOut.children.length > MAX_LOG) {
+    logOut.removeChild(logOut.firstChild);
+  }
+  logOut.scrollTop = logOut.scrollHeight;
+}
+
+// ================================================================
+//  DOM REFERENCES
+// ================================================================
+var video    = document.getElementById('video-feed');
+var motCvs   = document.getElementById('motion-canvas');
+var ovlCvs   = document.getElementById('overlay-canvas');
+var retCvs   = document.getElementById('reticle-canvas');
+var radCvs   = document.getElementById('radar-canvas');
+var tgtCvs   = document.getElementById('tgt-canvas');
+var mainView = document.getElementById('main-view');
+
+var mCtx  = motCvs.getContext('2d');
+var oCtx  = ovlCvs.getContext('2d');
+var rCtx  = retCvs.getContext('2d');
+var rdCtx = radCvs.getContext('2d');
+var tCtx  = tgtCvs.getContext('2d');
+
+// Off-screen canvas for frame capture
+var offCvs = document.createElement('canvas');
+var offCtx = offCvs.getContext('2d');
+
+// ================================================================
+//  CAMERA SETUP
+// ================================================================
+function startCamera() {
+  if (S.stream) S.stream.getTracks().forEach(function(t) { t.stop(); });
+
+  return navigator.mediaDevices.enumerateDevices()
+    .then(function(devs) {
+      S.cameras = devs.filter(function(d) { return d.kind === 'videoinput'; });
+    })
+    .then(function() {
+      return navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: S.facingMode,
+          width:     { ideal: 1280 },
+          height:    { ideal: 720 },
+          frameRate: { ideal: 30 },
+        },
+        audio: false,
+      });
+    })
+    .then(function(stream) {
+      S.stream = stream;
+      video.srcObject = stream;
+      return new Promise(function(resolve) {
+        video.onloadedmetadata = function() {
+          resizeCvs();
+          log('CAMERA ONLINE ' + video.videoWidth + 'x' + video.videoHeight, 'i');
+          document.getElementById('h-sys').textContent = 'ONLINE';
+          document.getElementById('h-sys').className   = 'hdr-val';
+          requestAnimationFrame(mainLoop);
+          resolve();
+        };
+      });
+    })
+    .catch(function(err) {
+      log('CAMERA ERROR: ' + err.message, 'a');
+      document.getElementById('h-sys').textContent = 'CAM ERR';
+      document.getElementById('h-sys').className   = 'hdr-val red';
+    });
+}
+
+function resizeCvs() {
+  var w = mainView.clientWidth;
+  var h = mainView.clientHeight;
+  motCvs.width  = w; motCvs.height  = h;
+  ovlCvs.width  = w; ovlCvs.height  = h;
+  retCvs.width  = w; retCvs.height  = h;
+  offCvs.width  = w; offCvs.height  = h;
+  tgtCvs.width  = tgtCvs.parentElement.clientWidth - 12;
+  tgtCvs.height = 100;
+}
+
+// ================================================================
+//  MOTION DETECTION — FRAME DIFFERENCING + BLOB FINDING
+// ================================================================
+function detectMotion(imgData) {
+  var w   = imgData.width;
+  var h   = imgData.height;
+  var cur = imgData.data;
+
+  if (!S.prevFrame) {
+    S.prevFrame = new Uint8ClampedArray(cur);
+    return [];
+  }
+
+  var prev  = S.prevFrame;
+  var thr   = S.thresh;
+  var diff  = new Uint8Array(w * h);
+
+  // Per-pixel frame difference — compare luminance delta
+  for (var i = 0, p = 0; i < cur.length; i += 4, p++) {
+    var dr = Math.abs(cur[i]   - prev[i]);
+    var dg = Math.abs(cur[i+1] - prev[i+1]);
+    var db = Math.abs(cur[i+2] - prev[i+2]);
+    diff[p] = (dr + dg + db) / 3 > thr ? 1 : 0;
+  }
+
+  // Morphological dilation to merge nearby motion pixels
+  var k   = Math.max(1, S.blurK);
+  var dil = dilate(diff, w, h, k);
+
+  var blobs = findBlobs(dil, w, h);
+
+  // Advance frame buffer
+  S.prevFrame.set(cur);
+  return blobs;
+}
+
+// Simple binary dilation (box kernel)
+function dilate(map, w, h, r) {
+  var out = new Uint8Array(w * h);
+  for (var y = r; y < h - r; y++) {
+    for (var x = r; x < w - r; x++) {
+      var hit = 0;
+      outer: for (var dy = -r; dy <= r; dy++) {
+        for (var dx = -r; dx <= r; dx++) {
+          if (map[(y + dy) * w + (x + dx)]) { hit = 1; break outer; }
+        }
+      }
+      out[y * w + x] = hit;
+    }
+  }
+  return out;
+}
+
+// BFS connected-component labeling — returns array of blob descriptors
+function findBlobs(map, w, h) {
+  var vis   = new Uint8Array(w * h);
+  var blobs = [];
+  var minA  = S.minArea;
+
+  for (var sy = 1; sy < h - 1; sy++) {
+    for (var sx = 1; sx < w - 1; sx++) {
+      var si = sy * w + sx;
+      if (!map[si] || vis[si]) continue;
+
+      var queue = [si];
+      vis[si] = 1;
+      var minX = sx, maxX = sx, minY = sy, maxY = sy;
+      var area = 0;
+      var qi   = 0;
+
+      while (qi < queue.length) {
+        var ci = queue[qi++];
+        var cx_ = ci % w;
+        var cy_ = (ci / w) | 0;
+        area++;
+        if (cx_ < minX) minX = cx_; if (cx_ > maxX) maxX = cx_;
+        if (cy_ < minY) minY = cy_; if (cy_ > maxY) maxY = cy_;
+
+        var ns = [ci - 1, ci + 1, ci - w, ci + w];
+        for (var ni = 0; ni < ns.length; ni++) {
+          var idx = ns[ni];
+          if (idx >= 0 && idx < map.length && map[idx] && !vis[idx]) {
+            vis[idx] = 1;
+            queue.push(idx);
+          }
+        }
+      }
+
+      if (area >= minA) {
+        blobs.push({
+          x:    (minX + maxX) / 2,
+          y:    (minY + maxY) / 2,
+          w:    maxX - minX,
+          h:    maxY - minY,
+          area: area,
+          minX: minX, maxX: maxX,
+          minY: minY, maxY: maxY,
+          brightness: 50 + (area % 50),
+        });
+      }
+    }
+  }
+
+  // Sort largest first, cap at 24
+  blobs.sort(function(a, b) { return b.area - a.area; });
+  return blobs.slice(0, 24);
+}
+
+// ================================================================
+//  OPTICAL FLOW — SIMPLIFIED LUCAS-KANADE
+//  Computes per-pixel gradient and solves for local velocity
+// ================================================================
+function computeFlow(cur, prev, w, h) {
+  if (!S.flowOn || !S.locked || !S.target) { S.flowVecs = []; return; }
+
+  var cd  = cur.data;
+  var pd  = prev.data;
+  var tx  = S.target.x;
+  var ty  = S.target.y;
+  var rad = S.flowR;
+  var step = 10;
+  var vecs = [];
+
+  for (var y = Math.max(step, (ty - rad) | 0);
+       y < Math.min(h - step, (ty + rad) | 0);
+       y += step) {
+    for (var x = Math.max(step, (tx - rad) | 0);
+         x < Math.min(w - step, (tx + rad) | 0);
+         x += step) {
+
+      var Ix = (gray(cd, x+1, y, w) - gray(cd, x-1, y, w)) * 0.5;
+      var Iy = (gray(cd, x, y+1, w) - gray(cd, x, y-1, w)) * 0.5;
+      var It = gray(cd, x, y, w) - gray(pd, x, y, w);
+      var d  = Ix * Ix + Iy * Iy;
+      if (Math.abs(d) < 1) continue;
+      var vx  = -(Ix * It) / d;
+      var vy  = -(Iy * It) / d;
+      var mag = Math.hypot(vx, vy);
+      if (mag > 0.2 && mag < 18) {
+        vecs.push({ x: x, y: y, vx: vx, vy: vy, mag: mag });
+      }
+    }
+  }
+  S.flowVecs = vecs;
+}
+
+// Return luminance of pixel at (x,y)
+function gray(d, x, y, w) {
+  var i = (y * w + x) * 4;
+  return d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+}
+
+// ================================================================
+//  TARGET TRACKING UPDATE (called every frame)
+// ================================================================
+function updateTracking(blobs, w, h) {
+  document.getElementById('h-blobs').textContent = blobs.length;
+  S.blobs = blobs;
+
+  if (!S.locked) return;
+
+  var tx   = S.target.x;
+  var ty   = S.target.y;
+  var best = null;
+  var bestD = Infinity;
+
+  // Find closest blob within lock radius
+  for (var i = 0; i < blobs.length; i++) {
+    var b = blobs[i];
+    var d = Math.hypot(b.x - tx, b.y - ty);
+    if (d < S.lockR && d < bestD) { bestD = d; best = b; }
+  }
+
+  if (best) {
+    // Kalman predict then update
+    S.kalman.predict(1);
+    var upd = S.kalman.update(best.x, best.y);
+    S.target.x    = upd.x;
+    S.target.y    = upd.y;
+    S.target.w    = best.w;
+    S.target.h    = best.h;
+    S.target.area = best.area;
+    S.target.brightness = best.brightness;
+    S.target.vx   = S.kalman.vx;
+    S.target.vy   = S.kalman.vy;
+    S.target.age++;
+    S.target.lastSeen = S.frameN;
+
+    // Record trail
+    if (S.trailOn) {
+      S.trail.push({ x: upd.x, y: upd.y, t: S.frameN });
+      if (S.trail.length > S.trailLen) S.trail.shift();
+    }
+
+    refreshTgtPanel();
+
+  } else {
+    // Target not visible — use Kalman prediction
+    var lost = S.frameN - (S.target.lastSeen || S.frameN);
+    if (lost > 35) {
+      log('TARGET LOST — TRACK ' + S.target.id + ' RELEASED', 'w');
+      unlockTarget();
+    } else {
+      var p = S.kalman.predict(1);
+      S.target.x = p.x;
+      S.target.y = p.y;
+      S.target.age++;
+      document.getElementById('h-lock').textContent = 'PRED';
+      document.getElementById('h-lock').className   = 'hdr-val amber';
+    }
+  }
+}
+
+function refreshTgtPanel() {
+  if (!S.target) return;
+  var t = S.target;
+  document.getElementById('h-lock').textContent = 'YES';
+  document.getElementById('h-lock').className   = 'hdr-val red';
+  document.getElementById('h-tid').textContent  = t.id;
+  document.getElementById('h-spd').textContent  = Math.hypot(t.vx||0, t.vy||0).toFixed(2);
+  document.getElementById('h-cls').textContent  = t.class || '---';
+  document.getElementById('h-conf').textContent = (t.conf || 0) + '%';
+  document.getElementById('tgt-age').textContent = t.age + 'f';
+
+  document.getElementById('td-pos').textContent    = Math.round(t.x) + ', ' + Math.round(t.y);
+  document.getElementById('td-vel').textContent    = (t.vx||0).toFixed(2) + ', ' + (t.vy||0).toFixed(2);
+  document.getElementById('td-area').textContent   = t.area;
+  document.getElementById('td-bright').textContent = t.brightness;
+  document.getElementById('td-conf').textContent   = t.conf || '--';
+  document.getElementById('td-class').textContent  = t.class || 'UNKNOWN';
+  document.getElementById('td-track').textContent  = 'ID:' + t.id + ' AGE:' + t.age + 'f';
+
+  document.getElementById('hud-bl').textContent =
+    'TGT[' + t.id + '] ' +
+    Math.round(t.x) + ',' + Math.round(t.y) +
+    ' V:' + (t.vx||0).toFixed(1) + ',' + (t.vy||0).toFixed(1) +
+    ' ' + (t.class || '???');
+}
+
+// ================================================================
+//  CAPTURE RETICLE — lock nearest blob to reticle position
+// ================================================================
+function captureReticle() {
+  var w  = ovlCvs.width;
+  var h  = ovlCvs.height;
+  var rx = S.rx * w;
+  var ry = S.ry * h;
+
+  var best      = null;
+  var bestScore = -Infinity;
+
+  for (var i = 0; i < S.blobs.length; i++) {
+    var b = S.blobs[i];
+    var d = Math.hypot(b.x - rx, b.y - ry);
+    if (d < S.lockR) {
+      var sc = b.area - d * 0.4;
+      if (sc > bestScore) { bestScore = sc; best = b; }
+    }
+  }
+
+  if (best) {
+    S.locked = true;
+    S.trackSerial++;
+    S.totalDet++;
+    S.trail  = [{ x: best.x, y: best.y, t: S.frameN }];
+    S.kalman = new Kalman2D(best.x, best.y);
+    S.target = {
+      x: best.x, y: best.y,
+      w: best.w, h: best.h,
+      area: best.area,
+      brightness: best.brightness,
+      vx: 0, vy: 0,
+      age: 0,
+      id:  S.trackSerial,
+      lastSeen: S.frameN,
+      class: null, conf: 0,
+    };
+    document.getElementById('h-det').textContent = S.totalDet;
+    document.getElementById('btn-cap').classList.add('on');
+    document.getElementById('btn-ulk').classList.add('locked-btn');
+    log('TARGET LOCKED — ID:' + S.trackSerial + ' AREA:' + best.area + 'px²', 'i');
+    lockBeep();
+    return true;
+  }
+
+  log('CAPTURE FAILED — NO BLOB IN LOCK RADIUS (' + S.lockR + 'px)', 'w');
+  return false;
+}
+
+// ================================================================
+//  UNLOCK TARGET
+// ================================================================
+function unlockTarget() {
+  S.locked    = false;
+  S.target    = null;
+  S.trail     = [];
+  S.kalman    = null;
+  S.flowVecs  = [];
+
+  document.getElementById('btn-cap').classList.remove('on');
+  document.getElementById('btn-ulk').classList.remove('locked-btn');
+  document.getElementById('h-lock').textContent = 'NO';
+  document.getElementById('h-lock').className   = 'hdr-val';
+  document.getElementById('h-tid').textContent  = '--';
+  document.getElementById('h-spd').textContent  = '0.00';
+  document.getElementById('hud-bl').textContent = 'NO TARGET';
+  document.getElementById('tgt-age').textContent = '--f';
+  clearTgtPanel();
+  unlockBeep();
+}
+
+function clearTgtPanel() {
+  var ids = ['td-pos','td-vel','td-area','td-bright','td-conf','td-class','td-track'];
+  ids.forEach(function(id) { document.getElementById(id).textContent = '---'; });
+  tCtx.clearRect(0, 0, tgtCvs.width, tgtCvs.height);
+}
+
+// ================================================================
+//  YOLO SIMULATION (randomised classification with realistic delay)
+// ================================================================
+var YOLO_CLASSES = [
+  'UNKNOWN', 'BIRD', 'DRONE', 'FIXED-WING', 'BALLOON',
+  'SATELLITE', 'INSECT', 'DEBRIS', 'HELICOPTER', 'UAP',
+  'WEATHER-BALLOON', 'HIGH-ALT OBJ', 'QUADCOPTER', 'METEOR',
+];
+
+function snapYolo() {
+  if (!S.locked || !S.target) { log('YOLO: NO TARGET LOCKED', 'w'); return; }
+  if (S.yoloRunning) return;
+  S.yoloRunning = true;
+  document.getElementById('btn-snap').classList.add('on');
+  log('YOLO SCAN INITIATED — ANALYZING TARGET...', 'b');
+  beep(440, 0.05, 0.06, 'sine');
+
+  var delay = 500 + Math.random() * 600;
+  setTimeout(function() {
+    S.yoloRunning = false;
+    document.getElementById('btn-snap').classList.remove('on');
+    if (!S.target) { log('YOLO: TARGET LOST DURING SCAN', 'w'); return; }
+
+    var cls  = YOLO_CLASSES[Math.floor(Math.random() * YOLO_CLASSES.length)];
+    var conf = S.minConf + Math.floor(Math.random() * (96 - S.minConf));
+
+    S.target.class = cls;
+    S.target.conf  = conf;
+
+    document.getElementById('h-cls').textContent  = cls;
+    document.getElementById('h-conf').textContent = conf + '%';
+    document.getElementById('td-class').textContent = cls;
+    document.getElementById('td-conf').textContent  = conf;
+
+    log('YOLO RESULT: [' + cls + '] CONF=' + conf + '%', 'i');
+    beep(880, 0.05, 0.07, 'square');
+    setTimeout(function() { beep(1200, 0.05, 0.07, 'square'); }, 80);
+  }, delay);
+}
+
+// ================================================================
+//  DRAWING — MOTION OVERLAY (green blob outlines on motion canvas)
+// ================================================================
+function drawMotion(blobs, w, h) {
+  mCtx.clearRect(0, 0, w, h);
+
+  // Night vision tint
+  if (S.nightOn) {
+    mCtx.fillStyle = 'rgba(0,25,5,0.18)';
+    mCtx.fillRect(0, 0, w, h);
+  }
+
+  for (var i = 0; i < blobs.length; i++) {
+    var b = blobs[i];
+    // Skip the tracked target — it gets its own drawing
+    if (S.locked && S.target &&
+        Math.abs(b.x - S.target.x) < 2 &&
+        Math.abs(b.y - S.target.y) < 2) continue;
+
+    var alpha = Math.min(0.75, b.area / 600);
+    mCtx.strokeStyle = 'rgba(0,200,65,' + alpha + ')';
+    mCtx.lineWidth   = 1;
+    mCtx.strokeRect(b.minX, b.minY, b.w, b.h);
+
+    mCtx.fillStyle = 'rgba(0,255,65,' + (alpha * 0.5) + ')';
+    mCtx.beginPath();
+    mCtx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+    mCtx.fill();
+  }
+}
+
+// ================================================================
+//  DRAWING — OVERLAY (tracking box, flow, grid, trail, prediction)
+// ================================================================
+function drawOverlay(w, h) {
+  oCtx.clearRect(0, 0, w, h);
+
+  if (S.gridOn)   drawGrid(w, h);
+  if (S.trailOn && S.trail.length > 1) drawTrail(w, h);
+  if (S.flowOn  && S.flowVecs.length)  drawFlow();
+  if (S.locked  && S.target)           drawLockedBox(w, h);
+  if (S.predOn  && S.locked && S.target) drawPrediction(w, h);
+
+  // Small cross markers for all untracked blobs
+  for (var i = 0; i < S.blobs.length; i++) {
+    var b  = S.blobs[i];
+    var sz = Math.max(5, Math.sqrt(b.area) * 0.45);
+    oCtx.strokeStyle = 'rgba(0,160,50,0.35)';
+    oCtx.lineWidth   = 1;
+    oCtx.beginPath();
+    oCtx.moveTo(b.x - sz, b.y); oCtx.lineTo(b.x + sz, b.y);
+    oCtx.moveTo(b.x, b.y - sz); oCtx.lineTo(b.x, b.y + sz);
+    oCtx.stroke();
+  }
+
+  // Mode banner + motion badge
+  if (S.locked && S.target) {
+    setModeBanner('◉ TARGET LOCKED ◉', 'var(--red)');
+    document.getElementById('motion-badge').style.display = 'none';
+  } else if (S.blobs.length) {
+    setModeBanner('◈ MOTION DETECTED ◈', 'var(--amb)');
+    document.getElementById('motion-badge').style.display = 'block';
+    setTimeout(function() {
+      if (!S.locked) document.getElementById('motion-badge').style.display = 'none';
+    }, 450);
+  } else {
+    setModeBanner('◆ STANDBY ◆', 'var(--g)');
+    document.getElementById('motion-badge').style.display = 'none';
+  }
+
+  // Target thumbnail in right panel
+  if (S.locked && S.target) drawTgtThumb();
+}
+
+function setModeBanner(text, color) {
+  var el = document.getElementById('mode-banner');
+  el.textContent  = text;
+  el.style.color  = color;
+  el.style.textShadow = '0 0 8px ' + color;
+}
+
+// ── Grid overlay ──────────────────────────────────────────────
+function drawGrid(w, h) {
+  var cols = 16, rows = 9;
+  oCtx.strokeStyle = 'rgba(0,255,65,0.1)';
+  oCtx.lineWidth   = 0.5;
+  for (var i = 0; i <= cols; i++) {
+    var x = (i / cols) * w;
+    oCtx.beginPath(); oCtx.moveTo(x, 0); oCtx.lineTo(x, h); oCtx.stroke();
+  }
+  for (var j = 0; j <= rows; j++) {
+    var y = (j / rows) * h;
+    oCtx.beginPath(); oCtx.moveTo(0, y); oCtx.lineTo(w, y); oCtx.stroke();
+  }
+  oCtx.fillStyle = 'rgba(0,255,65,0.2)';
+  oCtx.font      = '8px Courier New';
+  for (var ci = 0; ci <= cols; ci++) {
+    oCtx.fillText(String(ci).padStart(2,'0'), (ci / cols) * w + 2, h - 4);
+  }
+  for (var rj = 0; rj <= rows; rj++) {
+    oCtx.fillText(String(rj).padStart(2,'0'), 2, (rj / rows) * h + 10);
+  }
+}
+
+// ── Motion trail ──────────────────────────────────────────────
+function drawTrail(w, h) {
+  var mem = S.trail;
+  for (var i = 1; i < mem.length; i++) {
+    var alpha = i / mem.length;
+    oCtx.strokeStyle = 'rgba(0,255,65,' + (alpha * 0.6) + ')';
+    oCtx.lineWidth   = 1.5;
+    oCtx.beginPath();
+    oCtx.moveTo(mem[i-1].x, mem[i-1].y);
+    oCtx.lineTo(mem[i].x,   mem[i].y);
+    oCtx.stroke();
+  }
+  // Velocity arrow from last trail point
+  if (S.target && mem.length > 0) {
+    var last = mem[mem.length - 1];
+    var vx   = S.target.vx || 0;
+    var vy   = S.target.vy || 0;
+    var spd  = Math.hypot(vx, vy);
+    if (spd > 0.15) {
+      var ang = Math.atan2(vy, vx);
+      var len = Math.min(50, spd * 18);
+      var ex  = last.x + Math.cos(ang) * len;
+      var ey  = last.y + Math.sin(ang) * len;
+      oCtx.strokeStyle = 'rgba(255,170,0,0.85)';
+      oCtx.lineWidth   = 2;
+      oCtx.beginPath();
+      oCtx.moveTo(last.x, last.y);
+      oCtx.lineTo(ex, ey);
+      oCtx.stroke();
+      // Arrowhead
+      oCtx.fillStyle = 'rgba(255,170,0,0.85)';
+      oCtx.beginPath();
+      oCtx.moveTo(ex, ey);
+      oCtx.lineTo(ex - 8 * Math.cos(ang - 0.4), ey - 8 * Math.sin(ang - 0.4));
+      oCtx.lineTo(ex - 8 * Math.cos(ang + 0.4), ey - 8 * Math.sin(ang + 0.4));
+      oCtx.closePath();
+      oCtx.fill();
+    }
+  }
+}
+
+// ── Optical flow vectors ──────────────────────────────────────
+function drawFlow() {
+  for (var i = 0; i < S.flowVecs.length; i++) {
+    var v   = S.flowVecs[i];
+    var a   = Math.min(0.9, v.mag / 6);
+    var len = Math.min(18, v.mag * 2.5);
+    oCtx.strokeStyle = 'rgba(0,200,255,' + a + ')';
+    oCtx.lineWidth   = 1;
+    oCtx.beginPath();
+    oCtx.moveTo(v.x, v.y);
+    oCtx.lineTo(v.x + v.vx * len, v.y + v.vy * len);
+    oCtx.stroke();
+    oCtx.fillStyle = 'rgba(0,200,255,' + a + ')';
+    oCtx.beginPath();
+    oCtx.arc(v.x, v.y, 1.5, 0, Math.PI * 2);
+    oCtx.fill();
+  }
+}
+
+// ── Locked target bounding box with corner brackets ───────────
+function drawLockedBox(w, h) {
+  var t   = S.target;
+  var mg  = Math.max(14, Math.sqrt(t.area) * 0.7);
+  var lx  = t.x - t.w / 2 - mg;
+  var ly  = t.y - t.h / 2 - mg;
+  var lw  = t.w + mg * 2;
+  var lh  = t.h + mg * 2;
+  var pls = 0.55 + 0.45 * Math.sin(Date.now() / 280);
+
+  oCtx.save();
+  oCtx.shadowColor = 'rgba(255,51,0,0.6)';
+  oCtx.shadowBlur  = 12 * pls;
+  oCtx.strokeStyle = 'rgba(255,51,0,' + pls + ')';
+  oCtx.lineWidth   = 2;
+
+  var cs = 18; // corner bracket arm length
+  // TL
+  oCtx.beginPath();
+  oCtx.moveTo(lx,      ly + cs); oCtx.lineTo(lx,      ly);
+  oCtx.lineTo(lx + cs, ly);      oCtx.stroke();
+  // TR
+  oCtx.beginPath();
+  oCtx.moveTo(lx+lw-cs, ly);     oCtx.lineTo(lx+lw,   ly);
+  oCtx.lineTo(lx+lw,    ly+cs);  oCtx.stroke();
+  // BL
+  oCtx.beginPath();
+  oCtx.moveTo(lx,       ly+lh-cs); oCtx.lineTo(lx,    ly+lh);
+  oCtx.lineTo(lx+cs,    ly+lh);    oCtx.stroke();
+  // BR
+  oCtx.beginPath();
+  oCtx.moveTo(lx+lw-cs, ly+lh);  oCtx.lineTo(lx+lw,  ly+lh);
+  oCtx.lineTo(lx+lw,    ly+lh-cs); oCtx.stroke();
+
+  oCtx.restore();
+
+  // Crosshair on target centre
+  oCtx.strokeStyle = 'rgba(255,51,0,' + (0.5 + 0.5 * pls) + ')';
+  oCtx.lineWidth   = 1;
+  oCtx.beginPath();
+  oCtx.moveTo(t.x - 14, t.y); oCtx.lineTo(t.x + 14, t.y);
+  oCtx.moveTo(t.x, t.y - 14); oCtx.lineTo(t.x, t.y + 14);
+  oCtx.stroke();
+
+  // Velocity vector
+  var spd = Math.hypot(t.vx || 0, t.vy || 0);
+  if (spd > 0.15) {
+    var ang_ = Math.atan2(t.vy, t.vx);
+    var len_ = Math.min(45, spd * 15);
+    oCtx.strokeStyle = 'rgba(255,170,0,0.8)';
+    oCtx.lineWidth   = 1.5;
+    oCtx.beginPath();
+    oCtx.moveTo(t.x, t.y);
+    oCtx.lineTo(t.x + Math.cos(ang_)*len_, t.y + Math.sin(ang_)*len_);
+    oCtx.stroke();
+  }
+
+  // Info tag above box
+  var tag  = 'ID:' + t.id + ' | ' + (t.class || 'UNKNOWN') + ' | ' + (t.conf || 0) + '%';
+  var tagW = tag.length * 5.5 + 8;
+  oCtx.fillStyle = 'rgba(0,0,0,0.75)';
+  oCtx.fillRect(lx, ly - 18, tagW, 16);
+  oCtx.fillStyle = 'rgba(255,51,0,0.9)';
+  oCtx.font      = '9px Courier New';
+  oCtx.fillText(tag, lx + 4, ly - 6);
+
+  // Area / speed readout below box
+  var meta = 'AREA:' + t.area + ' SPD:' + spd.toFixed(1);
+  oCtx.fillStyle = 'rgba(0,0,0,0.65)';
+  oCtx.fillRect(lx, ly + lh + 2, meta.length * 5.5 + 8, 14);
+  oCtx.fillStyle = 'rgba(255,170,0,0.7)';
+  oCtx.font      = '8px Courier New';
+  oCtx.fillText(meta, lx + 4, ly + lh + 12);
+}
+
+// ── Kalman prediction arc (dashed cyan line) ──────────────────
+function drawPrediction(w, h) {
+  if (!S.kalman) return;
+  var pts = S.kalman.predictN(30);
+  if (pts.length < 2) return;
+
+  oCtx.strokeStyle = 'rgba(0,200,255,0.35)';
+  oCtx.lineWidth   = 1;
+  oCtx.setLineDash([4, 6]);
+  oCtx.beginPath();
+  oCtx.moveTo(S.target.x, S.target.y);
+  for (var i = 0; i < pts.length; i++) {
+    oCtx.lineTo(pts[i].x, pts[i].y);
+  }
+  oCtx.stroke();
+  oCtx.setLineDash([]);
+
+  // Terminal dot
+  var ep = pts[pts.length - 1];
+  oCtx.fillStyle = 'rgba(0,200,255,0.5)';
+  oCtx.beginPath();
+  oCtx.arc(ep.x, ep.y, 4, 0, Math.PI * 2);
+  oCtx.fill();
+}
+
+// ── Target inspection thumbnail ───────────────────────────────
+function drawTgtThumb() {
+  if (!S.target || video.videoWidth === 0) return;
+  var t  = S.target;
+  var vw = video.videoWidth;
+  var vh = video.videoHeight;
+  var cw = ovlCvs.width;
+  var ch = ovlCvs.height;
+
+  var sx = (t.x / cw) * vw;
+  var sy = (t.y / ch) * vh;
+  var sw = Math.max(40, (t.w / cw) * vw * 2.2);
+  var sh = Math.max(40, (t.h / ch) * vh * 2.2);
+  var dx = Math.max(0, sx - sw / 2);
+  var dy = Math.max(0, sy - sh / 2);
+
+  try {
+    tCtx.clearRect(0, 0, tgtCvs.width, tgtCvs.height);
+    if (S.nightOn) {
+      tCtx.fillStyle = '#001800';
+      tCtx.fillRect(0, 0, tgtCvs.width, tgtCvs.height);
+      tCtx.globalCompositeOperation = 'luminosity';
+    }
+    tCtx.drawImage(
+      video,
+      Math.max(0, dx), Math.max(0, dy),
+      Math.min(sw, vw - dx), Math.min(sh, vh - dy),
+      0, 0, tgtCvs.width, tgtCvs.height
+    );
+    if (S.nightOn) {
+      tCtx.globalCompositeOperation = 'multiply';
+      tCtx.fillStyle = 'rgba(0,255,65,0.5)';
+      tCtx.fillRect(0, 0, tgtCvs.width, tgtCvs.height);
+      tCtx.globalCompositeOperation = 'source-over';
+    }
+    // Crosshair
+    var cx2 = tgtCvs.width / 2;
+    var cy2 = tgtCvs.height / 2;
+    tCtx.strokeStyle = 'rgba(255,51,0,0.85)';
+    tCtx.lineWidth   = 1;
+    tCtx.beginPath();
+    tCtx.moveTo(cx2 - 10, cy2); tCtx.lineTo(cx2 + 10, cy2);
+    tCtx.moveTo(cx2, cy2 - 10); tCtx.lineTo(cx2, cy2 + 10);
+    tCtx.stroke();
+    tCtx.strokeStyle = 'rgba(255,51,0,0.4)';
+    tCtx.strokeRect(0, 0, tgtCvs.width, tgtCvs.height);
+  } catch (e) {}
+}
+
+// ================================================================
+//  DRAWING — RETICLE (animated targeting crosshair)
+// ================================================================
+function drawReticle(w, h) {
+  rCtx.clearRect(0, 0, w, h);
+
+  var cx  = S.rx * w;
+  var cy  = S.ry * h;
+  var t   = Date.now() / 1000;
+  var lkR = S.lockR;
+
+  // Outer lock-radius circle
+  rCtx.strokeStyle = 'rgba(0,255,65,0.4)';
+  rCtx.lineWidth   = 1;
+  rCtx.beginPath();
+  rCtx.arc(cx, cy, lkR, 0, Math.PI * 2);
+  rCtx.stroke();
+
+  // Rotating dashed ring (inner)
+  rCtx.save();
+  rCtx.translate(cx, cy);
+  rCtx.rotate(t * 0.4);
+  rCtx.strokeStyle = 'rgba(0,255,65,0.2)';
+  rCtx.lineWidth   = 1;
+  rCtx.setLineDash([6, 18]);
+  rCtx.beginPath();
+  rCtx.arc(0, 0, lkR * 0.82, 0, Math.PI * 2);
+  rCtx.stroke();
+  rCtx.setLineDash([]);
+  rCtx.restore();
+
+  // Counter-rotating ring (outer)
+  rCtx.save();
+  rCtx.translate(cx, cy);
+  rCtx.rotate(-t * 0.25);
+  rCtx.strokeStyle = 'rgba(0,255,65,0.1)';
+  rCtx.lineWidth   = 1;
+  rCtx.setLineDash([3, 24]);
+  rCtx.beginPath();
+  rCtx.arc(0, 0, lkR * 0.65, 0, Math.PI * 2);
+  rCtx.stroke();
+  rCtx.setLineDash([]);
+  rCtx.restore();
+
+  // Main crosshair
+  var ir  = 20; // inner circle radius
+  var gap = 6;  // gap between circle and arms
+  var arm = 44; // arm length
+
+  rCtx.strokeStyle = 'rgba(0,255,65,0.92)';
+  rCtx.lineWidth   = 1.5;
+
+  // Four arms
+  rCtx.beginPath();
+  rCtx.moveTo(cx, cy - ir - gap);
+  rCtx.lineTo(cx, cy - ir - gap - arm);
+  rCtx.stroke();
+
+  rCtx.beginPath();
+  rCtx.moveTo(cx, cy + ir + gap);
+  rCtx.lineTo(cx, cy + ir + gap + arm);
+  rCtx.stroke();
+
+  rCtx.beginPath();
+  rCtx.moveTo(cx - ir - gap, cy);
+  rCtx.lineTo(cx - ir - gap - arm, cy);
+  rCtx.stroke();
+
+  rCtx.beginPath();
+  rCtx.moveTo(cx + ir + gap, cy);
+  rCtx.lineTo(cx + ir + gap + arm, cy);
+  rCtx.stroke();
+
+  // Inner circle
+  rCtx.beginPath();
+  rCtx.arc(cx, cy, ir, 0, Math.PI * 2);
+  rCtx.stroke();
+
+  // Tick marks around inner circle (every 15°)
+  rCtx.lineWidth = 1;
+  for (var deg = 0; deg < 360; deg += 15) {
+    var rad    = deg * Math.PI / 180;
+    var isCard = (deg % 90 === 0);
+    var tLen   = isCard ? 6 : 3;
+    rCtx.strokeStyle = isCard
+      ? 'rgba(0,255,65,0.8)'
+      : 'rgba(0,255,65,0.4)';
+    rCtx.beginPath();
+    rCtx.moveTo(cx + Math.cos(rad) * (ir - tLen), cy + Math.sin(rad) * (ir - tLen));
+    rCtx.lineTo(cx + Math.cos(rad) * ir,           cy + Math.sin(rad) * ir);
+    rCtx.stroke();
+  }
+
+  // Centre dot
+  rCtx.fillStyle = 'rgba(0,255,65,0.7)';
+  rCtx.beginPath();
+  rCtx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+  rCtx.fill();
+
+  // Coordinate label
+  rCtx.fillStyle = 'rgba(0,255,65,0.55)';
+  rCtx.font      = '8px Courier New';
+  rCtx.fillText(Math.round(cx) + ',' + Math.round(cy), cx + ir + 7, cy - 4);
+
+  // Lock-radius label
+  rCtx.fillStyle = 'rgba(0,255,65,0.35)';
+  rCtx.fillText('R:' + lkR, cx + lkR + 5, cy + 3);
+
+  // Quadrant labels
+  rCtx.fillStyle = 'rgba(0,255,65,0.2)';
+  rCtx.font      = '7px Courier New';
+  rCtx.fillText('I',   cx + ir + 4,  cy - ir - 4);
+  rCtx.fillText('II',  cx - ir - 16, cy - ir - 4);
+  rCtx.fillText('III', cx - ir - 20, cy + ir + 10);
+  rCtx.fillText('IV',  cx + ir + 4,  cy + ir + 10);
+}
+
+// ================================================================
+//  DRAWING — RADAR SWEEP
+// ================================================================
+function drawRadar() {
+  var cx = 122, cy = 122, r = 112;
+  rdCtx.clearRect(0, 0, 244, 244);
+
+  // Radar background
+  rdCtx.fillStyle = 'rgba(0,6,1,0.96)';
+  rdCtx.beginPath();
+  rdCtx.arc(cx, cy, r, 0, Math.PI * 2);
+  rdCtx.fill();
+
+  // Concentric range rings
+  rdCtx.strokeStyle = 'rgba(0,255,65,0.13)';
+  rdCtx.lineWidth   = 1;
+  for (var i = 1; i <= 4; i++) {
+    rdCtx.beginPath();
+    rdCtx.arc(cx, cy, (r / 4) * i, 0, Math.PI * 2);
+    rdCtx.stroke();
+  }
+
+  // Azimuth grid lines every 30°
+  rdCtx.strokeStyle = 'rgba(0,255,65,0.08)';
+  rdCtx.lineWidth   = 0.5;
+  for (var a = 0; a < 180; a += 30) {
+    var ra = a * Math.PI / 180;
+    rdCtx.beginPath();
+    rdCtx.moveTo(cx - Math.cos(ra) * r, cy - Math.sin(ra) * r);
+    rdCtx.lineTo(cx + Math.cos(ra) * r, cy + Math.sin(ra) * r);
+    rdCtx.stroke();
+  }
+
+  // Advance sweep angle
+  S.radarAng = (S.radarAng + 2.2) % 360;
+  var sa = S.radarAng * Math.PI / 180;
+  document.getElementById('radar-deg').textContent =
+    String(Math.round(S.radarAng)).padStart(3, '0') + '°';
+
+  rdCtx.save();
+  rdCtx.translate(cx, cy);
+  rdCtx.rotate(sa);
+
+  // Sweep fill fan
+  var sw = rdCtx.createLinearGradient(0, 0, r, 0);
+  sw.addColorStop(0,   'rgba(0,255,65,0.55)');
+  sw.addColorStop(0.6, 'rgba(0,255,65,0.1)');
+  sw.addColorStop(1,   'rgba(0,255,65,0)');
+  rdCtx.fillStyle = sw;
+  rdCtx.beginPath();
+  rdCtx.moveTo(0, 0);
+  rdCtx.arc(0, 0, r, -0.28, 0.28);
+  rdCtx.closePath();
+  rdCtx.fill();
+
+  // Afterglow trail (10 fading slices)
+  for (var ti = 1; ti <= 10; ti++) {
+    var ta  = -ti * 0.04;
+    var alp = (1 - ti / 10) * 0.12;
+    rdCtx.fillStyle = 'rgba(0,255,65,' + alp + ')';
+    rdCtx.beginPath();
+    rdCtx.moveTo(0, 0);
+    rdCtx.arc(0, 0, r, ta - 0.28, ta + 0.28);
+    rdCtx.closePath();
+    rdCtx.fill();
+  }
+  rdCtx.restore();
+
+  // Sweep radial line
+  rdCtx.strokeStyle = 'rgba(0,255,65,0.75)';
+  rdCtx.lineWidth   = 1.5;
+  rdCtx.beginPath();
+  rdCtx.moveTo(cx, cy);
+  rdCtx.lineTo(cx + Math.cos(sa) * r, cy + Math.sin(sa) * r);
+  rdCtx.stroke();
+
+  // Locked target blip
+  if (S.locked && S.target && ovlCvs.width) {
+    var t   = S.target;
+    var nx  = (t.x / ovlCvs.width  - 0.5) * 2;
+    var ny  = (t.y / ovlCvs.height - 0.5) * 2;
+    var bx  = cx + nx * r * 0.88;
+    var by  = cy + ny * r * 0.88;
+    var p2  = 0.55 + 0.45 * Math.sin(Date.now() / 190);
+
+    rdCtx.save();
+    rdCtx.shadowColor = 'rgba(255,51,0,0.9)';
+    rdCtx.shadowBlur  = 10;
+    rdCtx.fillStyle   = 'rgba(255,51,0,' + p2 + ')';
+    rdCtx.beginPath();
+    rdCtx.arc(bx, by, 5.5, 0, Math.PI * 2);
+    rdCtx.fill();
+    rdCtx.restore();
+
+    rdCtx.fillStyle = 'rgba(255,51,0,0.75)';
+    rdCtx.font      = '7px Courier New';
+    rdCtx.fillText('T' + t.id, bx + 8, by + 3);
+  }
+
+  // Motion blips with sweep-gated afterglow
+  if (ovlCvs.width) {
+    for (var bi = 0; bi < Math.min(12, S.blobs.length); bi++) {
+      var b   = S.blobs[bi];
+      var bnx = (b.x / ovlCvs.width  - 0.5) * 2;
+      var bny = (b.y / ovlCvs.height - 0.5) * 2;
+      var bbx = cx + bnx * r * 0.88;
+      var bby = cy + bny * r * 0.88;
+
+      var ba   = Math.atan2(bny, bnx);
+      var dA   = sa - ba;
+      while (dA < 0)           dA += Math.PI * 2;
+      dA = dA % (Math.PI * 2);
+      var fade = Math.max(0, 1 - dA / (Math.PI * 0.7));
+
+      if (fade > 0.04) {
+        rdCtx.fillStyle = 'rgba(0,255,65,' + (0.25 + fade * 0.5) + ')';
+        rdCtx.beginPath();
+        rdCtx.arc(bbx, bby, 2.5, 0, Math.PI * 2);
+        rdCtx.fill();
+      }
+    }
+  }
+
+  // Centre origin dot
+  rdCtx.fillStyle = 'rgba(0,255,65,0.85)';
+  rdCtx.beginPath();
+  rdCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+  rdCtx.fill();
+
+  // Outer ring border
+  rdCtx.strokeStyle = 'rgba(0,255,65,0.35)';
+  rdCtx.lineWidth   = 1.5;
+  rdCtx.beginPath();
+  rdCtx.arc(cx, cy, r, 0, Math.PI * 2);
+  rdCtx.stroke();
+
+  // Cardinal direction labels
+  rdCtx.fillStyle  = 'rgba(0,255,65,0.4)';
+  rdCtx.font       = '9px Courier New';
+  rdCtx.textAlign  = 'center';
+  rdCtx.fillText('N', cx, cy - r + 13);
+  rdCtx.fillText('S', cx, cy + r - 3);
+  rdCtx.textAlign  = 'left';
+  rdCtx.fillText('E', cx + r - 11, cy + 4);
+  rdCtx.fillText('W', cx - r + 2,  cy + 4);
+  rdCtx.textAlign  = 'left';
+
+  // Range ring distance labels
+  rdCtx.fillStyle  = 'rgba(0,255,65,0.2)';
+  rdCtx.font       = '7px Courier New';
+  for (var ri = 1; ri <= 4; ri++) {
+    rdCtx.fillText(ri + 'km', cx + 3, cy - (r / 4) * ri + 9);
+  }
+}
+
+// ================================================================
+//  SIGNAL BARS (simulated RF strength display)
+// ================================================================
+var sigBarsEl = document.getElementById('sig-bars');
+
+// Create bar DOM elements
+for (var sbi = 0; sbi < 20; sbi++) {
+  var bar = document.createElement('div');
+  bar.className    = 'sig-bar dead';
+  bar.style.height = '2px';
+  sigBarsEl.appendChild(bar);
+}
+
+function updateSignalBars() {
+  var bars   = sigBarsEl.children;
+  var base   = S.locked ? 0.4 : (S.blobs.length > 0 ? 0.2 : 0.05);
+  var total  = 0;
+
+  for (var i = 0; i < bars.length; i++) {
+    var noise = (Math.random() - 0.5) * 0.3;
+    var bonus = (S.locked && i < 12) ? 0.3 : 0;
+    var val   = Math.max(0, Math.min(1, base + noise + bonus));
+    var hpx   = Math.round(val * 30) + 2;
+    bars[i].style.height = hpx + 'px';
+    bars[i].className = 'sig-bar' +
+      (val < 0.1 ? ' dead' : val > 0.8 ? ' crit' : val > 0.6 ? ' warn' : '');
+    total += val;
+  }
+
+  var dbm = Math.round(-90 + total * 4);
+  document.getElementById('sig-val').textContent = dbm + ' dBm';
+}
+
+// ================================================================
+//  MAIN RENDER LOOP (requestAnimationFrame)
+// ================================================================
+var lastImgData = null;
+
+function mainLoop() {
+  requestAnimationFrame(mainLoop);
+  if (video.readyState < 2 || !video.videoWidth) return;
+
+  var w = ovlCvs.width;
+  var h = ovlCvs.height;
+  if (!w || !h) return;
+
+  // Apply digital zoom transform
+  video.style.transform       = 'scale(' + S.zoom + ')';
+  video.style.transformOrigin = 'center center';
+
+  // Capture current video frame into offscreen canvas
+  offCtx.clearRect(0, 0, w, h);
+  offCtx.drawImage(video, 0, 0, w, h);
+  var imgData = offCtx.getImageData(0, 0, w, h);
+
+  // Motion detection
+  var blobs = detectMotion(imgData);
+
+  // Optical flow (uses current + previous frames)
+  if (S.flowOn && lastImgData) computeFlow(imgData, lastImgData, w, h);
+  lastImgData = imgData;
+
+  // Tracking
+  updateTracking(blobs, w, h);
+
+  // Draw all layers
+  drawMotion(blobs, w, h);
+  drawOverlay(w, h);
+  drawReticle(w, h);
+
+  // FPS counter
+  S.fpsAccum++;
+  var now = performance.now();
+  if (now - S.lastFpsTs >= 1000) {
+    S.fps       = S.fpsAccum;
+    S.fpsAccum  = 0;
+    S.lastFpsTs = now;
+    document.getElementById('h-fps').textContent = S.fps;
+  }
+
+  S.frameN++;
+  document.getElementById('hud-br').textContent =
+    'FPS:' + S.fps + ' | F:' + S.frameN;
+
+  // Periodic motion alert beep
+  if (S.audioOn && blobs.length > 0 && !S.locked && S.frameN % 20 === 0) {
+    detBeep();
+  }
+}
+
+// ================================================================
+//  RADAR + SIGNAL BARS LOOP (independent 45 ms interval)
+// ================================================================
+function radarLoop() {
+  if (S.radarOn) drawRadar();
+  updateSignalBars();
+  setTimeout(radarLoop, 45);
+}
+setTimeout(radarLoop, 900);
+
+// ================================================================
+//  CLOCK (UTC)
+// ================================================================
+function updateClock() {
+  var n  = new Date();
+  var ts = n.getUTCHours().toString().padStart(2,'0') + ':' +
+           n.getUTCMinutes().toString().padStart(2,'0') + ':' +
+           n.getUTCSeconds().toString().padStart(2,'0');
+  document.getElementById('clock').textContent = ts + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ================================================================
+//  HUD MODE LINE
+// ================================================================
+function updateHudMode() {
+  document.getElementById('hud-tl').textContent =
+    'MODE:' + S.mode +
+    ' | CAM:' + (S.facingMode === 'environment' ? 'REAR' : 'FRONT') +
+    (S.nightOn ? ' | NV:ON' : '');
+  document.getElementById('hud-tr').textContent =
+    'ZOOM:' + S.zoom.toFixed(2) + 'x | BLUR:' + S.blurK;
+}
+
+// ================================================================
+//  BUTTON HANDLERS
+// ================================================================
+function onBtn(id, fn) {
+  document.getElementById(id).addEventListener('click', fn);
+}
+
+onBtn('btn-cap', function() {
+  if (!S.locked) captureReticle();
+  else log('ALREADY LOCKED — UNLOCK FIRST', 'w');
+});
+
+onBtn('btn-ulk', function() {
+  if (S.locked) { unlockTarget(); log('TARGET UNLOCKED', 'w'); }
+});
+
+onBtn('btn-flow', function() {
+  S.flowOn = !S.flowOn;
+  var b = document.getElementById('btn-flow');
+  b.textContent = 'FLOW ' + (S.flowOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.flowOn);
+  log('OPTICAL FLOW: ' + (S.flowOn ? 'ENABLED' : 'DISABLED'), 'i');
+});
+
+onBtn('btn-radar', function() {
+  S.radarOn = !S.radarOn;
+  var b = document.getElementById('btn-radar');
+  b.textContent = 'RADAR ' + (S.radarOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.radarOn);
+  if (!S.radarOn) rdCtx.clearRect(0, 0, 244, 244);
+});
+
+onBtn('btn-snap', snapYolo);
+
+onBtn('btn-mode', function() {
+  var modes = ['PASSIVE', 'ACTIVE', 'AGGRESSIVE'];
+  var b = document.getElementById('btn-mode');
+  S.mode = modes[(modes.indexOf(S.mode) + 1) % modes.length];
+  b.textContent = 'MODE: ' + S.mode;
+  b.className   = 'btn' + (S.mode === 'ACTIVE' ? ' amber-btn' : S.mode === 'AGGRESSIVE' ? ' danger' : '');
+  if (S.mode === 'ACTIVE')      S.thresh = Math.max(3, S.thresh - 3);
+  if (S.mode === 'AGGRESSIVE')  S.thresh = Math.max(2, S.thresh - 5);
+  updateHudMode();
+  log('MODE → ' + S.mode, 'i');
+});
+
+onBtn('btn-zin', function() {
+  S.zoom = Math.min(S.maxZoom, parseFloat((S.zoom + 0.25).toFixed(2)));
+  updateHudMode();
+  log('ZOOM: ' + S.zoom + 'x', 'i');
+});
+
+onBtn('btn-zout', function() {
+  S.zoom = Math.max(S.minZoom, parseFloat((S.zoom - 0.25).toFixed(2)));
+  updateHudMode();
+  log('ZOOM: ' + S.zoom + 'x', 'i');
+});
+
+onBtn('btn-cam', function() {
+  S.facingMode = S.facingMode === 'environment' ? 'user' : 'environment';
+  startCamera().then(function() {
+    updateHudMode();
+    log('CAMERA SWITCHED: ' + S.facingMode.toUpperCase(), 'i');
+  });
+});
+
+onBtn('btn-sliders', function() {
+  S.slidersOn = !S.slidersOn;
+  document.getElementById('sliders-section').classList.toggle('hidden', !S.slidersOn);
+  document.getElementById('btn-sliders').textContent =
+    'SLIDERS ' + (S.slidersOn ? 'HIDE' : 'SHOW');
+});
+
+onBtn('btn-trail', function() {
+  S.trailOn = !S.trailOn;
+  var b = document.getElementById('btn-trail');
+  b.textContent = 'TRAIL ' + (S.trailOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.trailOn);
+});
+
+onBtn('btn-grid', function() {
+  S.gridOn = !S.gridOn;
+  var b = document.getElementById('btn-grid');
+  b.textContent = 'GRID ' + (S.gridOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.gridOn);
+});
+
+onBtn('btn-night', function() {
+  S.nightOn = !S.nightOn;
+  var b = document.getElementById('btn-night');
+  b.textContent = 'NIGHT ' + (S.nightOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.nightOn);
+  log('NIGHT VISION: ' + (S.nightOn ? 'ENABLED' : 'DISABLED'), 'i');
+});
+
+onBtn('btn-pred', function() {
+  S.predOn = !S.predOn;
+  var b = document.getElementById('btn-pred');
+  b.textContent = 'PREDICT ' + (S.predOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.predOn);
+  log('PREDICTION ARC: ' + (S.predOn ? 'ENABLED' : 'DISABLED'), 'i');
+});
+
+onBtn('btn-audio', function() {
+  S.audioOn = !S.audioOn;
+  var b = document.getElementById('btn-audio');
+  b.textContent = 'AUDIO ' + (S.audioOn ? 'ON' : 'OFF');
+  b.classList.toggle('on', S.audioOn);
+  if (S.audioOn) { getAudioCtx(); beep(880, 0.1, 0.08, 'sine'); }
+  log('AUDIO ALERTS: ' + (S.audioOn ? 'ENABLED' : 'DISABLED'), 'i');
+});
+
+onBtn('btn-clr', function() {
+  logOut.innerHTML = '';
+  logTotal = 0;
+  logCnt.textContent = '0';
+  log('LOG CLEARED', 'i');
+});
+
+// ================================================================
+//  SLIDER BINDINGS
+// ================================================================
+function bindSlider(slId, svId, key, fmt) {
+  var sl = document.getElementById(slId);
+  var sv = document.getElementById(svId);
+  sl.addEventListener('input', function() {
+    var v   = parseFloat(sl.value);
+    S[key]  = v;
+    sv.textContent = fmt ? fmt(v) : v;
+    updateHudMode();
+  });
+}
+
+bindSlider('sl-thresh', 'sv-thresh', 'thresh');
+bindSlider('sl-area',   'sv-area',   'minArea');
+bindSlider('sl-maxpt',  'sv-maxpt',  'maxPts');
+bindSlider('sl-lockr',  'sv-lockr',  'lockR');
+bindSlider('sl-flowr',  'sv-flowr',  'flowR');
+bindSlider('sl-blur',   'sv-blur',   'blurK');
+bindSlider('sl-trail',  'sv-trail',  'trailLen');
+bindSlider('sl-conf',   'sv-conf',   'minConf');
+bindSlider('sl-mzoom',  'sv-mzoom',  'maxZoom',
+  function(v) { return (v / 10).toFixed(1); });
+
+// ================================================================
+//  RETICLE DRAG (mouse + touch)
+// ================================================================
+var dragging = false;
+
+function applyReticle(clientX, clientY) {
+  var rect = retCvs.getBoundingClientRect();
+  S.rx = Math.max(0.04, Math.min(0.96, (clientX - rect.left)  / rect.width));
+  S.ry = Math.max(0.04, Math.min(0.96, (clientY - rect.top)   / rect.height));
+}
+
+retCvs.addEventListener('mousedown', function(e) {
+  dragging = true; applyReticle(e.clientX, e.clientY);
+});
+retCvs.addEventListener('mousemove', function(e) {
+  if (dragging) applyReticle(e.clientX, e.clientY);
+});
+retCvs.addEventListener('mouseup',    function() { dragging = false; });
+retCvs.addEventListener('mouseleave', function() { dragging = false; });
+
+retCvs.addEventListener('touchstart', function(e) {
+  dragging = true;
+  applyReticle(e.touches[0].clientX, e.touches[0].clientY);
+  e.preventDefault();
+}, { passive: false });
+retCvs.addEventListener('touchmove', function(e) {
+  if (dragging) applyReticle(e.touches[0].clientX, e.touches[0].clientY);
+  e.preventDefault();
+}, { passive: false });
+retCvs.addEventListener('touchend', function() { dragging = false; });
+
+// Double-click to toggle lock at cursor position
+retCvs.addEventListener('dblclick', function(e) {
+  applyReticle(e.clientX, e.clientY);
+  if (!S.locked) captureReticle();
+  else { unlockTarget(); log('LOCK RELEASED VIA DOUBLE-CLICK', 'w'); }
+});
+
+// ================================================================
+//  KEYBOARD SHORTCUTS
+// ================================================================
+document.addEventListener('keydown', function(e) {
+  if (document.activeElement === document.getElementById('term-input')) return;
+  switch (e.key.toLowerCase()) {
+    case ' ':
+      e.preventDefault();
+      S.locked ? unlockTarget() : captureReticle();
+      break;
+    case 'f': document.getElementById('btn-flow').click();    break;
+    case 'r': document.getElementById('btn-radar').click();   break;
+    case 'g': document.getElementById('btn-grid').click();    break;
+    case 't': document.getElementById('btn-trail').click();   break;
+    case 'n': document.getElementById('btn-night').click();   break;
+    case 'p': document.getElementById('btn-pred').click();    break;
+    case 'y': snapYolo();                                      break;
+    case '+':
+    case '=': document.getElementById('btn-zin').click();     break;
+    case '-': document.getElementById('btn-zout').click();    break;
+    case 'm': document.getElementById('btn-mode').click();    break;
+    case 'a': document.getElementById('btn-audio').click();   break;
+  }
+});
+
+// ================================================================
+//  TERMINAL COMMAND PARSER
+// ================================================================
+var termInput = document.getElementById('term-input');
+
+var COMMANDS = {
+  help: function() {
+    log('COMMANDS: help, lock, unlock, yolo, mode, trail, grid, night,', 'b');
+    log('  flow, radar, pred, audio, cam, clear, status,', 'b');
+    log('  zoom [1-3], thresh [2-60], area [10-3000]', 'b');
+    log('KEYS: SPACE=lock/unlock F=flow R=radar G=grid T=trail', 'b');
+    log('      N=night P=predict Y=yolo +/-=zoom M=mode A=audio', 'b');
+  },
+  lock:   function() { S.locked ? log('ALREADY LOCKED', 'w') : captureReticle(); },
+  unlock: function() { S.locked ? (unlockTarget(), log('UNLOCKED', 'w')) : log('NOT LOCKED', 'w'); },
+  yolo:   function() { snapYolo(); },
+  trail:  function() { document.getElementById('btn-trail').click(); },
+  grid:   function() { document.getElementById('btn-grid').click();  },
+  night:  function() { document.getElementById('btn-night').click(); },
+  flow:   function() { document.getElementById('btn-flow').click();  },
+  radar:  function() { document.getElementById('btn-radar').click(); },
+  pred:   function() { document.getElementById('btn-pred').click();  },
+  audio:  function() { document.getElementById('btn-audio').click(); },
+  cam:    function() { document.getElementById('btn-cam').click();   },
+  mode:   function() { document.getElementById('btn-mode').click();  },
+  clear:  function() { document.getElementById('btn-clr').click();   },
+  status: function() {
+    var secs = Math.round((Date.now() - S.sessionStart) / 1000);
+    log('SESSION: ' + secs + 's | FRAMES:' + S.frameN +
+        ' | DET:' + S.totalDet + ' | FPS:' + S.fps, 'i');
+    log('ZOOM:' + S.zoom + 'x | MODE:' + S.mode +
+        ' | THRESH:' + S.thresh + ' | AREA:' + S.minArea, 'i');
+    log('LOCKED:' + S.locked + ' | FLOW:' + S.flowOn + ' | RADAR:' + S.radarOn, 'i');
+  },
+};
+
+termInput.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  var raw   = termInput.value.trim().toLowerCase();
+  var parts = raw.split(/\s+/);
+  var cmd   = parts[0];
+  var arg   = parts[1];
+  termInput.value = '';
+
+  log('> ' + raw, 'b');
+
+  if (cmd === 'zoom' && arg) {
+    var v = parseFloat(arg);
+    if (!isNaN(v) && v >= 1 && v <= S.maxZoom) {
+      S.zoom = v; updateHudMode();
+      log('ZOOM SET: ' + v + 'x', 'i');
+    } else log('ZOOM RANGE: 1.0 – ' + S.maxZoom, 'w');
+    return;
+  }
+  if (cmd === 'thresh' && arg) {
+    var vt = parseInt(arg);
+    if (!isNaN(vt) && vt >= 2 && vt <= 60) {
+      S.thresh = vt;
+      document.getElementById('sl-thresh').value = vt;
+      document.getElementById('sv-thresh').textContent = vt;
+      log('THRESHOLD SET: ' + vt, 'i');
+    }
+    return;
+  }
+  if (cmd === 'area' && arg) {
+    var va = parseInt(arg);
+    if (!isNaN(va) && va >= 10 && va <= 3000) {
+      S.minArea = va;
+      document.getElementById('sl-area').value = va;
+      document.getElementById('sv-area').textContent = va;
+      log('MIN AREA SET: ' + va, 'i');
+    }
+    return;
+  }
+
+  if (COMMANDS[cmd]) COMMANDS[cmd]();
+  else if (cmd) log('UNKNOWN CMD: ' + cmd + ' — type "help"', 'a');
+});
+
+// ================================================================
+//  WINDOW RESIZE
+// ================================================================
+window.addEventListener('resize', resizeCvs);
+
+// ================================================================
+//  PERIODIC LOG UPDATES (every 4 seconds)
+// ================================================================
+var lastPeriodicLog = 0;
+setInterval(function() {
+  var now = Date.now();
+  if (now - lastPeriodicLog < 4000) return;
+  lastPeriodicLog = now;
+
+  if (S.locked && S.target) {
+    var spd = Math.hypot(S.target.vx || 0, S.target.vy || 0).toFixed(2);
+    var ang = (Math.atan2(S.target.vy || 0, S.target.vx || 0) * 180 / Math.PI).toFixed(1);
+    log('TRACK T' + S.target.id +
+        ' AGE:' + S.target.age +
+        'f SPD:' + spd +
+        'px/f HDG:' + ang + '°', 'i');
+  } else if (S.blobs.length > 0) {
+    log('AMBIENT MOTION: ' + S.blobs.length + ' blob(s) | THRESH:' + S.thresh, 'w');
+  }
+}, 1000);
+
+// ================================================================
+//  STARTUP
+// ================================================================
+log('MINOS SIGINT UFO SCANNER v2.4', 'i');
+log('KEYBOARD: SPACE=LOCK/UNLOCK | F=FLOW | G=GRID | T=TRAIL | N=NIGHT', 'b');
+log('DRAG RETICLE ON VIDEO | DOUBLE-CLICK TO LOCK | TERMINAL BELOW CONTROLS', 'b');
+log('REQUESTING CAMERA ACCESS...', 'i');
+
+startCamera()
+  .then(function() {
+    log('CAMERA STREAM ACTIVE — SYSTEM READY', 'i');
+    updateHudMode();
+  })
+  .catch(function(err) {
+    log('STARTUP FAILED: ' + (err ? err.message : 'unknown'), 'a');
+  });
+</script>
 </body>
 </html>
