@@ -2431,5 +2431,175 @@ startCamera()
     log('STARTUP FAILED: ' + (err ? err.message : 'unknown'), 'a');
   });
 </script>
+
+<!-- ================================================================
+     MOBILE OPTIMIZATIONS — separate block, no existing code touched
+     ================================================================ -->
+<style>
+@media (max-width: 820px) {
+
+  /* ── Bigger tap targets on all buttons ── */
+  .btn {
+    font-size: 12px;
+    padding: 9px 14px;
+    min-height: 44px;
+  }
+
+  /* ── Fatter sliders ── */
+  .sl-inp { height: 8px; border-radius: 4px; }
+  .sl-inp::-webkit-slider-thumb {
+    width: 24px; height: 24px;
+    box-shadow: 0 0 8px var(--g);
+  }
+  .sl-row  { gap: 10px; margin: 2px 0; }
+  .sl-lbl  { font-size: 11px; flex: 0 0 130px; }
+  .sl-val  { font-size: 11px; flex: 0 0 40px; }
+
+  /* ── Readable HUD text ── */
+  .hud-txt    { font-size: 11px; letter-spacing: 0.5px; }
+  #mode-banner{ font-size: 13px; letter-spacing: 2px; }
+  #motion-badge{ font-size: 11px; }
+
+  /* ── Compact header ── */
+  .title-main { font-size: 13px; letter-spacing: 4px; }
+  .hdr-lbl    { font-size: 7px; }
+  .hdr-val    { font-size: 10px; }
+  .hdr-stats  { gap: 8px; }
+  #clock      { font-size: 10px; min-width: 80px; letter-spacing: 1px; }
+
+  /* ── App grid: camera fills space, drawer sits at bottom ── */
+  #app {
+    grid-template-rows: 38px 1fr 0px;
+    padding-bottom: 48px; /* room for collapsed drawer handle */
+  }
+
+  /* ── Log panel hidden on mobile (not enough room) ── */
+  #log-panel { display: none; }
+
+  /* ── Bottom drawer ── */
+  #bottom {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 200;
+    grid-template-columns: 1fr;
+    gap: 0;
+    pointer-events: none; /* children re-enable */
+  }
+
+  #controls {
+    pointer-events: all;
+    max-height: 44px;          /* collapsed = handle only */
+    overflow: hidden;
+    transition: max-height 0.28s ease;
+    border-top: 2px solid var(--g3);
+    border-left: 1px solid var(--bdr);
+    border-right: 1px solid var(--bdr);
+    border-bottom: 1px solid var(--bdr);
+    border-radius: 0;
+  }
+
+  #controls.mob-open {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  /* ── Mobile drawer handle bar ── */
+  #mob-handle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    height: 44px;
+    min-height: 44px;
+    cursor: pointer;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--g);
+    border-bottom: 1px solid var(--bdr);
+    background: var(--pbg);
+    flex-shrink: 0;
+  }
+
+  #mob-handle-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+
+  #controls.mob-open #mob-handle-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* ── Ctrl label smaller ── */
+  .ctrl-lbl { display: none; } /* replaced by handle */
+
+  /* ── Btn rows wrap tighter ── */
+  .btn-row { gap: 6px; }
+
+  /* ── Term row bigger ── */
+  #term-input { font-size: 13px; padding: 7px 8px; min-height: 40px; }
+  #term-prompt{ font-size: 12px; }
+}
+
+/* Extra-small phones — hide some header items */
+@media (max-width: 480px) {
+  .hdr-item:nth-child(n+6) { display: none; }
+  #clock { display: none; }
+  .hdr-stats { gap: 6px; }
+}
+</style>
+
+<script>
+// ================================================================
+//  MOBILE JS — appended separately
+// ================================================================
+(function() {
+  var mob = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!mob) return;
+
+  // ── 1. Frame-skip throttle (every 2nd frame) for CPU relief ──
+  var _detect  = detectMotion;
+  var skipTick = 0;
+  detectMotion = function(imgData) {
+    skipTick++;
+    // On odd frames reuse last blob list; on even frames run detection
+    if (skipTick % 2 !== 0) return S.blobs;
+    return _detect(imgData);
+  };
+
+  // ── 2. Inject collapsible drawer handle into #controls ────────
+  var controls = document.getElementById('controls');
+  var handle   = document.createElement('div');
+  handle.id    = 'mob-handle';
+  handle.innerHTML =
+    '<span>◈ CONTROLS ◈</span>' +
+    '<span id="mob-handle-arrow">▲</span>';
+  controls.insertBefore(handle, controls.firstChild);
+
+  var open = false;
+  handle.addEventListener('click', function() {
+    open = !open;
+    controls.classList.toggle('mob-open', open);
+  });
+
+  // Prevent touch-scroll bleeding through to video canvas
+  controls.addEventListener('touchmove', function(e) {
+    e.stopPropagation();
+  }, { passive: true });
+
+  // ── 3. Close drawer when user taps the camera canvas ─────────
+  document.getElementById('reticle-canvas').addEventListener('touchstart', function() {
+    if (open) { open = false; controls.classList.remove('mob-open'); }
+  }, { passive: true });
+
+  // ── 4. Wake Audio context on first touch (iOS requirement) ────
+  document.body.addEventListener('touchstart', function wakeAudio() {
+    getAudioCtx().resume();
+    document.body.removeEventListener('touchstart', wakeAudio);
+  }, { once: true, passive: true });
+
+  // ── 5. Log confirmation ───────────────────────────────────────
+  log('MOBILE MODE ACTIVE — FRAME-SKIP:2 | DRAWER CONTROLS | TOUCH READY', 'i');
+})();
+</script>
 </body>
 </html>
