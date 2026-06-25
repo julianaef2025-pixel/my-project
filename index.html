@@ -1,108 +1,1580 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrafficSpeed AI</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>Firefight - WWII Tactics</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; overflow: hidden; font-family: 'Courier New', monospace; color: #ccc; }
+#gameCanvas { display: block; cursor: crosshair; }
+#ui { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background: #1e1e1e; border-top: 2px solid #3a3a2a; display: flex; }
+#unitPanel { flex: 1; padding: 8px 12px; display: flex; gap: 16px; align-items: flex-start; }
+#unitInfo { min-width: 200px; }
+#unitInfo h3 { color: #c8b464; font-size: 13px; margin-bottom: 4px; }
+.stat-row { display: flex; justify-content: space-between; font-size: 11px; margin: 2px 0; color: #aaa; }
+.stat-val { color: #ddd; font-weight: bold; }
+#ordersPanel { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 8px; border-left: 1px solid #333; }
+.order-btn { background: #2a2a1e; border: 1px solid #555; color: #bbb; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.order-btn:hover { background: #3a3a2e; color: #fff; border-color: #888; }
+.order-btn.active { background: #3a4a1e; border-color: #7a9a3e; color: #adc864; }
+.order-btn:disabled { opacity: 0.4; cursor: default; }
+#minimapContainer { width: 160px; border-left: 1px solid #333; padding: 4px; position: relative; }
+#minimap { display: block; }
+#minimapLabel { font-size: 9px; color: #666; text-align: center; }
+#messageLog { position: fixed; top: 8px; left: 8px; width: 300px; pointer-events: none; }
+.msg { font-size: 11px; color: #c8b464; text-shadow: 1px 1px 2px #000; margin: 1px 0; }
+#objectivePanel { position: fixed; top: 8px; right: 8px; background: rgba(0,0,0,0.75); border: 1px solid #555; padding: 8px 12px; font-size: 11px; }
+#objectivePanel h4 { color: #c8b464; margin-bottom: 4px; }
+.obj { color: #aaa; margin: 2px 0; }
+.obj.captured { color: #6ab44a; }
+#pauseOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; font-size: 48px; color: #c8b464; letter-spacing: 8px; }
+#gameOverOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+#gameOverOverlay h2 { font-size: 48px; }
+#gameOverOverlay p { font-size: 18px; color: #aaa; }
+#gameOverOverlay button { background: #2a2a1e; border: 1px solid #7a9a3e; color: #adc864; padding: 12px 32px; font-size: 16px; cursor: pointer; font-family: inherit; }
+#artPanel { padding: 8px; border-left: 1px solid #333; min-width: 110px; }
+#artPanel h4 { color: #c8b464; font-size: 11px; margin-bottom: 4px; }
+#artStatus { font-size: 10px; color: #888; margin-top: 4px; }
+#tooltip { position: fixed; background: rgba(0,0,0,0.85); border: 1px solid #555; padding: 4px 8px; font-size: 10px; color: #ccc; pointer-events: none; display: none; z-index: 100; }
+#controls { position: fixed; bottom: 128px; left: 8px; font-size: 9px; color: #555; }
+</style>
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">TrafficSpeed <span class="accent">AI</span></span>
-      </div>
-      <p class="tagline">Real-time vehicle speed detection powered by machine vision</p>
-    </header>
-
-    <section class="input-section">
-      <div class="card input-card">
-        <h2>Load Video</h2>
-
-        <div class="input-row">
-          <label for="videoUrl">YouTube or direct video URL</label>
-          <div class="url-row">
-            <input
-              id="videoUrl"
-              type="text"
-              placeholder="https://www.youtube.com/watch?v=... or direct .mp4 URL"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <button id="btnLoadUrl" class="btn btn-primary">Load</button>
-          </div>
-          <p class="hint" id="urlHint"></p>
-        </div>
-
-        <div class="divider"><span>or</span></div>
-
-        <div class="input-row">
-          <label for="videoFile">Upload a video file</label>
-          <label class="file-label" for="videoFile">
-            <span id="fileLabel">Choose file…</span>
-            <input id="videoFile" type="file" accept="video/*" />
-          </label>
-        </div>
-      </div>
-
-      <div class="card settings-card">
-        <h2>Settings</h2>
-        <div class="setting">
-          <label for="scaleFactor">
-            Scale calibration
-            <span class="setting-value" id="scaleValue">15 px/m</span>
-          </label>
-          <input type="range" id="scaleFactor" min="5" max="60" value="15" />
-          <p class="hint">Adjust until displayed speeds look realistic. Higher = camera closer/lower.</p>
-        </div>
-        <div class="setting">
-          <label for="confidence">
-            Min confidence
-            <span class="setting-value" id="confValue">45%</span>
-          </label>
-          <input type="range" id="confidence" min="20" max="90" value="45" />
-        </div>
-      </div>
-    </section>
-
-    <section class="video-section" id="videoSection">
-      <div class="video-wrapper" id="videoWrapper">
-        <video id="video" playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div class="model-status" id="modelStatus">Loading AI model…</div>
-      </div>
-
-      <div class="controls">
-        <button id="btnStart" class="btn btn-primary" disabled>▶ Start Detection</button>
-        <button id="btnStop"  class="btn btn-danger"  disabled>■ Stop</button>
-        <button id="btnClear" class="btn btn-ghost">Clear tracks</button>
-      </div>
-    </section>
-
-    <section class="stats-section" id="statsSection">
-      <div class="stat-card">
-        <div class="stat-label">Vehicles tracked</div>
-        <div class="stat-value" id="statCount">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg speed</div>
-        <div class="stat-value" id="statAvg">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Max speed</div>
-        <div class="stat-value" id="statMax">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">FPS</div>
-        <div class="stat-value" id="statFps">—</div>
-      </div>
-    </section>
+<canvas id="gameCanvas"></canvas>
+<div id="ui">
+  <div id="unitPanel">
+    <div id="unitInfo"><h3>No unit selected</h3></div>
+    <div id="ordersPanel">
+      <button class="order-btn" id="btnMove">Move (M)</button>
+      <button class="order-btn" id="btnAttack">Attack (A)</button>
+      <button class="order-btn" id="btnHold">Hold (H)</button>
+      <button class="order-btn" id="btnAmbush">Ambush</button>
+      <button class="order-btn" id="btnWithdraw">Withdraw</button>
+    </div>
+    <div id="artPanel">
+      <h4>ARTILLERY</h4>
+      <button class="order-btn" id="btnArtillery" style="width:100%">Call Fire</button>
+      <div id="artStatus">Ready</div>
+    </div>
   </div>
+  <div id="minimapContainer">
+    <div id="minimapLabel">MINIMAP</div>
+    <canvas id="minimap" width="152" height="104"></canvas>
+  </div>
+</div>
+<div id="messageLog"></div>
+<div id="objectivePanel">
+  <h4>OBJECTIVES</h4>
+  <div class="obj" id="obj1">[ ] Capture Church</div>
+  <div class="obj" id="obj2">[ ] Capture Farmhouse</div>
+  <div style="margin-top:6px;font-size:10px;color:#888" id="winTimer"></div>
+</div>
+<div id="controls">WASD/Arrows: Scroll | Scroll: Zoom | LClick: Select | Drag: Box Select | RClick: Move/Attack | Space: Pause</div>
+<div id="pauseOverlay">PAUSED</div>
+<div id="gameOverOverlay">
+  <h2 id="gameOverTitle">MISSION COMPLETE</h2>
+  <p id="gameOverMsg"></p>
+  <button onclick="location.reload()">Play Again</button>
+</div>
+<div id="tooltip"></div>
 
-  <!-- TensorFlow.js + COCO-SSD (loaded from CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-  <script src="app.js"></script>
+<script>
+'use strict';
+
+// === CONSTANTS ===
+const TILE = 16;
+const MAP_W = 100;
+const MAP_H = 80;
+const UI_H  = 120;
+
+let CANVAS_W = window.innerWidth;
+let CANVAS_H = window.innerHeight - UI_H;
+
+// Terrain type definitions
+const T_GRASS    = 0;
+const T_DIRT     = 1;
+const T_ROAD     = 2;
+const T_HEDGE    = 3;
+const T_BUILDING = 4;
+const T_RUBBLE   = 5;
+const T_WHEAT    = 6;
+const T_WATER    = 7;
+const T_TREE     = 8;
+
+const TERRAIN_DEF = {
+  [T_GRASS]:    { color: '#4a5e3a', passable: true,  cover: 0.0, slow: 1.0 },
+  [T_DIRT]:     { color: '#6b5a3e', passable: true,  cover: 0.0, slow: 1.1 },
+  [T_ROAD]:     { color: '#8c7355', passable: true,  cover: 0.0, slow: 0.8 },
+  [T_HEDGE]:    { color: '#2d3a1e', passable: false, cover: 0.6, slow: 99  },
+  [T_BUILDING]: { color: '#7a6b55', passable: false, cover: 0.8, slow: 99  },
+  [T_RUBBLE]:   { color: '#5a5248', passable: true,  cover: 0.4, slow: 1.5 },
+  [T_WHEAT]:    { color: '#8a7a3e', passable: true,  cover: 0.2, slow: 1.3 },
+  [T_WATER]:    { color: '#3a5a6e', passable: false, cover: 0.0, slow: 99  },
+  [T_TREE]:     { color: '#2a4a1e', passable: false, cover: 0.5, slow: 99  },
+};
+
+const WEAPON_DEFS = {
+  RIFLE:  { name: 'Rifle',   rate: 1.3,  range: 280, dmg: 0.8,  spread: 0.06, burst: 1, ammoMax: 40  },
+  MG:     { name: 'MG42',    rate: 0.09, range: 320, dmg: 0.55, spread: 0.09, burst: 8, ammoMax: 250 },
+  SMG:    { name: 'MP40',    rate: 0.2,  range: 150, dmg: 0.5,  spread: 0.13, burst: 4, ammoMax: 120 },
+  MORTAR: { name: 'Mortar',  rate: 4.0,  range: 380, dmg: 2.5,  spread: 0.25, burst: 1, ammoMax: 20  },
+  PISTOL: { name: 'Pistol',  rate: 0.9,  range: 80,  dmg: 0.4,  spread: 0.15, burst: 1, ammoMax: 24  },
+};
+
+const MORALE_NAMES = ['Broken', 'Shaken', 'Steady', 'Confident'];
+const RANK_NAMES   = ['Private', 'Corporal', 'Sergeant', 'Lieutenant'];
+
+const ALLIED_NAMES = ['Smith','Johnson','Williams','Brown','Davis','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin'];
+const GERMAN_NAMES = ['Mueller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Schulz','Hoffmann'];
+
+// === UTILITY ===
+const rnd    = (a, b) => a + Math.random() * (b - a);
+const rndInt = (a, b) => Math.floor(rnd(a, b + 1));
+const clamp  = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const lerp   = (a, b, t) => a + (b - a) * t;
+const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
+const dist2  = (ax,ay,bx,by) => { const dx=ax-bx,dy=ay-by; return Math.sqrt(dx*dx+dy*dy); };
+const distU  = (a, b) => dist2(a.x, a.y, b.x, b.y);
+const angTo  = (a, b) => Math.atan2(b.y - a.y, b.x - a.x);
+
+// === TERRAIN ===
+class TerrainMap {
+  constructor() {
+    this.data = new Uint8Array(MAP_W * MAP_H);
+    this._generate();
+  }
+
+  get(tx, ty) {
+    if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return TERRAIN_DEF[T_GRASS];
+    return TERRAIN_DEF[this.data[tx + ty * MAP_W]] || TERRAIN_DEF[T_GRASS];
+  }
+
+  set(tx, ty, type) {
+    if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return;
+    this.data[tx + ty * MAP_W] = type;
+  }
+
+  fill(x1, y1, x2, y2, type) {
+    for (let y = y1; y <= y2; y++)
+      for (let x = x1; x <= x2; x++)
+        this.set(x, y, type);
+  }
+
+  fillLine(x1, y1, x2, y2, type) {
+    if (x1 === x2) for (let y = y1; y <= y2; y++) this.set(x1, y, type);
+    else           for (let x = x1; x <= x2; x++) this.set(x, y1, type);
+  }
+
+  isPassable(tx, ty) {
+    if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return false;
+    return TERRAIN_DEF[this.data[tx + ty * MAP_W]].passable;
+  }
+
+  coverAt(wx, wy) {
+    const tx = Math.floor(wx/TILE), ty = Math.floor(wy/TILE);
+    let best = this.get(tx, ty).cover;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const c = this.get(tx+dx, ty+dy).cover;
+        if (c > best) best = c;
+      }
+    return best;
+  }
+
+  _generate() {
+    // Base grass
+    this.data.fill(T_GRASS);
+
+    // Main E-W road
+    this.fill(0, 36, MAP_W-1, 38, T_ROAD);
+    // N-S road through village
+    this.fill(48, 0, 50, MAP_H-1, T_ROAD);
+    // Secondary dirt track
+    this.fill(0, 60, MAP_W-1, 61, T_DIRT);
+
+    // Wheat fields
+    this.fill(2,  2,  22, 18, T_WHEAT);
+    this.fill(55, 45, 78, 65, T_WHEAT);
+    this.fill(68, 4,  90, 25, T_WHEAT);
+
+    // Hedgerow network
+    this.fillLine(25, 5,  44, 5);
+    this.fillLine(25, 5,  25, 32);
+    this.fillLine(25, 32, 46, 32);
+    this.fillLine(60, 10, 60, 33);
+    this.fillLine(60, 33, 90, 33);
+    this.fillLine(5,  42, 5,  68);
+    this.fillLine(5,  68, 42, 68);
+    this.fillLine(30, 68, 30, 78);
+
+    for (let t of [T_HEDGE]) { /* just to reference */ }
+
+    // Village buildings
+    this._building(52, 28, 7, 6);  // Church
+    this._building(62, 40, 8, 5);  // Farmhouse
+    this._building(55, 18, 5, 4);
+    this._building(64, 18, 5, 4);
+    this._building(55, 55, 6, 5);
+    this._building(66, 56, 5, 4);
+    this._building(73, 28, 6, 5);
+    this._building(80, 40, 5, 6);
+    this._building(82, 50, 4, 4);
+
+    // Rubble
+    this.fill(30, 39, 36, 42, T_RUBBLE);
+    this.fill(70, 39, 74, 43, T_RUBBLE);
+
+    // Tree clusters
+    this._trees(10, 50, 8);
+    this._trees(82, 62, 6);
+    this._trees(35, 15, 5);
+    this._trees(88, 48, 7);
+    this._trees(15, 70, 6);
+    this._trees(42, 70, 5);
+
+    // Dirt paths in village
+    this.fill(51, 5,  51, 27, T_DIRT);
+    this.fill(63, 39, 63, 50, T_DIRT);
+
+    // Re-draw roads on top
+    this.fill(0, 36, MAP_W-1, 38, T_ROAD);
+    this.fill(48, 0, 50, MAP_H-1, T_ROAD);
+  }
+
+  _building(tx, ty, w, h) {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        this.set(tx+dx, ty+dy, T_BUILDING);
+  }
+
+  _trees(cx, cy, r) {
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++)
+        if (dx*dx + dy*dy <= r*r && Math.random() > 0.25)
+          this.set(cx+dx, cy+dy, T_TREE);
+  }
+}
+
+// === A* PATHFINDING ===
+class Pathfinder {
+  constructor(terrain) { this.t = terrain; }
+
+  find(sx, sy, ex, ey) {
+    let stx = Math.floor(sx/TILE), sty = Math.floor(sy/TILE);
+    let etx = Math.floor(ex/TILE), ety = Math.floor(ey/TILE);
+    if (stx===etx && sty===ety) return [];
+
+    // If goal not passable, search nearby
+    if (!this.t.isPassable(etx, ety)) {
+      let best=null, bestD=999;
+      for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++) {
+        if (this.t.isPassable(etx+dx,ety+dy)) {
+          const d=Math.abs(dx)+Math.abs(dy);
+          if (d<bestD){bestD=d;best={x:etx+dx,y:ety+dy};}
+        }
+      }
+      if (!best) return [];
+      etx=best.x; ety=best.y;
+    }
+
+    const key = (x,y) => x + y*MAP_W;
+    const open   = new Map();
+    const closed = new Set();
+    const parent = new Map();
+    const gMap   = new Map();
+    const fMap   = new Map();
+    const h = (x,y) => Math.abs(x-etx)+Math.abs(y-ety);
+
+    const sk = key(stx,sty);
+    open.set(sk,{x:stx,y:sty});
+    gMap.set(sk,0);
+    fMap.set(sk,h(stx,sty));
+
+    const DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:1},{dx:-1,dy:1},{dx:1,dy:-1},{dx:-1,dy:-1}];
+
+    let iters=0;
+    while (open.size>0 && iters++<2500) {
+      let curK=null, curN=null, curF=Infinity;
+      for (const [k,n] of open) { const f=fMap.get(k)||Infinity; if(f<curF){curF=f;curK=k;curN=n;} }
+      if (!curK) break;
+      if (curN.x===etx && curN.y===ety) {
+        const path=[];
+        let c=curK;
+        while (parent.has(c)) {
+          const n = open.has(c) ? open.get(c) : this._fromKey(c);
+          path.unshift({x:n.x*TILE+8,y:n.y*TILE+8});
+          c=parent.get(c);
+        }
+        return path;
+      }
+      open.delete(curK);
+      closed.add(curK);
+
+      for (const {dx,dy} of DIRS) {
+        const nx=curN.x+dx, ny=curN.y+dy;
+        if (nx<0||ny<0||nx>=MAP_W||ny>=MAP_H||!this.t.isPassable(nx,ny)) continue;
+        const nk=key(nx,ny);
+        if (closed.has(nk)) continue;
+        const step = (Math.abs(dx)+Math.abs(dy)>1?1.414:1) * (1+this.t.get(nx,ny).slow*0.2);
+        const ng = (gMap.get(curK)||0)+step;
+        if (!open.has(nk)||ng<(gMap.get(nk)||Infinity)) {
+          parent.set(nk,curK);
+          gMap.set(nk,ng);
+          fMap.set(nk,ng+h(nx,ny));
+          open.set(nk,{x:nx,y:ny});
+        }
+      }
+    }
+    return [];
+  }
+
+  _fromKey(k) { return {x:k%MAP_W, y:Math.floor(k/MAP_W)}; }
+}
+
+// === UNITS ===
+let _uid = 0;
+
+class Unit {
+  constructor(x, y, team, weaponKey, rank) {
+    this.id     = _uid++;
+    this.x      = x;
+    this.y      = y;
+    this.team   = team;
+    this.weaponKey = weaponKey || 'RIFLE';
+    this.weapon = WEAPON_DEFS[this.weaponKey];
+    this.rank   = rank !== undefined ? rank : rndInt(0,2);
+    this.name   = pick(team==='allied' ? ALLIED_NAMES : GERMAN_NAMES);
+    this.ammo   = this.weapon.ammoMax;
+    this.hp     = 1.0;
+    this.heartRate  = rndInt(65,78);
+    this.fatigue    = rndInt(0,12);
+    this.morale     = 3;
+    this.facing     = team==='allied' ? 0.1 : Math.PI;
+    this.speed      = 48 + rndInt(0,14);
+    this.path       = [];
+    this.target     = null;
+    this.order      = 'hold';
+    this.prone      = false;
+    this.inCover    = false;
+    this.coverVal   = 0;
+    this.selected   = false;
+    this.fireCooldown = 0;
+    this.suppressTime = 0;
+    this.dead       = false;
+    this.wounded    = false;
+    this.deathAngle = 0;
+    this.role       = 'soldier';
+    this.aiState    = 'patrol';
+    this.aiTimer    = rnd(1,4);
+    this.patrolCenter = {x,y};
+    this.burstCount = 0;
+    this.reloadTimer = 0;
+    this.waypoint   = null;
+    this.voiceTimer = 0;
+    this.healTimer  = 0;
+  }
+
+  get isAlive()     { return !this.dead; }
+  get isEffective() { return !this.dead && !this.wounded && this.morale > 0; }
+
+  applyDamage(dmg, game) {
+    const reduction = (this.inCover ? this.coverVal * 0.7 : 0) + (this.prone ? 0.15 : 0);
+    const actual    = dmg * Math.max(0.05, 1 - reduction);
+    this.hp        -= actual;
+    this.heartRate  = Math.min(180, this.heartRate + actual * 50);
+    if (actual > 0.3) this.morale = Math.max(0, this.morale-1);
+    this.suppressTime = Math.max(this.suppressTime, 2.5);
+    if (this.hp <= 0) {
+      this.dead       = true;
+      this.deathAngle = this.facing;
+      game.log(`${this.name} killed!`, '#f88');
+    } else if (this.hp < 0.3 && !this.wounded) {
+      this.wounded = true;
+      this.speed   = 18;
+      game.log(`${this.name} wounded!`, '#fa8');
+    }
+  }
+
+  update(dt, game) {
+    if (this.dead) return;
+
+    // Physiology
+    this.heartRate = lerp(this.heartRate, 68, dt * 0.25);
+    if (this.suppressTime > 0) {
+      this.suppressTime -= dt;
+      this.heartRate = Math.min(180, this.heartRate + dt*12);
+    }
+    if (this.path.length>0 && !this.prone) this.fatigue = Math.min(100, this.fatigue + dt*1.8);
+    else this.fatigue = Math.max(0, this.fatigue - dt*0.8);
+    if (this.suppressTime<=0 && this.morale<3 && Math.random()<dt*0.015) this.morale++;
+
+    // Broken: flee
+    if (this.morale===0 && this.path.length===0) {
+      const fx = this.team==='allied' ? 4*TILE+rnd(-24,24) : (MAP_W-4)*TILE+rnd(-24,24);
+      this.path = game.pf.find(this.x, this.y, fx, this.y+rnd(-48,48));
+    }
+
+    this.prone = this.suppressTime>1.2 && this.morale<3;
+
+    // Move
+    if (this.path.length>0 && !this.prone) {
+      const wp  = this.path[0];
+      const dx  = wp.x-this.x, dy = wp.y-this.y;
+      const d   = Math.sqrt(dx*dx+dy*dy);
+      if (d<3) { this.path.shift(); }
+      else {
+        const spd = this.speed * (this.wounded?0.35:1) * (1-this.fatigue/220);
+        this.facing = Math.atan2(dy,dx);
+        const mv = Math.min(spd*dt, d);
+        this.x += (dx/d)*mv;
+        this.y += (dy/d)*mv;
+      }
+    }
+
+    this.coverVal = game.terrain.coverAt(this.x, this.y);
+    this.inCover  = this.coverVal > 0.09;
+
+    if (this.fireCooldown>0) this.fireCooldown-=dt;
+    if (this.reloadTimer>0)  this.reloadTimer-=dt;
+    this.voiceTimer-=dt;
+
+    // Shoot
+    if (this.target && this.target.isAlive && this.fireCooldown<=0 && this.reloadTimer<=0 && this.morale>0) {
+      const d = distU(this, this.target);
+      if (d < this.weapon.range && game.hasLoS(this.x, this.y, this.target.x, this.target.y)) {
+        this._shoot(game);
+      } else if (this.order==='attack' && this.path.length===0 && d < this.weapon.range*2) {
+        this.path = game.pf.find(this.x, this.y, this.target.x+rnd(-28,28), this.target.y+rnd(-28,28));
+      }
+    }
+  }
+
+  _shoot(game) {
+    if (this.ammo<=0) {
+      if (this.voiceTimer<=0) { game.log(`${this.name}: Out of ammo!`,'#fa8'); this.voiceTimer=10; }
+      return;
+    }
+    this.fireCooldown = this.weapon.rate + rnd(-0.04,0.04);
+    this.burstCount++;
+    if (this.burstCount>=this.weapon.burst) { this.burstCount=0; this.reloadTimer=this.weapon.rate*0.4; }
+    this.ammo--;
+    const spread = this.weapon.spread * (this.prone?0.45:1) * (1+this.suppressTime*0.25) * (1+this.fatigue/150);
+    const baseAng = angTo(this, this.target);
+    this.facing   = baseAng + rnd(-0.05,0.05);
+    game.bullets.push(new Bullet(this.x, this.y, baseAng+rnd(-spread,spread), this.weapon, this));
+    this.heartRate = Math.min(180, this.heartRate+2);
+  }
+}
+
+// === TANKS ===
+class Tank {
+  constructor(x, y, team, model) {
+    this.id    = _uid++;
+    this.x     = x;
+    this.y     = y;
+    this.team  = team;
+    this.model = model || 'Sherman';
+    const isPanzer = model==='Panzer';
+    this.hp    = isPanzer ? 1.0 : 0.85;
+    this.selected    = false;
+    this.facing      = team==='allied' ? 0.05 : Math.PI;
+    this.turretAngle = this.facing;
+    this.speed       = 0;
+    this.maxSpeed    = 52;
+    this.turnRate    = 1.1;
+    this.path        = [];
+    this.target      = null;
+    this.fireCooldown= 0;
+    this.dead        = false;
+    this.immobilised = false;
+    this.order       = 'hold';
+    this.aiTimer     = rnd(2,6);
+    this.waypoint    = null;
+    this.smokeTimer  = 0;
+    this.armour      = isPanzer ? {front:0.85,side:0.55,rear:0.3} : {front:0.7,side:0.45,rear:0.25};
+  }
+
+  get isAlive() { return !this.dead; }
+
+  update(dt, game) {
+    if (this.dead) return;
+    if (this.smokeTimer>0) this.smokeTimer-=dt;
+
+    // Movement
+    if (this.path.length>0 && !this.immobilised) {
+      const wp = this.path[0];
+      const dx = wp.x-this.x, dy = wp.y-this.y;
+      const d  = Math.sqrt(dx*dx+dy*dy);
+      if (d<10) { this.path.shift(); return; }
+      const ta = Math.atan2(dy,dx);
+      let da   = ta-this.facing;
+      while (da>Math.PI) da-=2*Math.PI;
+      while (da<-Math.PI) da+=2*Math.PI;
+      const turn = Math.min(Math.abs(da), this.turnRate*dt)*Math.sign(da);
+      this.facing += turn;
+      if (Math.abs(da)<0.45) this.speed = Math.min(this.maxSpeed, this.speed+25*dt);
+      else this.speed = Math.max(0, this.speed-35*dt);
+      this.x += Math.cos(this.facing)*this.speed*dt;
+      this.y += Math.sin(this.facing)*this.speed*dt;
+      // Clamp to map
+      this.x = clamp(this.x, TILE, (MAP_W-1)*TILE);
+      this.y = clamp(this.y, TILE, (MAP_H-1)*TILE);
+    } else {
+      this.speed = Math.max(0, this.speed-55*dt);
+    }
+
+    // Turret tracking
+    if (this.target && this.target.isAlive) {
+      const ta = angTo(this, this.target);
+      let da = ta-this.turretAngle;
+      while (da>Math.PI) da-=2*Math.PI;
+      while (da<-Math.PI) da+=2*Math.PI;
+      this.turretAngle += Math.sign(da)*Math.min(Math.abs(da),1.8*dt);
+    }
+
+    // Fire
+    if (this.fireCooldown>0) this.fireCooldown-=dt;
+    if (this.target && this.target.isAlive && this.fireCooldown<=0) {
+      const d = distU(this, this.target);
+      if (d<360 && game.hasLoS(this.x,this.y,this.target.x,this.target.y)) {
+        this._fire(game);
+      }
+    }
+  }
+
+  _fire(game) {
+    this.fireCooldown = 3.8;
+    const ang = angTo(this, this.target)+rnd(-0.025,0.025);
+    this.turretAngle = ang;
+    game.bullets.push(new Bullet(this.x, this.y, ang, {dmg:3.0,range:420,spread:0.02,name:'Shell'}, this, true));
+    game.addExplosion(this.target.x+rnd(-12,12), this.target.y+rnd(-12,12), 0.6);
+  }
+
+  applyDamage(dmg, hitAngle, game) {
+    let da = hitAngle-this.facing;
+    while (da>Math.PI) da-=2*Math.PI;
+    while (da<-Math.PI) da+=2*Math.PI;
+    const isFront = Math.abs(da)<0.65;
+    const isRear  = Math.abs(da)>2.5;
+    const armorVal= isFront?this.armour.front:isRear?this.armour.rear:this.armour.side;
+    const pen     = dmg*(1-armorVal+rnd(-0.08,0.08));
+    if (pen>0.4) {
+      this.hp -= pen*0.35;
+      this.smokeTimer = 4;
+      if (Math.random()<0.3) this.immobilised=true;
+      if (this.hp<=0) {
+        this.dead=true;
+        game.addExplosion(this.x,this.y,1.8);
+        game.log(`${this.model} destroyed!`,'#f88');
+      } else {
+        game.log(`${this.model} hit (${isFront?'front':isRear?'rear':'side'})!`,'#fa8');
+      }
+    }
+  }
+}
+
+// === COMBAT / BULLETS ===
+class Bullet {
+  constructor(x, y, ang, weapon, owner, isTank) {
+    this.x     = x;
+    this.y     = y;
+    this.ang   = ang;
+    this.spd   = isTank ? 850 : 580;
+    this.dmg   = weapon.dmg;
+    this.range = weapon.range || 300;
+    this.owner = owner;
+    this.isTank= isTank||false;
+    this.trav  = 0;
+    this.dead  = false;
+    this.vx    = Math.cos(ang)*this.spd;
+    this.vy    = Math.sin(ang)*this.spd;
+  }
+
+  update(dt, game) {
+    if (this.dead) return;
+    const mx=this.vx*dt, my=this.vy*dt;
+    this.x+=mx; this.y+=my;
+    this.trav+=Math.sqrt(mx*mx+my*my);
+    if (this.x<0||this.y<0||this.x>MAP_W*TILE||this.y>MAP_H*TILE||this.trav>this.range) { this.dead=true; return; }
+
+    const tx=Math.floor(this.x/TILE), ty=Math.floor(this.y/TILE);
+    const td=game.terrain.get(tx,ty);
+    if (!td.passable && td!==TERRAIN_DEF[T_WHEAT]) { this.dead=true; return; }
+
+    // Hit detection
+    for (const u of game.units) {
+      if (!u.isAlive||u===this.owner||u.team===this.owner.team) continue;
+      if (dist2(this.x,this.y,u.x,u.y)<(this.isTank?22:6)) {
+        u.applyDamage(this.dmg, game);
+        for (const n of game.units) {
+          if (n.team===u.team&&!n.dead&&distU(n,u)<70) { n.suppressTime=Math.max(n.suppressTime,2.0); n.heartRate=Math.min(180,n.heartRate+18); }
+        }
+        this.dead=true; return;
+      }
+    }
+    for (const t of game.tanks) {
+      if (!t.isAlive||t===this.owner||t.team===this.owner.team) continue;
+      if (dist2(this.x,this.y,t.x,t.y)<15) {
+        t.applyDamage(this.dmg, this.ang, game);
+        this.dead=true; return;
+      }
+    }
+  }
+}
+
+// === EXPLOSIONS ===
+class Explosion {
+  constructor(x, y, size) {
+    this.x=x; this.y=y; this.size=size||1;
+    this.life=1.0;
+    this.smokeR=0; this.smokeMaxR=22*size; this.smokeLife=3.5;
+    this.particles=[];
+    for (let i=0;i<Math.ceil(10*size);i++) {
+      const a=rnd(0,Math.PI*2), s=rnd(15,70)*size;
+      this.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(0.25,0.7)});
+    }
+  }
+  get dead() { return this.smokeLife<=0; }
+  update(dt) {
+    this.life-=dt*2.5;
+    this.smokeR=Math.min(this.smokeMaxR, this.smokeR+dt*28);
+    this.smokeLife-=dt*0.22;
+    for (const p of this.particles) { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.9; p.vy*=0.9; p.life-=dt*2; }
+  }
+}
+
+// === ARTILLERY ===
+class Artillery {
+  constructor(game) {
+    this.game=game;
+    this.state='ready'; // ready/ranging/barrage/cooldown
+    this.cooldown=0;
+    this.maxCooldown=55;
+    this.tx=0; this.ty=0;
+    this.rangingDone=0;
+    this.timer=0;
+    this.barrageCount=0;
+  }
+
+  get statusText() {
+    if (this.state==='ready')   return 'Ready';
+    if (this.state==='ranging') return `Ranging... ${this.rangingDone}/3`;
+    if (this.state==='barrage') return `FIRE! ${this.barrageCount}/8`;
+    return `Cooldown: ${Math.ceil(this.cooldown)}s`;
+  }
+
+  fire(x,y) {
+    if (this.state!=='ready') return false;
+    this.tx=x; this.ty=y;
+    this.state='ranging';
+    this.rangingDone=0;
+    this.timer=rnd(3,5);
+    this.game.log('Artillery mission! Ranging...','#c8b464');
+    return true;
+  }
+
+  update(dt) {
+    if (this.state==='cooldown') {
+      this.cooldown-=dt;
+      if (this.cooldown<=0) { this.state='ready'; this.game.log('Artillery ready!','#c8b464'); }
+    }
+    if (this.state==='ranging') {
+      this.timer-=dt;
+      if (this.timer<=0) {
+        if (this.rangingDone<3) {
+          const ox=rnd(-45,45), oy=rnd(-45,45);
+          this.game.addExplosion(this.tx+ox, this.ty+oy, 0.7);
+          this.game.applyAreaDmg(this.tx+ox, this.ty+oy, 28, 1.8, 'german');
+          this.rangingDone++;
+          this.timer=rnd(0.8,1.5);
+        } else {
+          this.state='barrage';
+          this.barrageCount=0;
+          this.timer=0.15;
+          this.game.log('FIRE FOR EFFECT!','#f44');
+        }
+      }
+    }
+    if (this.state==='barrage') {
+      this.timer-=dt;
+      if (this.timer<=0 && this.barrageCount<8) {
+        const ox=rnd(-55,55), oy=rnd(-55,55);
+        this.game.addExplosion(this.tx+ox, this.ty+oy, 1.3);
+        this.game.applyAreaDmg(this.tx+ox, this.ty+oy, 38, 2.8, 'german');
+        this.barrageCount++;
+        this.timer=rnd(0.12,0.3);
+      }
+      if (this.barrageCount>=8) {
+        this.state='cooldown';
+        this.cooldown=this.maxCooldown;
+        this.game.log(`Artillery on cooldown (${this.maxCooldown}s)`,'#888');
+      }
+    }
+  }
+}
+
+// === AI CONTROLLER ===
+class AIController {
+  constructor(game) { this.game=game; }
+
+  update(dt) {
+    for (const u of this.game.units) {
+      if (u.team!=='german'||u.dead) continue;
+      this._updateUnit(u,dt);
+    }
+    for (const t of this.game.tanks) {
+      if (t.team!=='german'||t.dead) continue;
+      this._updateTank(t,dt);
+    }
+  }
+
+  _updateUnit(u,dt) {
+    u.aiTimer-=dt;
+    if (u.morale===0) { u.target=null; return; }
+
+    // Find nearest visible enemy
+    const enemies=[...this.game.units.filter(e=>e.team==='allied'&&e.isAlive),...this.game.tanks.filter(e=>e.team==='allied'&&e.isAlive)];
+    let nearest=null, nearD=9999;
+    for (const e of enemies) {
+      const d=distU(u,e);
+      if (d<nearD && this.game.hasLoS(u.x,u.y,e.x,e.y)) { nearD=d; nearest=e; }
+    }
+
+    if (nearest && nearD<u.weapon.range*1.1) {
+      u.aiState='attack';
+      u.target=nearest;
+      // Seek cover if exposed
+      if (!u.inCover && u.aiTimer<=0 && Math.random()<0.4) {
+        const cp=this._findCoverNear(u.x,u.y);
+        if (cp && u.path.length===0) u.path=this.game.pf.find(u.x,u.y,cp.x,cp.y);
+        u.aiTimer=rnd(2,5);
+      }
+      // Flanking
+      if (u.aiTimer<=0 && Math.random()<0.15 && nearD>90) {
+        const fa=angTo(u,nearest)+(Math.random()<0.5?1.3:-1.3);
+        const fd=75;
+        u.path=this.game.pf.find(u.x,u.y,nearest.x+Math.cos(fa)*fd,nearest.y+Math.sin(fa)*fd);
+        u.aiTimer=rnd(5,9);
+      }
+    } else if (nearest) {
+      u.target=nearest;
+      u.aiState='advance';
+      if (u.aiTimer<=0&&u.path.length===0) {
+        u.path=this.game.pf.find(u.x,u.y,nearest.x+rnd(-50,50),nearest.y+rnd(-50,50));
+        u.aiTimer=rnd(3,7);
+      }
+    } else {
+      u.target=null;
+      u.aiState='patrol';
+      if (u.path.length===0&&u.aiTimer<=0) {
+        const px=u.patrolCenter.x+rnd(-90,90), py=u.patrolCenter.y+rnd(-90,90);
+        u.path=this.game.pf.find(u.x,u.y,clamp(px,20,(MAP_W-2)*TILE),clamp(py,20,(MAP_H-2)*TILE));
+        u.aiTimer=rnd(4,9);
+      }
+    }
+  }
+
+  _updateTank(t,dt) {
+    t.aiTimer-=dt;
+    const enemies=[...this.game.units.filter(e=>e.team==='allied'&&e.isAlive),...this.game.tanks.filter(e=>e.team==='allied'&&e.isAlive)];
+    let nearest=null, nearD=9999;
+    for (const e of enemies) { const d=distU(t,e); if(d<nearD){nearD=d;nearest=e;} }
+    t.target=nearest;
+    if (nearest&&nearD>200&&t.aiTimer<=0) {
+      t.path=this.game.pf.find(t.x,t.y,nearest.x+rnd(-50,50),nearest.y+rnd(-50,50));
+      t.aiTimer=rnd(3,7);
+    }
+  }
+
+  _findCoverNear(x,y) {
+    let best=null, bestS=-1;
+    for (let dy=-5;dy<=5;dy++) for (let dx=-5;dx<=5;dx++) {
+      const tx=Math.floor(x/TILE)+dx, ty=Math.floor(y/TILE)+dy;
+      const td=this.game.terrain.get(tx,ty);
+      if (td.cover>0.3&&td.passable) {
+        const cx=tx*TILE+8, cy=ty*TILE+8;
+        const score=td.cover-dist2(cx,cy,x,y)*0.0008;
+        if (score>bestS){bestS=score;best={x:cx,y:cy};}
+      }
+    }
+    return best;
+  }
+}
+
+// === CAMERA ===
+class Camera {
+  constructor() {
+    this.x=38*TILE; this.y=34*TILE;
+    this.zoom=1.5;
+    this.minZoom=0.4; this.maxZoom=3.5;
+    this.velX=0; this.velY=0;
+  }
+  screenToWorld(sx,sy){ return {x:(sx-CANVAS_W/2)/this.zoom+this.x, y:(sy-CANVAS_H/2)/this.zoom+this.y}; }
+  worldToScreen(wx,wy){ return {x:(wx-this.x)*this.zoom+CANVAS_W/2, y:(wy-this.y)*this.zoom+CANVAS_H/2}; }
+  update(dt,keys) {
+    const spd=280/this.zoom;
+    if(keys['ArrowLeft']||keys['a']||keys['A']) this.velX-=spd*dt*60;
+    if(keys['ArrowRight']||keys['d']||keys['D']) this.velX+=spd*dt*60;
+    if(keys['ArrowUp']||keys['w']||keys['W'])   this.velY-=spd*dt*60;
+    if(keys['ArrowDown']||keys['s']||keys['S']) this.velY+=spd*dt*60;
+    const friction=Math.pow(0.88,dt*60);
+    this.velX*=friction; this.velY*=friction;
+    this.x+=this.velX*dt; this.y+=this.velY*dt;
+    this.x=clamp(this.x,0,MAP_W*TILE); this.y=clamp(this.y,0,MAP_H*TILE);
+  }
+}
+
+// === OBJECTIVES ===
+class Objective {
+  constructor(name,tx,ty,w,h) {
+    this.name=name; this.tx=tx; this.ty=ty; this.w=w; this.h=h;
+    this.x=(tx+w/2)*TILE; this.y=(ty+h/2)*TILE;
+    this.capturedBy=null;
+    this.capTimer=0;
+    this.heldTimer=0;
+  }
+  update(dt,units) {
+    const nx=units.filter(u=>!u.dead&&distU(u,this)<45);
+    const allied=nx.filter(u=>u.team==='allied').length;
+    const german=nx.filter(u=>u.team==='german').length;
+    if(allied>0&&german===0)      { this.capTimer+=dt; if(this.capTimer>5) this.capturedBy='allied'; }
+    else if(german>0&&allied===0) { this.capTimer-=dt; if(this.capTimer<-5) this.capturedBy='german'; }
+    else this.capTimer*=0.97;
+    if(this.capturedBy==='allied') this.heldTimer+=dt;
+    else this.heldTimer=0;
+  }
+}
+
+// === GAME ===
+class Game {
+  constructor() {
+    this.terrain    = new TerrainMap();
+    this.pf         = new Pathfinder(this.terrain);
+    this.camera     = new Camera();
+    this.ai         = new AIController(this);
+    this.artillery  = new Artillery(this);
+    this.units      = [];
+    this.tanks      = [];
+    this.bullets    = [];
+    this.explosions = [];
+    this.messages   = [];
+    this.objectives = [
+      new Objective('Church',    52,28,7,6),
+      new Objective('Farmhouse', 62,40,8,5),
+    ];
+    this.selected      = [];
+    this.keys          = {};
+    this.paused        = false;
+    this.over          = false;
+    this.winTimer      = 0;
+    this.artMode       = false;
+    this.dragStart     = null;
+    this.dragEnd       = null;
+    this._setupScenario();
+  }
+
+  log(msg,color) {
+    this.messages.push({text:msg,color:color||'#ccc',life:6});
+    if(this.messages.length>8) this.messages.shift();
+  }
+
+  addExplosion(x,y,size) { this.explosions.push(new Explosion(x,y,size)); }
+
+  applyAreaDmg(x,y,r,dmg,exceptTeam) {
+    for (const u of this.units) {
+      if(u.dead||(exceptTeam&&u.team===exceptTeam)) continue;
+      const d=dist2(u.x,u.y,x,y);
+      if(d<r) { u.applyDamage(dmg*(1-d/r), this); u.suppressTime=Math.max(u.suppressTime,4.5); }
+    }
+    for (const t of this.tanks) {
+      if(t.dead||(exceptTeam&&t.team===exceptTeam)) continue;
+      if(dist2(t.x,t.y,x,y)<r*0.5) t.applyDamage(dmg*0.25, Math.atan2(t.y-y,t.x-x), this);
+    }
+  }
+
+  hasLoS(x1,y1,x2,y2) {
+    const dx=x2-x1, dy=y2-y1;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d===0) return true;
+    const steps=Math.ceil(d/10);
+    for (let i=1;i<steps;i++) {
+      const t=i/steps;
+      const tx=Math.floor((x1+dx*t)/TILE), ty=Math.floor((y1+dy*t)/TILE);
+      const td=this.terrain.get(tx,ty);
+      if(!td.passable&&td!==TERRAIN_DEF[T_WHEAT]&&td!==TERRAIN_DEF[T_RUBBLE]) return false;
+    }
+    return true;
+  }
+
+  _setupScenario() {
+    // Allied squad
+    const ap=[{x:8,y:34},{x:10,y:36},{x:12,y:34},{x:8,y:38},{x:10,y:38},{x:14,y:34},{x:14,y:38},{x:12,y:40},{x:6,y:36},{x:16,y:36}];
+    const aw=['RIFLE','RIFLE','RIFLE','RIFLE','MG','SMG','RIFLE','RIFLE','RIFLE','RIFLE'];
+    const ar=[1,0,0,0,0,1,0,0,2,0];
+    for (let i=0;i<ap.length;i++) {
+      const u=new Unit(ap[i].x*TILE+8, ap[i].y*TILE+8, 'allied', aw[i], ar[i]);
+      this.units.push(u);
+    }
+    // Allied medic
+    const medic=new Unit(6*TILE+8,40*TILE+8,'allied','PISTOL',1);
+    medic.role='medic'; medic.name='Doc '+pick(ALLIED_NAMES);
+    this.units.push(medic);
+    // Allied tank
+    this.tanks.push(new Tank(15*TILE,37*TILE,'allied','Sherman'));
+
+    // German defenders
+    const gd=[
+      {x:56,y:31,w:'RIFLE'},{x:58,y:30,w:'RIFLE'},{x:60,y:31,w:'MG'},{x:57,y:33,w:'RIFLE'},
+      {x:63,y:43,w:'RIFLE'},{x:65,y:42,w:'SMG'},{x:64,y:44,w:'RIFLE'},{x:66,y:43,w:'RIFLE'},
+      {x:72,y:30,w:'RIFLE'},{x:74,y:30,w:'MG'},{x:73,y:32,w:'RIFLE'},
+      {x:55,y:22,w:'RIFLE'},{x:57,y:22,w:'SMG'},{x:56,y:24,w:'RIFLE'},
+      {x:68,y:58,w:'RIFLE'},{x:70,y:58,w:'RIFLE'},{x:69,y:56,w:'MG'},
+    ];
+    for (const g of gd) {
+      const u=new Unit(g.x*TILE+8,g.y*TILE+8,'german',g.w,rndInt(0,2));
+      u.patrolCenter={x:g.x*TILE+8,y:g.y*TILE+8};
+      this.units.push(u);
+    }
+    // German tank
+    const pt=new Tank(75*TILE,37*TILE,'german','Panzer');
+    pt.facing=Math.PI; pt.turretAngle=Math.PI;
+    this.tanks.push(pt);
+
+    this.log('OBJECTIVE: Capture Church & Farmhouse. Hold both 60s to win.','#c8b464');
+    this.log('Select units with click/drag. Right-click to move/attack.','#aaa');
+  }
+
+  selectUnit(u) {
+    for (const s of this.selected) s.selected=false;
+    this.selected=[u]; u.selected=true;
+  }
+
+  boxSelect(x1,y1,x2,y2) {
+    const mnX=Math.min(x1,x2),mxX=Math.max(x1,x2),mnY=Math.min(y1,y2),mxY=Math.max(y1,y2);
+    for (const s of this.selected) s.selected=false;
+    this.selected=[];
+    for (const u of [...this.units,...this.tanks]) {
+      if(u.team==='allied'&&!u.dead&&u.x>=mnX&&u.x<=mxX&&u.y>=mnY&&u.y<=mxY) {
+        u.selected=true; this.selected.push(u);
+      }
+    }
+  }
+
+  issueOrder(wx,wy,ctrl) {
+    // Check enemy click
+    let clickedEnemy=null;
+    for (const u of [...this.units,...this.tanks]) {
+      if(u.team==='german'&&!u.dead) {
+        const r=u instanceof Tank?15:9;
+        if(dist2(wx,wy,u.x,u.y)<r){clickedEnemy=u;break;}
+      }
+    }
+    for (const u of this.selected) {
+      if(!u.isAlive) continue;
+      if(clickedEnemy||ctrl) {
+        u.order='attack';
+        if(clickedEnemy) u.target=clickedEnemy;
+        else {
+          const en=[...this.units,...this.tanks].filter(e=>e.team==='german'&&!e.dead);
+          if(en.length) u.target=en.reduce((a,b)=>dist2(wx,wy,a.x,a.y)<dist2(wx,wy,b.x,b.y)?a:b);
+        }
+        if(u.target) u.path=this.pf.find(u.x,u.y,u.target.x+rnd(-32,32),u.target.y+rnd(-32,32));
+      } else {
+        u.order='move'; u.target=null;
+        const spread=this.selected.length>1?rnd(-18,18):0;
+        u.path=this.pf.find(u.x,u.y,wx+spread,wy+spread);
+        u.waypoint={x:wx,y:wy};
+      }
+    }
+  }
+
+  update(dt) {
+    if(this.paused||this.over) return;
+    this.camera.update(dt,this.keys);
+    this.artillery.update(dt);
+
+    for (const u of this.units) u.update(dt,this);
+    for (const t of this.tanks) t.update(dt,this);
+    for (const b of this.bullets) b.update(dt,this);
+    for (const e of this.explosions) e.update(dt);
+    for (const o of this.objectives) o.update(dt,this.units);
+
+    this.bullets    = this.bullets.filter(b=>!b.dead);
+    this.explosions = this.explosions.filter(e=>!e.dead);
+    this.messages   = this.messages.filter(m=>(m.life-=dt)>0);
+
+    this.ai.update(dt);
+
+    // Medic AI
+    for (const u of this.units) {
+      if(u.role!=='medic'||u.dead||u.team!=='allied') continue;
+      const wounded=this.units.filter(w=>w.wounded&&!w.dead&&w.team==='allied');
+      if(wounded.length>0) {
+        const target=wounded.reduce((a,b)=>distU(u,a)<distU(u,b)?a:b);
+        if(distU(u,target)<20) {
+          target.hp=Math.min(1,target.hp+dt*0.04);
+          if(target.hp>0.31){target.wounded=false;target.speed=48;this.log(`${u.name} healed ${target.name}!`,'#6ab44a');}
+        } else if(u.path.length===0) {
+          u.path=this.pf.find(u.x,u.y,target.x,target.y);
+        }
+      }
+    }
+
+    this._checkWin();
+  }
+
+  _checkWin() {
+    const alliedAlive=this.units.some(u=>u.team==='allied'&&u.isAlive&&u.morale>0);
+    if(!alliedAlive) { this._endGame(false,'All Allied forces lost or broken!'); return; }
+    const both=this.objectives.every(o=>o.capturedBy==='allied');
+    if(both) {
+      this.winTimer+=1/60;
+      if(this.winTimer>=60) this._endGame(true,'Both objectives secured! Mission complete!');
+    } else { this.winTimer=0; }
+  }
+
+  _endGame(won,msg) {
+    this.over=true;
+    document.getElementById('gameOverTitle').textContent=won?'MISSION COMPLETE':'MISSION FAILED';
+    document.getElementById('gameOverTitle').style.color=won?'#6ab44a':'#f88';
+    document.getElementById('gameOverMsg').textContent=msg;
+    document.getElementById('gameOverOverlay').style.display='flex';
+  }
+}
+
+// === RENDERER ===
+class Renderer {
+  constructor(game,canvas) {
+    this.game=game;
+    this.canvas=canvas;
+    this.ctx=canvas.getContext('2d');
+    this.mmCanvas=document.getElementById('minimap');
+    this.mmCtx=this.mmCanvas.getContext('2d');
+    this.tileCache=document.createElement('canvas');
+    this.tileCache.width=MAP_W*TILE;
+    this.tileCache.height=MAP_H*TILE;
+    this._buildCache();
+  }
+
+  _buildCache() {
+    const ctx=this.tileCache.getContext('2d');
+    const t=this.game.terrain;
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      ctx.fillStyle=t.get(tx,ty).color;
+      ctx.fillRect(tx*TILE,ty*TILE,TILE,TILE);
+    }
+    // Wheat texture
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_WHEAT) {
+        ctx.strokeStyle='rgba(180,160,55,0.35)'; ctx.lineWidth=0.8;
+        for (let i=0;i<3;i++) {
+          const rx=tx*TILE+rnd(2,14), ry=ty*TILE+rnd(2,14);
+          ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx,ry-5); ctx.stroke();
+        }
+      }
+    }
+    // Hedge texture
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_HEDGE) {
+        ctx.fillStyle='#1e2e12';
+        ctx.fillRect(tx*TILE+2,ty*TILE+2,TILE-4,TILE-4);
+      }
+    }
+    // Building roofs
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_BUILDING) {
+        ctx.fillStyle='#655848';
+        ctx.fillRect(tx*TILE+2,ty*TILE+2,TILE-4,TILE-4);
+      }
+    }
+    // Road markings
+    ctx.strokeStyle='rgba(140,120,80,0.25)'; ctx.lineWidth=0.5;
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_ROAD) ctx.strokeRect(tx*TILE,ty*TILE,TILE,TILE);
+    }
+    // Trees
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_TREE) {
+        const cx=tx*TILE+8, cy=ty*TILE+8;
+        ctx.fillStyle='rgba(0,0,0,0.28)';
+        ctx.beginPath(); ctx.ellipse(cx+3,cy+4,9,7,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#183010';
+        ctx.beginPath(); ctx.arc(cx,cy,8,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#2a5018';
+        ctx.beginPath(); ctx.arc(cx-1,cy-1,5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(100,180,60,0.15)';
+        ctx.beginPath(); ctx.arc(cx+1,cy-2,3,0,Math.PI*2); ctx.fill();
+      }
+    }
+    // Rubble detail
+    for (let ty=0;ty<MAP_H;ty++) for (let tx=0;tx<MAP_W;tx++) {
+      if(t.data[tx+ty*MAP_W]===T_RUBBLE) {
+        ctx.fillStyle='rgba(80,70,60,0.4)';
+        for (let i=0;i<4;i++) ctx.fillRect(tx*TILE+rnd(1,12),ty*TILE+rnd(1,12),rnd(2,6),rnd(1,4));
+      }
+    }
+  }
+
+  draw() {
+    const {ctx,game}=this;
+    const cam=game.camera;
+    ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
+    ctx.save();
+    ctx.translate(CANVAS_W/2-cam.x*cam.zoom, CANVAS_H/2-cam.y*cam.zoom);
+    ctx.scale(cam.zoom,cam.zoom);
+
+    // Terrain
+    ctx.drawImage(this.tileCache,0,0);
+
+    // Explosion smoke (below units)
+    for (const exp of game.explosions) {
+      if(exp.smokeLife>0) {
+        ctx.globalAlpha=Math.min(0.45,exp.smokeLife*0.13);
+        const g=ctx.createRadialGradient(exp.x,exp.y,0,exp.x,exp.y,exp.smokeR);
+        g.addColorStop(0,'rgba(80,80,80,1)'); g.addColorStop(1,'rgba(50,50,50,0)');
+        ctx.fillStyle=g;
+        ctx.beginPath(); ctx.arc(exp.x,exp.y,exp.smokeR,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    }
+
+    // Objectives
+    for (const obj of game.objectives) {
+      const col=obj.capturedBy==='allied'?'#6ab44a':obj.capturedBy==='german'?'#f44':'#c8b464';
+      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+      ctx.strokeRect(obj.tx*TILE,obj.ty*TILE,obj.w*TILE,obj.h*TILE);
+      ctx.setLineDash([]);
+      // Flag pole
+      ctx.fillStyle=col;
+      ctx.fillRect(obj.x-1,obj.y-16,2,16);
+      ctx.fillRect(obj.x+1,obj.y-16,9,6);
+      ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='7px monospace';
+      ctx.fillText(obj.name,obj.x-obj.name.length*2,obj.y+5);
+      // Capture progress bar
+      if(obj.capTimer!==0) {
+        const pct=clamp(obj.capTimer/5,0,1)*Math.sign(obj.capTimer);
+        ctx.fillStyle='rgba(0,0,0,0.5)';
+        ctx.fillRect(obj.x-20,obj.y+8,40,5);
+        ctx.fillStyle=pct>0?'#6ab44a':'#f44';
+        ctx.fillRect(obj.x-20,obj.y+8,40*Math.abs(pct),5);
+      }
+    }
+
+    // Waypoint lines
+    for (const u of game.selected) {
+      if(!u.isAlive||!u.waypoint||u.path.length===0) continue;
+      ctx.strokeStyle='rgba(220,220,100,0.45)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(u.x,u.y);
+      for (const wp of u.path) ctx.lineTo(wp.x,wp.y);
+      ctx.stroke(); ctx.setLineDash([]);
+      // Waypoint flag
+      const wx=u.waypoint.x, wy=u.waypoint.y;
+      ctx.fillStyle='#c8b464';
+      ctx.fillRect(wx-1,wy-10,1.5,10);
+      ctx.fillRect(wx+0.5,wy-10,7,4);
+    }
+
+    // Selection rings
+    for (const u of game.selected) {
+      if(!u.isAlive) continue;
+      ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(u.x,u.y,u instanceof Tank?17:9.5,0,Math.PI*2); ctx.stroke();
+    }
+
+    // Units
+    for (const u of game.units) {
+      if(u.dead) { this._drawDeadUnit(u); continue; }
+      this._drawUnit(u);
+    }
+
+    // Tanks
+    for (const t of game.tanks) {
+      if(t.dead) { this._drawDeadTank(t); continue; }
+      this._drawTank(t);
+    }
+
+    // Bullets
+    for (const b of game.bullets) {
+      const ex=b.x+Math.cos(b.ang+Math.PI)*7;
+      const ey=b.y+Math.sin(b.ang+Math.PI)*7;
+      ctx.strokeStyle=b.isTank?'#ff8800':'#ffff88';
+      ctx.lineWidth=b.isTank?2:0.9;
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(ex,ey); ctx.stroke();
+    }
+
+    // Explosion fire particles
+    for (const exp of game.explosions) {
+      for (const p of exp.particles) {
+        if(p.life<=0) continue;
+        ctx.globalAlpha=Math.min(1,p.life);
+        ctx.fillStyle=p.life>0.4?'#ff6600':'#992200';
+        ctx.beginPath(); ctx.arc(p.x,p.y,exp.size*2.5,0,Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
+
+    // Drag rect
+    if(game.dragStart&&game.dragEnd) {
+      const ws=cam.screenToWorld(game.dragStart.x,game.dragStart.y);
+      const we=cam.screenToWorld(game.dragEnd.x,game.dragEnd.y);
+      ctx.strokeStyle='rgba(200,230,80,0.85)'; ctx.lineWidth=1; ctx.setLineDash([3,2]);
+      ctx.strokeRect(Math.min(ws.x,we.x),Math.min(ws.y,we.y),Math.abs(we.x-ws.x),Math.abs(we.y-ws.y));
+      ctx.setLineDash([]);
+    }
+
+    // Artillery target cursor
+    if(game.artMode) {
+      const mp=game._lastMouse;
+      if(mp) {
+        ctx.strokeStyle='#f44'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(mp.x,mp.y,20,0,Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mp.x-25,mp.y); ctx.lineTo(mp.x+25,mp.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mp.x,mp.y-25); ctx.lineTo(mp.x,mp.y+25); ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+    this._drawMinimap();
+  }
+
+  _drawUnit(u) {
+    const {ctx}=this;
+    const isAllied=u.team==='allied';
+    const base=isAllied?'#5a6e3a':'#686b5a';
+    const dark=isAllied?'#3a4e2a':'#484b3a';
+
+    // Suppression glow
+    if(u.suppressTime>0) {
+      ctx.globalAlpha=Math.min(0.35,u.suppressTime*0.12);
+      ctx.fillStyle='#ff3300';
+      ctx.beginPath(); ctx.arc(u.x,u.y,10+u.suppressTime,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+
+    // Cover shield icon
+    if(u.inCover) {
+      ctx.globalAlpha=0.5;
+      ctx.fillStyle='#4a9a2a';
+      ctx.beginPath(); ctx.arc(u.x+5,u.y-7,3,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+
+    ctx.save(); ctx.translate(u.x,u.y);
+    if(u.prone) {
+      ctx.rotate(u.facing);
+      ctx.fillStyle=dark;   ctx.fillRect(-5,-3,10,6);
+      ctx.fillStyle=base;   ctx.fillRect(-4,-2,8,4);
+    } else {
+      ctx.fillStyle=dark;
+      ctx.beginPath(); ctx.ellipse(0,0,4,5,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=base;
+      ctx.beginPath(); ctx.ellipse(0,0,3,4,0,0,Math.PI*2); ctx.fill();
+      // Facing indicator
+      ctx.rotate(u.facing);
+      ctx.fillStyle=isAllied?'#8abe5a':'#b0aa7a';
+      ctx.beginPath(); ctx.arc(4.5,0,1.8,0,Math.PI*2); ctx.fill();
+    }
+    if(u.role==='medic') {
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.fillRect(-1,-3.5,2,7); ctx.fillRect(-3.5,-1,7,2);
+    }
+    ctx.restore();
+
+    // Wounded indicator
+    if(u.wounded) {
+      ctx.fillStyle='#f88'; ctx.beginPath(); ctx.arc(u.x,u.y-7,2.5,0,Math.PI*2); ctx.fill();
+    }
+
+    // Morale pip
+    if(u.morale<=1) {
+      ctx.fillStyle=u.morale===0?'#ff3333':'#ff8833';
+      ctx.beginPath(); ctx.arc(u.x+7,u.y-7,2.5,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  _drawDeadUnit(u) {
+    const {ctx}=this;
+    ctx.save(); ctx.translate(u.x,u.y); ctx.rotate(u.deathAngle); ctx.globalAlpha=0.45;
+    ctx.fillStyle=u.team==='allied'?'#3a4e2a':'#484b3a';
+    ctx.fillRect(-5,-2,10,4);
+    ctx.globalAlpha=1; ctx.restore();
+  }
+
+  _drawTank(t) {
+    const {ctx}=this;
+    const isAllied=t.team==='allied';
+    const body=isAllied?'#5a6e3a':'#6a6a48';
+    const dark=isAllied?'#3a4e2a':'#4a4a2a';
+
+    ctx.save(); ctx.translate(t.x,t.y); ctx.rotate(t.facing);
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(-15,-8,30,17);
+    // Tracks
+    ctx.fillStyle='#222'; ctx.fillRect(-15,-9,30,3); ctx.fillRect(-15,6,30,3);
+    // Hull
+    ctx.fillStyle=body; ctx.fillRect(-13,-6,26,12);
+    ctx.fillStyle=dark; ctx.fillRect(-13,-6,26,2);
+    ctx.restore();
+
+    // Turret (independent rotation)
+    ctx.save(); ctx.translate(t.x,t.y); ctx.rotate(t.turretAngle);
+    ctx.fillStyle=isAllied?'#4a5e2a':'#5a5a38';
+    ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=dark; ctx.fillRect(5,-1.5,13,3);
+    ctx.restore();
+
+    // Smoke hit
+    if(t.smokeTimer>0) {
+      ctx.globalAlpha=Math.min(0.55,t.smokeTimer*0.14);
+      ctx.fillStyle='#444';
+      ctx.beginPath(); ctx.arc(t.x,t.y-10,11,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+
+    // HP bar
+    if(t.hp<0.99) {
+      ctx.fillStyle='#222'; ctx.fillRect(t.x-14,t.y-20,28,4);
+      ctx.fillStyle=t.hp>0.5?'#6ab44a':t.hp>0.25?'#fa8':'#f44';
+      ctx.fillRect(t.x-14,t.y-20,28*t.hp,4);
+    }
+    if(t.immobilised) {
+      ctx.fillStyle='#fa8'; ctx.font='8px monospace';
+      ctx.fillText('IMOB',t.x-10,t.y-22);
+    }
+  }
+
+  _drawDeadTank(t) {
+    const {ctx}=this;
+    ctx.save(); ctx.translate(t.x,t.y); ctx.rotate(t.facing); ctx.globalAlpha=0.65;
+    ctx.fillStyle='#1e1e1e'; ctx.fillRect(-13,-6,26,12);
+    ctx.globalAlpha=1; ctx.restore();
+    ctx.fillStyle='rgba(40,40,40,0.45)';
+    ctx.beginPath(); ctx.arc(t.x,t.y-8,14,0,Math.PI*2); ctx.fill();
+  }
+
+  _drawMinimap() {
+    const {mmCtx,game}=this;
+    const mW=152,mH=104;
+    const sx=mW/(MAP_W*TILE), sy=mH/(MAP_H*TILE);
+    mmCtx.drawImage(this.tileCache,0,0,MAP_W*TILE,MAP_H*TILE,0,0,mW,mH);
+    for (const u of game.units) {
+      if(u.dead) continue;
+      mmCtx.fillStyle=u.team==='allied'?'#6ab44a':'#e44';
+      mmCtx.fillRect(u.x*sx-1,u.y*sy-1,2.5,2.5);
+    }
+    for (const t of game.tanks) {
+      if(t.dead) continue;
+      mmCtx.fillStyle=t.team==='allied'?'#4aff6a':'#ff4a4a';
+      mmCtx.fillRect(t.x*sx-2,t.y*sy-2,4.5,4.5);
+    }
+    for (const o of game.objectives) {
+      mmCtx.fillStyle=o.capturedBy==='allied'?'#6ab44a':'#c8b464';
+      mmCtx.fillRect(o.x*sx-2,o.y*sy-2,4,4);
+    }
+    const cam=game.camera;
+    const vx=(cam.x-CANVAS_W/(2*cam.zoom))*sx;
+    const vy=(cam.y-CANVAS_H/(2*cam.zoom))*sy;
+    const vw=(CANVAS_W/cam.zoom)*sx, vh=(CANVAS_H/cam.zoom)*sy;
+    mmCtx.strokeStyle='rgba(255,255,180,0.6)'; mmCtx.lineWidth=1;
+    mmCtx.strokeRect(vx,vy,vw,vh);
+  }
+}
+
+// === INPUT ===
+function setupInput(game,canvas) {
+  let mouseBtn=0, dragThresh=false;
+
+  canvas.addEventListener('mousedown',e=>{
+    mouseBtn=e.button;
+    const wx=game.camera.screenToWorld(e.clientX,e.clientY);
+
+    if(e.button===2) { // Right click
+      game.issueOrder(wx.x,wx.y,e.ctrlKey);
+      return;
+    }
+
+    if(game.artMode) {
+      game.artillery.fire(wx.x,wx.y);
+      game.artMode=false;
+      return;
+    }
+
+    // Click on unit?
+    const all=[...game.units,...game.tanks];
+    let hit=null;
+    for (const u of all) {
+      if(u.team==='allied'&&!u.dead) {
+        const r=u instanceof Tank?15:9;
+        if(dist2(wx.x,wx.y,u.x,u.y)<r){hit=u;break;}
+      }
+    }
+    if(hit) {
+      if(!e.shiftKey){for(const s of game.selected)s.selected=false;game.selected=[];}
+      hit.selected=true;
+      if(!game.selected.includes(hit)) game.selected.push(hit);
+    } else {
+      if(!e.shiftKey){for(const s of game.selected)s.selected=false;game.selected=[];}
+      game.dragStart={x:e.clientX,y:e.clientY};
+      game.dragEnd=null;
+      dragThresh=false;
+    }
+  });
+
+  canvas.addEventListener('mousemove',e=>{
+    game._lastMouse=game.camera.screenToWorld(e.clientX,e.clientY);
+    if(mouseBtn===0&&game.dragStart) {
+      game.dragEnd={x:e.clientX,y:e.clientY};
+      if(Math.abs(e.clientX-game.dragStart.x)>5||Math.abs(e.clientY-game.dragStart.y)>5) dragThresh=true;
+    }
+    // Tooltip
+    const tip=document.getElementById('tooltip');
+    const wx=game.camera.screenToWorld(e.clientX,e.clientY);
+    let hov=null;
+    for (const u of [...game.units,...game.tanks]) {
+      if(!u.dead){const r=u instanceof Tank?15:9;if(dist2(wx.x,wx.y,u.x,u.y)<r){hov=u;break;}}
+    }
+    if(hov){
+      tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-24)+'px';
+      tip.textContent=hov instanceof Tank
+        ?`${hov.model} [${hov.team}] HP:${Math.round(hov.hp*100)}%${hov.immobilised?' IMMOB':''}`
+        :`${RANK_NAMES[hov.rank]} ${hov.name} | ${hov.weapon.name} | ${MORALE_NAMES[hov.morale]}`;
+    } else { tip.style.display='none'; }
+  });
+
+  canvas.addEventListener('mouseup',e=>{
+    if(game.dragStart&&game.dragEnd&&dragThresh) {
+      const ws=game.camera.screenToWorld(game.dragStart.x,game.dragStart.y);
+      const we=game.camera.screenToWorld(game.dragEnd.x,game.dragEnd.y);
+      game.boxSelect(ws.x,ws.y,we.x,we.y);
+    }
+    game.dragStart=null; game.dragEnd=null; mouseBtn=-1;
+  });
+
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    game.camera.zoom*=e.deltaY<0?1.12:0.89;
+    game.camera.zoom=clamp(game.camera.zoom,game.camera.minZoom,game.camera.maxZoom);
+  },{passive:false});
+
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+  document.addEventListener('keydown',e=>{
+    game.keys[e.key]=true;
+    if(e.key===' '){e.preventDefault();game.paused=!game.paused;document.getElementById('pauseOverlay').style.display=game.paused?'flex':'none';}
+    if(e.key==='+'||e.key==='=') game.camera.zoom=clamp(game.camera.zoom*1.12,game.camera.minZoom,game.camera.maxZoom);
+    if(e.key==='-') game.camera.zoom=clamp(game.camera.zoom*0.89,game.camera.minZoom,game.camera.maxZoom);
+    if(e.key==='Escape'){game.artMode=false;for(const s of game.selected)s.selected=false;game.selected=[];}
+    if(e.key==='m'||e.key==='M') for(const u of game.selected) u.order='move';
+    if(e.key==='a'||e.key==='A') { e.preventDefault(); for(const u of game.selected)u.order='attack'; }
+    if(e.key==='h'||e.key==='H') for(const u of game.selected){u.order='hold';u.path=[];}
+  });
+  document.addEventListener('keyup',e=>{ game.keys[e.key]=false; });
+
+  // Order buttons
+  document.getElementById('btnMove').onclick=()=>{ for(const u of game.selected)u.order='move'; };
+  document.getElementById('btnAttack').onclick=()=>{ for(const u of game.selected)u.order='attack'; };
+  document.getElementById('btnHold').onclick=()=>{ for(const u of game.selected){u.order='hold';u.path=[];} };
+  document.getElementById('btnAmbush').onclick=()=>{
+    for(const u of game.selected){u.order='ambush';u.path=[];u.prone=true;}
+    game.log('Ambush positions set','#c8b464');
+  };
+  document.getElementById('btnWithdraw').onclick=()=>{
+    for(const u of game.selected){
+      u.order='withdraw';
+      u.path=game.pf.find(u.x,u.y,5*TILE+rnd(-20,20),u.y+rnd(-30,30));
+    }
+  };
+  document.getElementById('btnArtillery').onclick=()=>{
+    if(game.artillery.state==='ready'){
+      game.artMode=!game.artMode;
+      game.log(game.artMode?'Click map for artillery target...':'Artillery cancelled','#c8b464');
+    }
+  };
+}
+
+// === UI PANEL UPDATE ===
+function updateUI(game) {
+  // Unit info
+  const el=document.getElementById('unitInfo');
+  const sel=game.selected;
+  if(sel.length===0) {
+    el.innerHTML='<h3 style="color:#555">No unit selected</h3>';
+  } else if(sel.length>1) {
+    el.innerHTML=`<h3>${sel.length} units selected</h3>
+      <div class="stat-row"><span>Alive</span><span class="stat-val">${sel.filter(u=>u.isAlive).length}</span></div>
+      <div class="stat-row"><span>Effective</span><span class="stat-val">${sel.filter(u=>u.isEffective).length}</span></div>`;
+  } else {
+    const u=sel[0];
+    if(u instanceof Tank) {
+      el.innerHTML=`<h3 style="color:#c8b464">${u.model}</h3>
+        <div class="stat-row"><span>Team</span><span class="stat-val" style="color:${u.team==='allied'?'#6ab44a':'#f88'}">${u.team.toUpperCase()}</span></div>
+        <div class="stat-row"><span>HP</span><span class="stat-val">${Math.round(u.hp*100)}%</span></div>
+        <div class="stat-row"><span>Status</span><span class="stat-val">${u.dead?'DESTROYED':u.immobilised?'IMMOB':'OK'}</span></div>
+        <div class="stat-row"><span>Order</span><span class="stat-val">${u.order.toUpperCase()}</span></div>`;
+    } else {
+      const hrC=u.heartRate>140?'#f88':u.heartRate>105?'#fa8':'#6ab44a';
+      const moC=u.morale<=1?'#f88':u.morale===2?'#fa8':'#6ab44a';
+      el.innerHTML=`
+        <h3 style="color:#c8b464">${RANK_NAMES[u.rank]} ${u.name}</h3>
+        <div class="stat-row"><span>Team</span><span class="stat-val" style="color:${u.team==='allied'?'#6ab44a':'#f88'}">${u.team==='allied'?'Allied':'German'}</span></div>
+        <div class="stat-row"><span>Weapon</span><span class="stat-val">${u.weapon.name}</span></div>
+        <div class="stat-row"><span>Ammo</span><span class="stat-val">${u.ammo}/${u.weapon.ammoMax}</span></div>
+        <div class="stat-row"><span>HP</span><span class="stat-val">${u.wounded?'<span style="color:#f88">WOUNDED</span>':Math.round(u.hp*100)+'%'}</span></div>
+        <div class="stat-row"><span>Heart Rate</span><span class="stat-val" style="color:${hrC}">${Math.round(u.heartRate)} bpm</span></div>
+        <div class="stat-row"><span>Fatigue</span><span class="stat-val">${Math.round(u.fatigue)}%</span></div>
+        <div class="stat-row"><span>Morale</span><span class="stat-val" style="color:${moC}">${MORALE_NAMES[u.morale]}</span></div>
+        <div class="stat-row"><span>Cover</span><span class="stat-val">${u.inCover?Math.round(u.coverVal*100)+'%':'—'}</span></div>`;
+    }
+  }
+
+  // Objectives
+  const [o1,o2]=game.objectives;
+  const e1=document.getElementById('obj1'), e2=document.getElementById('obj2');
+  e1.textContent=(o1.capturedBy==='allied'?'[x]':'[ ]')+' Capture Church';
+  e1.className='obj'+(o1.capturedBy==='allied'?' captured':'');
+  e2.textContent=(o2.capturedBy==='allied'?'[x]':'[ ]')+' Capture Farmhouse';
+  e2.className='obj'+(o2.capturedBy==='allied'?' captured':'');
+  const both=o1.capturedBy==='allied'&&o2.capturedBy==='allied';
+  document.getElementById('winTimer').textContent=both?`Win timer: ${Math.ceil(60-game.winTimer)}s`:'';
+
+  // Messages
+  const ml=document.getElementById('messageLog');
+  ml.innerHTML=game.messages.map(m=>`<div class="msg" style="color:${m.color};opacity:${Math.min(1,m.life/1.5)}">${m.text}</div>`).join('');
+
+  // Artillery UI
+  const abtn=document.getElementById('btnArtillery');
+  abtn.className='order-btn'+(game.artMode?' active':'');
+  abtn.disabled=game.artillery.state!=='ready';
+  document.getElementById('artStatus').textContent=game.artillery.statusText;
+}
+
+// === MAIN LOOP ===
+const canvas = document.getElementById('gameCanvas');
+canvas.width  = CANVAS_W;
+canvas.height = CANVAS_H;
+
+const game     = new Game();
+const renderer = new Renderer(game, canvas);
+
+setupInput(game, canvas);
+
+let lastT = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastT) / 1000, 0.05);
+  lastT = ts;
+  game.update(dt);
+  renderer.draw();
+  updateUI(game);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts => { lastT = ts; requestAnimationFrame(loop); });
+
+window.addEventListener('resize', () => {
+  CANVAS_W = window.innerWidth;
+  CANVAS_H = window.innerHeight - UI_H;
+  canvas.width  = CANVAS_W;
+  canvas.height = CANVAS_H;
+});
+</script>
 </body>
 </html>
