@@ -10,6 +10,7 @@ local Debris = game:GetService("Debris")
 -- ===== SETTINGS =====
 local RESPAWN_TIME = 5           -- seconds until the burger comes back
 local EAT_SOUND_ID = "rbxasset://sounds/electronicpingshort.wav" -- swap for any sound id like "rbxassetid://123456"
+local EAT_ANIMATION_ID = "rbxassetid://0" -- PUT YOUR ANIMATION ID HERE (the number from your published animation)
 -- ====================
 
 local target = script.Parent
@@ -70,6 +71,21 @@ local function playEatEffects()
 	Debris:AddItem(burst, 2)
 end
 
+local function playEatAnimation(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then return end
+
+	local anim = Instance.new("Animation")
+	anim.AnimationId = EAT_ANIMATION_ID
+
+	local track = animator:LoadAnimation(anim)
+	track.Looped = false          -- play ONCE, no repeating
+	track.Priority = Enum.AnimationPriority.Action
+	track:Play()
+end
+
 local function hideBurger()
 	-- Squash up then shrink to nothing (pop!)
 	for _, p in allParts do
@@ -118,6 +134,7 @@ part.Touched:Connect(function(hit)
 	end
 	burgers.Value += 1
 
+	playEatAnimation(character)
 	playEatEffects()
 	hideBurger()
 
