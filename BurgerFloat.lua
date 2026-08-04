@@ -68,7 +68,8 @@ local t = 0
 RunService.Heartbeat:Connect(function(dt)
 	t += dt
 
-	local bob = math.sin(t * FLOAT_SPEED * math.pi) * FLOAT_HEIGHT
+	-- (sin+1)*0.5 keeps the bob between 0 and FLOAT_HEIGHT so it never dips below its start position
+	local bob = (math.sin(t * FLOAT_SPEED * math.pi) + 1) * 0.5 * FLOAT_HEIGHT
 	local spin = math.rad(SPIN_SPEED) * t
 	local tilt = math.rad(math.sin(t * FLOAT_SPEED * math.pi * 0.5) * TILT)
 
