@@ -46,7 +46,7 @@ label.BackgroundTransparency = 1
 label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.TextScaled = true
 label.Font = Enum.Font.FredokaOne
-label.Text = "🍔 Burgers: 0"
+label.Text = "🍔 Food: 0"
 label.Parent = frame
 
 local textStroke = Instance.new("UIStroke")
@@ -98,20 +98,20 @@ end
 
 -- ===== KEEP THE COUNTER UPDATED =====
 local function watchBurgers(burgers)
-	label.Text = "🍔 Burgers: " .. burgers.Value
+	label.Text = "🍔 Food: " .. burgers.Value
 	burgers.Changed:Connect(function(newValue)
-		label.Text = "🍔 Burgers: " .. newValue
+		label.Text = "🍔 Food: " .. newValue
 		bounce()
 		plusOnePopup()
 	end)
 end
 
-local burgers = player:FindFirstChild("Burgers")
+local burgers = player:FindFirstChild("Food")
 if burgers then
 	watchBurgers(burgers)
 else
 	player.ChildAdded:Connect(function(child)
-		if child.Name == "Burgers" and child:IsA("IntValue") then
+		if child.Name == "Food" and child:IsA("IntValue") then
 			watchBurgers(child)
 		end
 	end)

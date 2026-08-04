@@ -9,7 +9,7 @@ local Debris = game:GetService("Debris")
 
 -- ===== SETTINGS =====
 local RESPAWN_TIME = 5           -- seconds until the burger comes back
-local EAT_SOUND_ID = "rbxasset://sounds/electronicpingshort.wav" -- swap for any sound id like "rbxassetid://123456"
+local EAT_SOUND_ID = "rbxassetid://0" -- PUT A CRUNCH SOUND ID HERE (find one in Toolbox -> Audio, search "eating crunch")
 local EAT_ANIMATION_ID = "rbxassetid://0" -- PUT YOUR ANIMATION ID HERE (the number from your published animation)
 -- ====================
 
@@ -125,10 +125,10 @@ part.Touched:Connect(function(hit)
 	eaten = true
 
 	-- +1 Burger point
-	local burgers = player:FindFirstChild("Burgers")
+	local burgers = player:FindFirstChild("Food")
 	if not burgers then
 		burgers = Instance.new("IntValue")
-		burgers.Name = "Burgers"
+		burgers.Name = "Food"
 		burgers.Value = 0
 		burgers.Parent = player
 	end
