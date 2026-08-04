@@ -1,48 +1,43 @@
 -- BurgerFloat.lua
--- Put this Script INSIDE your burger Part (or the PrimaryPart of a burger Model).
--- It makes the burger float smoothly up and down forever, and adds a slow spin.
+-- Put this Script (regular Script, NOT LocalScript) inside your burger.
+-- Works whether the burger is a single Part OR a Model.
 
 local TweenService = game:GetService("TweenService")
 
-local burger = script.Parent
+-- ===== SETTINGS =====
+local FLOAT_HEIGHT = 1.5   -- studs up/down
+local FLOAT_TIME = 1.5     -- seconds per up (or down) movement
+-- ====================
 
--- ===== SETTINGS (change these to taste) =====
-local FLOAT_HEIGHT = 1.5   -- how many studs it moves up and down
-local FLOAT_TIME = 1.5     -- seconds for one up (or down) movement
-local SPIN = true          -- set to false if you don't want it to rotate
-local SPIN_TIME = 4        -- seconds for one full rotation
--- ============================================
+-- Figure out which part to move (handles Part or Model)
+local target = script.Parent
+local part
 
--- The burger must not fall or get pushed around
-burger.Anchored = true
-burger.CanCollide = false
+if target:IsA("BasePart") then
+	part = target
+elseif target:IsA("Model") then
+	part = target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")
+end
 
-local startCFrame = burger.CFrame
+if not part then
+	warn("BurgerFloat: couldn't find a Part to float! Put the script inside a Part or a Model with parts.")
+	return
+end
 
--- Smooth up/down float (Sine easing = very smooth, reverses and repeats forever)
+print("BurgerFloat: running on", part:GetFullName())
+
+part.Anchored = true
+part.CanCollide = false
+
 local floatInfo = TweenInfo.new(
 	FLOAT_TIME,
 	Enum.EasingStyle.Sine,
 	Enum.EasingDirection.InOut,
 	-1,      -- repeat forever
-	true     -- reverse back down after going up
+	true     -- reverse back down
 )
 
-local floatTween = TweenService:Create(burger, floatInfo, {
-	Position = burger.Position + Vector3.new(0, FLOAT_HEIGHT, 0)
+local floatTween = TweenService:Create(part, floatInfo, {
+	Position = part.Position + Vector3.new(0, FLOAT_HEIGHT, 0)
 })
 floatTween:Play()
-
--- Optional slow spin
-if SPIN then
-	task.spawn(function()
-		local RunService = game:GetService("RunService")
-		while burger.Parent do
-			local dt = RunService.Heartbeat:Wait()
-			-- rotate around Y axis, keep the floating position from the tween
-			burger.CFrame = CFrame.new(burger.Position)
-				* (burger.CFrame - burger.Position)
-				* CFrame.Angles(0, math.rad(360 / SPIN_TIME) * dt, 0)
-		end
-	end)
-end
