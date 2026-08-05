@@ -7,7 +7,12 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local REBIRTH_COST = 100 -- must match RebirthServer!
+local BASE_COST = 100       -- must match RebirthServer!
+local COST_MULTIPLIER = 2.5 -- must match RebirthServer!
+
+local function getRebirthCost(rebirths)
+	return math.floor(BASE_COST * COST_MULTIPLIER ^ rebirths)
+end
 
 local player = Players.LocalPlayer
 local rebirthEvent = ReplicatedStorage:WaitForChild("RebirthEvent")
@@ -40,7 +45,7 @@ button.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.TextScaled = true
 button.Font = Enum.Font.FredokaOne
-button.Text = "⭐ REBIRTH\n0/" .. REBIRTH_COST .. " 🍔"
+button.Text = "⭐ REBIRTH\n0/" .. getRebirthCost(0) .. " 🍔"
 button.Parent = screenGui
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 14)
 
@@ -56,10 +61,11 @@ local function refresh()
 	local burgers = burgersValue and burgersValue.Value or 0
 	local rebirths = rebirthsValue and rebirthsValue.Value or 0
 
+	local cost = getRebirthCost(rebirths)
 	countLabel.Text = "⭐ Rebirths: " .. rebirths
-	button.Text = "⭐ REBIRTH\n" .. math.min(burgers, REBIRTH_COST) .. "/" .. REBIRTH_COST .. " 🍔"
+	button.Text = "⭐ REBIRTH\n" .. math.min(burgers, cost) .. "/" .. cost .. " 🍔"
 
-	if burgers >= REBIRTH_COST then
+	if burgers >= cost then
 		-- READY: glowing gold
 		button.BackgroundColor3 = Color3.fromRGB(255, 190, 40)
 		stroke.Color = Color3.fromRGB(150, 100, 0)
@@ -94,7 +100,8 @@ hook("Rebirths", function(v) rebirthsValue = v end)
 -- ===== CLICK =====
 button.Activated:Connect(function()
 	local burgers = burgersValue and burgersValue.Value or 0
-	if burgers >= REBIRTH_COST then
+	local rebirths = rebirthsValue and rebirthsValue.Value or 0
+	if burgers >= getRebirthCost(rebirths) then
 		rebirthEvent:FireServer()
 		-- little celebration pop
 		local base = button.Size

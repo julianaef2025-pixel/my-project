@@ -8,7 +8,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ===== SETTINGS =====
-local REBIRTH_COST = 100    -- burgers needed for one rebirth
+local BASE_COST = 100       -- burgers needed for your FIRST rebirth
+local COST_MULTIPLIER = 2.5 -- every rebirth costs 2.5x more (100, 250, 625, ...)
+
+local function getRebirthCost(rebirths)
+	return math.floor(BASE_COST * COST_MULTIPLIER ^ rebirths)
+end
 -- ====================
 
 -- RemoteEvent the UI button fires
@@ -41,7 +46,7 @@ rebirthEvent.OnServerEvent:Connect(function(player)
 	if not burgers or not rebirths then return end
 
 	-- server-side check so nobody can cheat the button
-	if burgers.Value < REBIRTH_COST then return end
+	if burgers.Value < getRebirthCost(rebirths.Value) then return end
 
 	burgers.Value = 0
 	rebirths.Value += 1
