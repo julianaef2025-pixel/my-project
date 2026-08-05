@@ -256,12 +256,23 @@ local function onTouched(hit)
 		burgers.Value = 0
 		burgers.Parent = player
 	end
-	-- rebirths give you more burgers per bite (~1.5x each rebirth)
+	-- rebirths + pets multiply your burgers per bite
 	local rebirths = player:FindFirstChild("Rebirths")
-	local amount = math.ceil(1 + (rebirths and rebirths.Value or 0) * 0.5)
+	local petBoost = player:FindFirstChild("PetBoost")
+	local multiplier = (1 + (rebirths and rebirths.Value or 0) * 0.5) * (1 + (petBoost and petBoost.Value or 0))
+	local amount = math.ceil(multiplier)
 	burgers.Value += amount
 
-	growPlayer(player, character, burgers.Value)
+	-- TotalEaten controls your SIZE and never goes down (spending burgers won't shrink you)
+	local totalEaten = player:FindFirstChild("TotalEaten")
+	if not totalEaten then
+		totalEaten = Instance.new("IntValue")
+		totalEaten.Name = "TotalEaten"
+		totalEaten.Parent = player
+	end
+	totalEaten.Value += amount
+
+	growPlayer(player, character, totalEaten.Value)
 	playEatAnimation(character)
 	playEatEffects()
 	hideBurger()

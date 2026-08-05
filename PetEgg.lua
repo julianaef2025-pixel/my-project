@@ -1,16 +1,17 @@
--- PetEgg.lua (v2 — ROULETTE EDITION)
+-- PetEgg.lua (v3 — INVENTORY + SAVE EDITION)
 -- Regular Script — put INSIDE your egg (Part or Model).
--- Press E -> pay burgers -> roulette spins on screen -> random pet with a
--- burger MULTIPLIER follows you. Needs the HatchRouletteUI LocalScript in StarterGui!
+-- Hatching adds the pet to your COLLECTION (Pets folder) and equips it.
+-- Works with: HatchRouletteUI (roulette), PetInventoryUI (pets button), GameData (saving).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 -- ===== SETTINGS =====
 local HATCH_COST = 50
+local SPIN_TIME = 3.5 -- must match HatchRouletteUI!
 
--- boost = extra burgers per bite (0.5 = +50%, 2 = +200% = 3x total!)
 local PETS = {
 	{ name = "Bubble",   color = Color3.fromRGB(120, 200, 255), size = 1.1, rarity = "Common",    boost = 0.25, chance = 28 },
 	{ name = "Minty",    color = Color3.fromRGB(120, 255, 160), size = 1.1, rarity = "Common",    boost = 0.25, chance = 28 },
@@ -23,9 +24,10 @@ local PETS = {
 	{ name = "Sunny",    color = Color3.fromRGB(255, 220, 60),  size = 1.6, rarity = "LEGENDARY", boost = 2,    chance = 0.6 },
 	{ name = "Galaxy",   color = Color3.fromRGB(120, 60, 255),  size = 1.8, rarity = "MYTHIC",    boost = 3,    chance = 0.2 },
 }
-
-local SPIN_TIME = 3.5 -- must match the UI script!
 -- ====================
+
+local PET_BY_NAME = {}
+for _, p in PETS do PET_BY_NAME[p.name] = p end
 
 local egg = script.Parent
 local eggPart = egg:IsA("BasePart") and egg or (egg.PrimaryPart or egg:FindFirstChildWhichIsA("BasePart"))
@@ -35,12 +37,24 @@ for _, p in (egg:IsA("Model") and egg:GetDescendants() or { egg }) do
 	if p:IsA("BasePart") then p.Anchored = true end
 end
 
--- RemoteEvent for telling the client to play the roulette
+-- remote events (shared across all eggs)
 local hatchEvent = ReplicatedStorage:FindFirstChild("PetHatchEvent")
 if not hatchEvent then
 	hatchEvent = Instance.new("RemoteEvent")
 	hatchEvent.Name = "PetHatchEvent"
 	hatchEvent.Parent = ReplicatedStorage
+end
+local equipEvent = ReplicatedStorage:FindFirstChild("EquipPetEvent")
+if not equipEvent then
+	equipEvent = Instance.new("RemoteEvent")
+	equipEvent.Name = "EquipPetEvent"
+	equipEvent.Parent = ReplicatedStorage
+end
+local equipBind = ServerStorage:FindFirstChild("EquipPetBind")
+if not equipBind then
+	equipBind = Instance.new("BindableEvent")
+	equipBind.Name = "EquipPetBind"
+	equipBind.Parent = ServerStorage
 end
 
 local prompt = Instance.new("ProximityPrompt")
@@ -155,8 +169,88 @@ local function startFollowing(pet, player)
 	end)
 end
 
+-- ===== ADD TO COLLECTION =====
+local function addToCollection(player, petInfo)
+	local petsFolder = player:FindFirstChild("Pets")
+	if not petsFolder then
+		petsFolder = Instance.new("Folder")
+		petsFolder.Name = "Pets"
+		petsFolder.Parent = player
+	end
+	local entry = petsFolder:FindFirstChild(petInfo.name)
+	if not entry then
+		entry = Instance.new("StringValue")
+		entry.Name = petInfo.name
+		entry.Parent = petsFolder
+	end
+	-- info the inventory UI reads
+	entry:SetAttribute("Rarity", petInfo.rarity)
+	entry:SetAttribute("Boost", petInfo.boost)
+	entry:SetAttribute("Color", petInfo.color)
+end
+
+-- ===== EQUIP =====
+local function equipPet(player, petName)
+	local petInfo = PET_BY_NAME[petName]
+	if not petInfo then return end
+
+	-- only equip pets they actually own
+	local petsFolder = player:FindFirstChild("Pets")
+	if not petsFolder or not petsFolder:FindFirstChild(petName) then return end
+
+	local boostValue = player:FindFirstChild("PetBoost")
+	if not boostValue then
+		boostValue = Instance.new("NumberValue")
+		boostValue.Name = "PetBoost"
+		boostValue.Parent = player
+	end
+	boostValue.Value = petInfo.boost
+	player:SetAttribute("EquippedPet", petName)
+
+	local oldPet = workspace:FindFirstChild(player.Name .. "_Pet")
+	if oldPet then oldPet:Destroy() end
+
+	local pet = buildPet(petInfo, player.Name)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	pet:PivotTo(root and root.CFrame * CFrame.new(-2.5, 1.5, 1) or eggPart.CFrame * CFrame.new(0, 3, 0))
+	pet.Parent = workspace
+	startFollowing(pet, player)
+end
+
+-- bind equip handlers ONCE even if there are many eggs
+if not equipEvent:GetAttribute("Bound") then
+	equipEvent:SetAttribute("Bound", true)
+	equipEvent.OnServerEvent:Connect(function(player, petName)
+		if typeof(petName) == "string" then
+			equipPet(player, petName)
+		end
+	end)
+	equipBind.Event:Connect(function(player, petName)
+		-- also make sure old attributes exist for saved pets
+		local petInfo = PET_BY_NAME[petName]
+		if petInfo then
+			addToCollection(player, petInfo)
+		end
+		equipPet(player, petName)
+	end)
+	-- give saved pets their display info back when players join
+	Players.PlayerAdded:Connect(function(player)
+		task.wait(2)
+		local petsFolder = player:FindFirstChild("Pets")
+		if petsFolder then
+			for _, entry in petsFolder:GetChildren() do
+				local info = PET_BY_NAME[entry.Name]
+				if info then
+					addToCollection(player, info)
+				end
+			end
+		end
+	end)
+end
+
 -- ===== HATCH =====
-local busy = {} -- per player
+local busy = {}
 
 prompt.Triggered:Connect(function(player)
 	if busy[player] then return end
@@ -176,37 +270,19 @@ prompt.Triggered:Connect(function(player)
 	local winIndex = rollPet()
 	local petInfo = PETS[winIndex]
 
-	-- send the pet list + winner to the client's roulette UI
 	local uiData = {}
 	for i, p in PETS do
 		uiData[i] = { name = p.name, color = { p.color.R, p.color.G, p.color.B }, rarity = p.rarity, boost = p.boost }
 	end
 	hatchEvent:FireClient(player, uiData, winIndex)
 
-	-- spawn the pet after the roulette finishes
 	task.delay(SPIN_TIME + 1.5, function()
 		busy[player] = nil
 		if not player.Parent then return end
 
-		-- store the boost so the burger script can use it
-		local boostValue = player:FindFirstChild("PetBoost")
-		if not boostValue then
-			boostValue = Instance.new("NumberValue")
-			boostValue.Name = "PetBoost"
-			boostValue.Parent = player
-		end
-		boostValue.Value = petInfo.boost
+		addToCollection(player, petInfo)
+		equipPet(player, petInfo.name)
 
-		local oldPet = workspace:FindFirstChild(player.Name .. "_Pet")
-		if oldPet then oldPet:Destroy() end
-
-		local pet = buildPet(petInfo, player.Name)
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		pet:PivotTo(root and root.CFrame * CFrame.new(-2.5, 1.5, 1) or eggPart.CFrame * CFrame.new(0, 3, 0))
-		pet.Parent = workspace
-		startFollowing(pet, player)
-
-		print("PET: " .. player.Name .. " hatched " .. petInfo.name .. " (" .. petInfo.rarity .. ", +" .. petInfo.boost .. "x)")
+		print("PET: " .. player.Name .. " hatched " .. petInfo.name .. " (" .. petInfo.rarity .. ")")
 	end)
 end)

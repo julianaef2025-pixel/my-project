@@ -51,6 +51,12 @@ rebirthEvent.OnServerEvent:Connect(function(player)
 	burgers.Value = 0
 	rebirths.Value += 1
 
+	-- reset TotalEaten so your size starts over (rebirth = fresh start)
+	local totalEaten = player:FindFirstChild("TotalEaten")
+	if totalEaten then
+		totalEaten.Value = 0
+	end
+
 	-- reset the body back to normal size
 	local character = player.Character
 	if character then
