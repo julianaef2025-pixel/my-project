@@ -22,8 +22,9 @@ local BELLY_PER_FOOD = 0.15   -- how fast the belly fills per burger
 local BELLY_START = 1         -- belly size after first bite
 local MAX_BELLY = 2.2         -- belly max (compared to body) — can never cover you
 local HEIGHT_PER_FOOD = 0.03  -- body grows 3% per burger, together with the belly
-local MAX_SCALE = 30          -- how giant you can get
+local REBIRTH_BOOST = 0.5     -- each rebirth = +50% burgers per bite AND +50% faster growing
 local HEAVY_MODE = true       -- slowly get heavier (smooth, no stutter)
+-- NO SIZE LIMIT — eat forever, grow forever!
 -- =========================
 
 local target = script.Parent
@@ -123,8 +124,10 @@ local function growPlayer(player, character, foodCount)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
 
-	-- body grows once, instantly (3% is too small to see a pop anyway)
-	local targetScale = math.min(1 + foodCount * HEIGHT_PER_FOOD, MAX_SCALE)
+	-- rebirths make you grow faster (and there is NO size cap)
+	local rebirths = player:FindFirstChild("Rebirths")
+	local boost = 1 + (rebirths and rebirths.Value or 0) * REBIRTH_BOOST
+	local targetScale = 1 + foodCount * HEIGHT_PER_FOOD * boost
 	pcall(function()
 		character:ScaleTo(targetScale)
 	end)
@@ -253,7 +256,10 @@ local function onTouched(hit)
 		burgers.Value = 0
 		burgers.Parent = player
 	end
-	burgers.Value += 1
+	-- rebirths give you more burgers per bite (~1.5x each rebirth)
+	local rebirths = player:FindFirstChild("Rebirths")
+	local amount = math.ceil(1 + (rebirths and rebirths.Value or 0) * 0.5)
+	burgers.Value += amount
 
 	growPlayer(player, character, burgers.Value)
 	playEatAnimation(character)
