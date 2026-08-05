@@ -16,9 +16,10 @@ local Debris = game:GetService("Debris")
 local EAT_SOUND_ID = "rbxassetid://0"     -- your crunch sound id
 local EAT_ANIMATION_ID = "rbxassetid://0" -- your eat animation id
 local RESPAWN_TIME = 5      -- seconds until the burger comes back
-local GROW_PER_FOOD = 0.04  -- whole body: 4% bigger per food
-local BELLY_PER_FOOD = 0.35 -- belly ball: studs bigger per food
+local GROW_PER_FOOD = 0.035 -- whole body: 3.5% bigger per food
+local BELLY_PER_FOOD = 0.3  -- belly ball: studs bigger per food
 local MAX_SCALE = 30        -- body size cap
+local HEAVY_MODE = true     -- walk slower / jump lower as you fill up
 -- ====================
 
 local target = script.Parent
@@ -76,25 +77,24 @@ light.Parent = mainPart
 --  LocalScript in StarterPlayerScripts — that's what makes it perfectly smooth.)
 local eaten = false
 
--- ===== BALL BELLY =====
+-- ===== BALL BELLY (realistic: skin-colored, low on the tummy, jiggles) =====
 local function growBelly(character, foodCount)
 	local torso = character:FindFirstChild("UpperTorso")   -- R15
 		or character:FindFirstChild("Torso")               -- R6
 	if not torso then return end
 
-	local belly = character:FindFirstChild("Belly")
+	local belly = character:FindFirstChild("FoodBelly")
 	if not belly then
 		belly = Instance.new("Part")
-		belly.Name = "Belly"
+		belly.Name = "FoodBelly"
 		belly.Shape = Enum.PartType.Ball
 		belly.Material = Enum.Material.SmoothPlastic
 		belly.Color = torso.Color
 		belly.CanCollide = false
 		belly.CanQuery = false
 		belly.Massless = true
-		belly.Size = Vector3.new(1, 1, 1)
-		-- stick it to the front-bottom of the torso
-		belly.CFrame = torso.CFrame * CFrame.new(0, -torso.Size.Y * 0.25, -torso.Size.Z * 0.35)
+		belly.Size = Vector3.new(0.1, 0.1, 0.1)
+		belly.CFrame = torso.CFrame * CFrame.new(0, -torso.Size.Y * 0.3, -torso.Size.Z * 0.3)
 		belly.Parent = character
 
 		local weld = Instance.new("WeldConstraint")
@@ -103,29 +103,35 @@ local function growBelly(character, foodCount)
 		weld.Parent = belly
 	end
 
-	-- Belly gets rounder with every food (smooth tween)
-	local size = 1 + foodCount * BELLY_PER_FOOD
-	TweenService:Create(belly, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = Vector3.new(size, size, size),
+	-- Elastic easing = the belly wobbles into its new size like it's full
+	local size = 1.2 + foodCount * BELLY_PER_FOOD
+	TweenService:Create(belly, TweenInfo.new(0.8, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {
+		Size = Vector3.new(size, size * 0.9, size),
 	}):Play()
 end
 
--- ===== WHOLE BODY GROWTH =====
+-- ===== WHOLE BODY GROWTH (+ heavier movement the more you eat) =====
 local function growCharacter(character, foodCount)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local targetScale = math.min(1 + foodCount * GROW_PER_FOOD, MAX_SCALE)
 	task.spawn(function()
 		local startScale = character:GetScale()
 		local elapsed = 0
-		while elapsed < 0.4 do
+		while elapsed < 0.5 do
 			elapsed += RunService.Heartbeat:Wait()
-			local alpha = math.min(elapsed / 0.4, 1)
-			alpha = 1 - (1 - alpha) * (1 - alpha)
+			local alpha = math.min(elapsed / 0.5, 1)
+			alpha = 1 - (1 - alpha) ^ 3
 			local ok = pcall(function()
 				character:ScaleTo(startScale + (targetScale - startScale) * alpha)
 			end)
 			if not ok then break end
 		end
 	end)
+
+	if HEAVY_MODE and humanoid then
+		humanoid.WalkSpeed = math.max(16 - foodCount * 0.2, 8)
+		humanoid.JumpPower = math.max(50 - foodCount * 0.6, 25)
+	end
 end
 
 -- ===== EAT EFFECTS =====
@@ -201,6 +207,7 @@ local function onTouched(hit)
 
 	growCharacter(character, food.Value)
 	growBelly(character, food.Value)
+	print("Burger: " .. player.Name .. " ate food #" .. food.Value)
 	playEatAnimation(character)
 	playEatEffects()
 	setHidden(true)
