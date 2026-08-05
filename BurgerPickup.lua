@@ -11,6 +11,9 @@ local Debris = game:GetService("Debris")
 local RESPAWN_TIME = 5           -- seconds until the burger comes back
 local EAT_SOUND_ID = "rbxassetid://0" -- PUT A CRUNCH SOUND ID HERE (find one in Toolbox -> Audio, search "eating crunch")
 local EAT_ANIMATION_ID = "rbxassetid://0" -- PUT YOUR ANIMATION ID HERE (the number from your published animation)
+local GROW_PER_FOOD = 0.05   -- 5% bigger each bite
+local TUMMY_PER_FOOD = 0.08  -- extra tummy bulge per food (R15 avatars only)
+local MAX_SCALE = 30         -- biggest you can get
 -- ====================
 
 local target = script.Parent
@@ -69,6 +72,36 @@ local function playEatEffects()
 	burst.Parent = part
 	burst:Emit(40)
 	Debris:AddItem(burst, 2)
+end
+
+local function growCharacter(character, foodCount)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	local targetScale = math.min(1 + foodCount * GROW_PER_FOOD, MAX_SCALE)
+	print("Burger: growing " .. character.Name .. " to scale " .. targetScale)
+
+	-- Extra tummy bulge (only exists on R15 avatars, skipped otherwise)
+	local depth = humanoid:FindFirstChild("BodyDepthScale")
+	if depth then
+		depth.Value = math.min(1 + foodCount * TUMMY_PER_FOOD, MAX_SCALE)
+	end
+
+	-- Smoothly scale the whole character up over 0.4 seconds
+	task.spawn(function()
+		local RunService = game:GetService("RunService")
+		local startScale = character:GetScale()
+		local elapsed = 0
+		while elapsed < 0.4 do
+			elapsed += RunService.Heartbeat:Wait()
+			local alpha = math.min(elapsed / 0.4, 1)
+			alpha = 1 - (1 - alpha) * (1 - alpha)
+			local ok = pcall(function()
+				character:ScaleTo(startScale + (targetScale - startScale) * alpha)
+			end)
+			if not ok then break end
+		end
+	end)
 end
 
 local function playEatAnimation(character)
@@ -134,6 +167,7 @@ part.Touched:Connect(function(hit)
 	end
 	burgers.Value += 1
 
+	growCharacter(character, burgers.Value)
 	playEatAnimation(character)
 	playEatEffects()
 	hideBurger()
