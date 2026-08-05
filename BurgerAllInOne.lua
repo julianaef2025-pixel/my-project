@@ -16,9 +16,6 @@ local Debris = game:GetService("Debris")
 local EAT_SOUND_ID = "rbxassetid://0"     -- your crunch sound id
 local EAT_ANIMATION_ID = "rbxassetid://0" -- your eat animation id
 local RESPAWN_TIME = 5      -- seconds until the burger comes back
-local FLOAT_HEIGHT = 1.2    -- studs it floats up
-local FLOAT_SPEED = 1.2     -- bob speed
-local SPIN_SPEED = 60       -- degrees per second
 local GROW_PER_FOOD = 0.04  -- whole body: 4% bigger per food
 local BELLY_PER_FOOD = 0.35 -- belly ball: studs bigger per food
 local MAX_SCALE = 30        -- body size cap
@@ -50,6 +47,10 @@ end
 
 local mainPart = isModel and (target.PrimaryPart or allParts[1]) or target
 
+-- Tag this food so every player's own computer animates it smoothly (60fps, no lag)
+local CollectionService = game:GetService("CollectionService")
+CollectionService:AddTag(target, "FloatingFood")
+
 -- ===== SPARKLES + GLOW =====
 local sparkle = Instance.new("ParticleEmitter")
 sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -71,23 +72,9 @@ light.Brightness = 1.5
 light.Range = 8
 light.Parent = mainPart
 
--- ===== FLOAT + SPIN (moves the WHOLE burger together, works for models) =====
-local startPivot = isModel and target:GetPivot() or target.CFrame
+-- (Floating is now animated on each player's computer by the FoodFloatClient
+--  LocalScript in StarterPlayerScripts — that's what makes it perfectly smooth.)
 local eaten = false
-local t = 0
-
-RunService.Heartbeat:Connect(function(dt)
-	if eaten then return end
-	t += dt
-	local bob = (math.sin(t * FLOAT_SPEED * math.pi) + 1) * 0.5 * FLOAT_HEIGHT
-	local spin = math.rad(SPIN_SPEED) * t
-	local newPivot = startPivot * CFrame.new(0, bob, 0) * CFrame.Angles(0, spin, 0)
-	if isModel then
-		target:PivotTo(newPivot)
-	else
-		target.CFrame = newPivot
-	end
-end)
 
 -- ===== BALL BELLY =====
 local function growBelly(character, foodCount)
