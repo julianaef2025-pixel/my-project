@@ -1,36 +1,48 @@
--- PetEgg.lua
--- Regular Script — put INSIDE your egg (a Part, or a Model from Toolbox).
--- Walk up, press E, pay burgers, hatch a random pet that follows you!
+-- PetEgg.lua (v2 — ROULETTE EDITION)
+-- Regular Script — put INSIDE your egg (Part or Model).
+-- Press E -> pay burgers -> roulette spins on screen -> random pet with a
+-- burger MULTIPLIER follows you. Needs the HatchRouletteUI LocalScript in StarterGui!
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ===== SETTINGS =====
-local HATCH_COST = 50 -- burgers per hatch
+local HATCH_COST = 50
 
--- The pets! chance = how rare (higher number = more common)
+-- boost = extra burgers per bite (0.5 = +50%, 2 = +200% = 3x total!)
 local PETS = {
-	{ name = "Bubble",  color = Color3.fromRGB(120, 200, 255), size = 1.2, rarity = "Common",    chance = 50 },
-	{ name = "Minty",   color = Color3.fromRGB(120, 255, 160), size = 1.2, rarity = "Common",    chance = 30 },
-	{ name = "Peachy",  color = Color3.fromRGB(255, 170, 120), size = 1.4, rarity = "Rare",      chance = 12 },
-	{ name = "Grape",   color = Color3.fromRGB(190, 120, 255), size = 1.4, rarity = "Epic",      chance = 6 },
-	{ name = "Sunny",   color = Color3.fromRGB(255, 220, 60),  size = 1.7, rarity = "LEGENDARY", chance = 2 },
+	{ name = "Bubble",   color = Color3.fromRGB(120, 200, 255), size = 1.1, rarity = "Common",    boost = 0.25, chance = 28 },
+	{ name = "Minty",    color = Color3.fromRGB(120, 255, 160), size = 1.1, rarity = "Common",    boost = 0.25, chance = 28 },
+	{ name = "Rocky",    color = Color3.fromRGB(160, 160, 160), size = 1.2, rarity = "Uncommon",  boost = 0.5,  chance = 15 },
+	{ name = "Peachy",   color = Color3.fromRGB(255, 170, 120), size = 1.2, rarity = "Uncommon",  boost = 0.5,  chance = 15 },
+	{ name = "Sparky",   color = Color3.fromRGB(255, 120, 120), size = 1.3, rarity = "Rare",      boost = 0.75, chance = 6 },
+	{ name = "Frosty",   color = Color3.fromRGB(200, 240, 255), size = 1.3, rarity = "Rare",      boost = 0.75, chance = 4 },
+	{ name = "Grape",    color = Color3.fromRGB(190, 120, 255), size = 1.4, rarity = "Epic",      boost = 1,    chance = 2.2 },
+	{ name = "Shadow",   color = Color3.fromRGB(50, 50, 60),    size = 1.4, rarity = "Epic",      boost = 1,    chance = 1 },
+	{ name = "Sunny",    color = Color3.fromRGB(255, 220, 60),  size = 1.6, rarity = "LEGENDARY", boost = 2,    chance = 0.6 },
+	{ name = "Galaxy",   color = Color3.fromRGB(120, 60, 255),  size = 1.8, rarity = "MYTHIC",    boost = 3,    chance = 0.2 },
 }
+
+local SPIN_TIME = 3.5 -- must match the UI script!
 -- ====================
 
 local egg = script.Parent
 local eggPart = egg:IsA("BasePart") and egg or (egg.PrimaryPart or egg:FindFirstChildWhichIsA("BasePart"))
 if not eggPart then warn("PetEgg: no part found!") return end
 
--- anchor the egg so it can't be pushed around
 for _, p in (egg:IsA("Model") and egg:GetDescendants() or { egg }) do
-	if p:IsA("BasePart") then
-		p.Anchored = true
-	end
+	if p:IsA("BasePart") then p.Anchored = true end
 end
 
--- the "press E" prompt
+-- RemoteEvent for telling the client to play the roulette
+local hatchEvent = ReplicatedStorage:FindFirstChild("PetHatchEvent")
+if not hatchEvent then
+	hatchEvent = Instance.new("RemoteEvent")
+	hatchEvent.Name = "PetHatchEvent"
+	hatchEvent.Parent = ReplicatedStorage
+end
+
 local prompt = Instance.new("ProximityPrompt")
 prompt.ActionText = "Hatch Pet"
 prompt.ObjectText = HATCH_COST .. " 🍔"
@@ -38,25 +50,21 @@ prompt.HoldDuration = 0.5
 prompt.RequiresLineOfSight = false
 prompt.Parent = eggPart
 
--- ===== PICK A RANDOM PET (weighted by rarity) =====
+-- ===== WEIGHTED ROLL =====
 local totalChance = 0
-for _, pet in PETS do
-	totalChance += pet.chance
-end
+for _, pet in PETS do totalChance += pet.chance end
 
 local function rollPet()
 	local roll = math.random() * totalChance
 	local sum = 0
-	for _, pet in PETS do
+	for i, pet in PETS do
 		sum += pet.chance
-		if roll <= sum then
-			return pet
-		end
+		if roll <= sum then return i end
 	end
-	return PETS[1]
+	return 1
 end
 
--- ===== BUILD A PET FROM PARTS (no model needed!) =====
+-- ===== BUILD PET =====
 local function buildPet(petInfo, ownerName)
 	local pet = Instance.new("Model")
 	pet.Name = ownerName .. "_Pet"
@@ -71,7 +79,6 @@ local function buildPet(petInfo, ownerName)
 	body.Anchored = true
 	body.Parent = pet
 
-	-- two eyes
 	for _, side in { -1, 1 } do
 		local eye = Instance.new("Part")
 		eye.Shape = Enum.PartType.Ball
@@ -79,7 +86,6 @@ local function buildPet(petInfo, ownerName)
 		eye.Color = Color3.fromRGB(20, 20, 20)
 		eye.Size = Vector3.new(0.22, 0.22, 0.22) * petInfo.size
 		eye.CanCollide = false
-		eye.Anchored = false
 		eye.Massless = true
 		eye.CFrame = body.CFrame * CFrame.new(side * petInfo.size * 0.2, petInfo.size * 0.12, -petInfo.size * 0.42)
 		eye.Parent = pet
@@ -89,10 +95,9 @@ local function buildPet(petInfo, ownerName)
 		weld.Parent = eye
 	end
 
-	-- name tag with rarity
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.new(0, 120, 0, 34)
-	gui.StudsOffset = Vector3.new(0, petInfo.size * 0.8 + 0.5, 0)
+	gui.Size = UDim2.new(0, 130, 0, 40)
+	gui.StudsOffset = Vector3.new(0, petInfo.size * 0.8 + 0.6, 0)
 	gui.AlwaysOnTop = true
 	gui.Parent = body
 
@@ -101,21 +106,22 @@ local function buildPet(petInfo, ownerName)
 	tag.BackgroundTransparency = 1
 	tag.TextScaled = true
 	tag.Font = Enum.Font.FredokaOne
-	tag.Text = petInfo.name .. "\n" .. petInfo.rarity
-	tag.TextColor3 = petInfo.rarity == "LEGENDARY" and Color3.fromRGB(255, 200, 40) or Color3.fromRGB(255, 255, 255)
+	tag.Text = petInfo.name .. " (+" .. petInfo.boost .. "x 🍔)\n" .. petInfo.rarity
+	tag.TextColor3 = (petInfo.rarity == "LEGENDARY" and Color3.fromRGB(255, 200, 40))
+		or (petInfo.rarity == "MYTHIC" and Color3.fromRGB(190, 120, 255))
+		or Color3.fromRGB(255, 255, 255)
 	tag.TextStrokeTransparency = 0.4
 	tag.Parent = gui
 
-	-- legendary pets sparkle!
-	if petInfo.rarity == "LEGENDARY" then
+	if petInfo.rarity == "LEGENDARY" or petInfo.rarity == "MYTHIC" then
 		local sparkle = Instance.new("ParticleEmitter")
 		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 220, 60))
+		sparkle.Color = ColorSequence.new(petInfo.color)
 		sparkle.LightEmission = 1
-		sparkle.Rate = 15
+		sparkle.Rate = 20
 		sparkle.Lifetime = NumberRange.new(0.5, 1)
 		sparkle.Speed = NumberRange.new(1, 2)
-		sparkle.Size = NumberSequence.new(0.3)
+		sparkle.Size = NumberSequence.new(0.35)
 		sparkle.Parent = body
 	end
 
@@ -123,27 +129,25 @@ local function buildPet(petInfo, ownerName)
 	return pet
 end
 
--- ===== MAKE THE PET FOLLOW ITS OWNER =====
+-- ===== FOLLOW =====
 local function startFollowing(pet, player)
 	local body = pet.PrimaryPart
 	local bobT = math.random() * 10
 
 	local connection
 	connection = RunService.Heartbeat:Connect(function(dt)
-		local character = player.Character
 		if not pet.Parent or not player.Parent then
 			connection:Disconnect()
 			if pet.Parent then pet:Destroy() end
 			return
 		end
+		local character = player.Character
 		if not character then return end
 		local root = character:FindFirstChild("HumanoidRootPart")
 		if not root then return end
 
 		bobT += dt
-		-- floats beside your left shoulder, bobbing gently
 		local offset = root.CFrame * CFrame.new(-2.5, 1.5 + math.sin(bobT * 2.4) * 0.3, 1)
-		-- smooth chase (lerp = glides instead of teleporting)
 		body.CFrame = body.CFrame:Lerp(
 			CFrame.new(offset.Position, offset.Position + root.CFrame.LookVector),
 			math.min(dt * 6, 1)
@@ -151,11 +155,11 @@ local function startFollowing(pet, player)
 	end)
 end
 
--- ===== HATCH! =====
-local hatching = false
+-- ===== HATCH =====
+local busy = {} -- per player
 
 prompt.Triggered:Connect(function(player)
-	if hatching then return end
+	if busy[player] then return end
 
 	local burgers = player:FindFirstChild("Burgers") or player:FindFirstChild("Food")
 	if not burgers or burgers.Value < HATCH_COST then
@@ -166,50 +170,43 @@ prompt.Triggered:Connect(function(player)
 		return
 	end
 
-	hatching = true
+	busy[player] = true
 	burgers.Value -= HATCH_COST
 
-	-- egg shake animation
-	local original = eggPart.CFrame
-	for i = 1, 6 do
-		eggPart.CFrame = original * CFrame.Angles(0, 0, math.rad(i % 2 == 0 and 8 or -8))
-		task.wait(0.08)
+	local winIndex = rollPet()
+	local petInfo = PETS[winIndex]
+
+	-- send the pet list + winner to the client's roulette UI
+	local uiData = {}
+	for i, p in PETS do
+		uiData[i] = { name = p.name, color = { p.color.R, p.color.G, p.color.B }, rarity = p.rarity, boost = p.boost }
 	end
-	eggPart.CFrame = original
+	hatchEvent:FireClient(player, uiData, winIndex)
 
-	-- pop effect
-	local burst = Instance.new("ParticleEmitter")
-	burst.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	burst.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
-	burst.LightEmission = 1
-	burst.Lifetime = NumberRange.new(0.4, 0.8)
-	burst.Speed = NumberRange.new(5, 10)
-	burst.SpreadAngle = Vector2.new(180, 180)
-	burst.Size = NumberSequence.new(0.5)
-	burst.Rate = 0
-	burst.Parent = eggPart
-	burst:Emit(30)
-	game:GetService("Debris"):AddItem(burst, 2)
+	-- spawn the pet after the roulette finishes
+	task.delay(SPIN_TIME + 1.5, function()
+		busy[player] = nil
+		if not player.Parent then return end
 
-	-- roll and spawn the pet
-	local petInfo = rollPet()
+		-- store the boost so the burger script can use it
+		local boostValue = player:FindFirstChild("PetBoost")
+		if not boostValue then
+			boostValue = Instance.new("NumberValue")
+			boostValue.Name = "PetBoost"
+			boostValue.Parent = player
+		end
+		boostValue.Value = petInfo.boost
 
-	-- remove their old pet (one pet at a time)
-	local oldPet = workspace:FindFirstChild(player.Name .. "_Pet")
-	if oldPet then oldPet:Destroy() end
+		local oldPet = workspace:FindFirstChild(player.Name .. "_Pet")
+		if oldPet then oldPet:Destroy() end
 
-	local pet = buildPet(petInfo, player.Name)
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if root then
-		pet:PivotTo(root.CFrame * CFrame.new(-2.5, 1.5, 1))
-	else
-		pet:PivotTo(eggPart.CFrame * CFrame.new(0, 3, 0))
-	end
-	pet.Parent = workspace
+		local pet = buildPet(petInfo, player.Name)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		pet:PivotTo(root and root.CFrame * CFrame.new(-2.5, 1.5, 1) or eggPart.CFrame * CFrame.new(0, 3, 0))
+		pet.Parent = workspace
+		startFollowing(pet, player)
 
-	startFollowing(pet, player)
-
-	print("PET: " .. player.Name .. " hatched " .. petInfo.name .. " (" .. petInfo.rarity .. ")")
-	hatching = false
+		print("PET: " .. player.Name .. " hatched " .. petInfo.name .. " (" .. petInfo.rarity .. ", +" .. petInfo.boost .. "x)")
+	end)
 end)
