@@ -55,17 +55,47 @@ local gunshotSignal = Instance.new("BindableEvent")
 gunshotSignal.Name = "NPCGunshotSignal"
 gunshotSignal.Parent = ServerStorage
 
-local npcFolder = workspace:WaitForChild("NPCs")
+local npcFolder = workspace:WaitForChild("NPCs", 10)
+if not npcFolder then
+	warn("[NPCPanic] No folder named 'NPCs' found in Workspace — create one and put your NPC models inside it")
+	npcFolder = Instance.new("Folder")
+	npcFolder.Name = "NPCs"
+	npcFolder.Parent = workspace
+end
+
 local states = {} -- [model] = state table
 
 local function setupNpc(model)
-	if not model:IsA("Model") then
+	if not model:IsA("Model") or states[model] then
 		return
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
-	local hrp = model:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not hrp then
+	if not humanoid then
+		return -- not a character rig (decorations etc.), silently skip
+	end
+	local hrp = humanoid.RootPart
+		or model:FindFirstChild("HumanoidRootPart")
+		or model.PrimaryPart
+		or model:FindFirstChildWhichIsA("BasePart")
+	if not hrp then
+		warn("[NPCPanic] '" .. model.Name .. "' has a Humanoid but no parts, skipping")
 		return
+	end
+
+	-- anchored parts can't walk — free-model NPCs are usually anchored, so unanchor everything
+	local unanchored = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Anchored then
+			part.Anchored = false
+			unanchored += 1
+		end
+	end
+
+	-- make sure nothing is force-disabling movement
+	humanoid.PlatformStand = false
+	humanoid.Sit = false
+	if humanoid.WalkSpeed <= 0 then
+		humanoid.WalkSpeed = WALK_SPEED
 	end
 
 	-- server drives the AI so it moves smoothly for everyone
@@ -83,6 +113,9 @@ local function setupNpc(model)
 		nextMove = 0,
 		nextScream = 0,
 	}
+
+	print("[NPCPanic] Registered NPC '" .. model.Name .. "'"
+		.. (unanchored > 0 and (" (unanchored " .. unanchored .. " parts)") or ""))
 
 	humanoid.Died:Connect(function()
 		states[model] = nil
@@ -126,13 +159,32 @@ local function panicAt(position, range)
 	end
 end
 
--- hook up existing and future NPCs
-for _, model in npcFolder:GetChildren() do
-	setupNpc(model)
+-- hook up existing and future NPCs (searches the whole folder, even nested groups)
+for _, descendant in npcFolder:GetDescendants() do
+	setupNpc(descendant)
 end
-npcFolder.ChildAdded:Connect(function(child)
-	task.wait()
+for _, child in npcFolder:GetChildren() do
 	setupNpc(child)
+end
+npcFolder.DescendantAdded:Connect(function(descendant)
+	task.wait()
+	setupNpc(descendant)
+	if descendant:IsA("Humanoid") then
+		setupNpc(descendant.Parent)
+	end
+end)
+
+-- startup report so problems show in the Output window
+task.delay(3, function()
+	local count = 0
+	for _ in states do
+		count += 1
+	end
+	if count == 0 then
+		warn("[NPCPanic] 0 NPCs registered! Check: models must be inside the Workspace 'NPCs' folder and each must contain a Humanoid")
+	else
+		print("[NPCPanic] " .. count .. " NPC(s) active")
+	end
 end)
 
 -- explosions scare everyone nearby (drone hits, grenades — all of it)
