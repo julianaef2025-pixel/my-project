@@ -46,7 +46,7 @@ local MAX_LEAN = math.rad(35) -- how far the frame tilts into WASD (tilt = accel
 local LEAN_RESPONSE = 6 -- how quickly the frame leans into your input
 local GRAVITY_COMP = 0.7 -- 1 = holds altitude perfectly while leaning; lower = sags in hard forward flight like a real quad
 local CLIMB_ACCEL = 70 -- extra rotor thrust from Space (studs/sec^2)
-local DESCEND_ACCEL = 60 -- thrust cut from Left Shift (studs/sec^2)
+local DESCEND_ACCEL = 100 -- thrust cut from Left Shift (studs/sec^2)
 local LINEAR_DRAG = 1.2 -- air resistance: sets the top speed and how far momentum carries
 local MAX_SPEED = 110 -- hard safety cap, studs/sec (physics tops out ~90 before this)
 local HOVER_WOBBLE = math.rad(1.6) -- gentle wobble while hovering (props fighting gravity)
@@ -349,8 +349,10 @@ local function startFlying(drone)
 
 			local heading = CFrame.Angles(0, yaw, 0)
 
-			-- rotor thrust pushes along the leaned frame's up axis
-			local leanedFrame = heading * CFrame.Angles(-tilt, 0, roll)
+			-- rotor thrust pushes along the frame's up axis — and the frame
+			-- follows your nose, so pointing down means the thrust stops
+			-- holding you up and you dive where you're looking
+			local leanedFrame = heading * CFrame.Angles(pitch - tilt, 0, roll)
 			local thrustDir = leanedFrame.UpVector
 
 			-- hover thrust ~ gravity, with only partial compensation for lean:
@@ -359,6 +361,11 @@ local function startFlying(drone)
 			local gravity = workspace.Gravity
 			local uprightness = math.max(thrustDir.Y, 0.4)
 			local thrust = gravity * (1 + GRAVITY_COMP * (1 / uprightness - 1))
+			-- nose pointed down: stop fighting the dive and let gravity take it
+			if pitch < 0 then
+				local diveBlend = math.clamp(-pitch / math.rad(45), 0, 1)
+				thrust *= (1 - 0.6 * diveBlend)
+			end
 			if vertical > 0 then
 				thrust += CLIMB_ACCEL
 			elseif vertical < 0 then
