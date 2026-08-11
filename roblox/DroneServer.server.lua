@@ -10,6 +10,9 @@
 	While a drone is being flown it is ARMED: hitting anything at speed
 	makes it explode on impact, damage everything nearby, and respawn
 	at its starting spot after a delay.
+
+	Battery: each drone has ~4 minutes of flight time. When it runs out,
+	the motors cut, the drone falls out of the sky and detonates on impact.
 ]]
 
 local Players = game:GetService("Players")
@@ -20,6 +23,15 @@ local IMPACT_SPEED = 25 -- studs/sec needed to detonate (slower touches are igno
 local BLAST_RADIUS = 14 -- studs
 local MAX_DAMAGE = 100 -- damage at the center of the blast (falls off with distance)
 local DRONE_RESPAWN_TIME = 10 -- seconds until the drone respawns at its pad
+
+-- battery tuning
+local FLIGHT_TIME = 240 -- seconds of flight per battery (4 minutes)
+local DEAD_SELF_DESTRUCT = 8 -- if a dead drone lands too softly to detonate, blow it anyway after this many seconds
+
+-- sound
+-- NOTE: if the motor is silent in your game, this id may have been moderated —
+-- open the Toolbox, search "drone motor loop" or "quadcopter", and paste any id you like here.
+local MOTOR_SOUND_ID = "rbxassetid://131961136"
 
 -- Remotes the client script talks to
 local remotes = Instance.new("Folder")
@@ -54,16 +66,20 @@ local function exitDrone(player)
 		local ao = root:FindFirstChild("DroneAlignOrientation")
 		if lv then lv.Enabled = false end
 		if ao then ao.Enabled = false end
+		local motor = root:FindFirstChild("DroneMotor")
+		if motor then motor:Stop() end
 		pcall(function()
 			root:SetNetworkOwnershipAuto()
 		end)
-		root.AssemblyLinearVelocity = Vector3.zero
-		root.AssemblyAngularVelocity = Vector3.zero
-		root.Anchored = true
+		if not drone:GetAttribute("Dead") then
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+			root.Anchored = true
 
-		local prompt = root:FindFirstChildWhichIsA("ProximityPrompt")
-		if prompt then
-			prompt.Enabled = true
+			local prompt = root:FindFirstChildWhichIsA("ProximityPrompt")
+			if prompt then
+				prompt.Enabled = true
+			end
 		end
 	end
 
@@ -84,6 +100,9 @@ local function enterDrone(player, drone)
 	end
 	if drone:GetAttribute("PilotUserId") then
 		return -- someone else is flying this one
+	end
+	if drone:GetAttribute("Dead") or (drone:GetAttribute("Battery") or 0) <= 0 then
+		return -- battery is dead, no flying this one
 	end
 
 	local character = player.Character
@@ -108,6 +127,12 @@ local function enterDrone(player, drone)
 
 	-- freeze the pilot's character where they stand
 	hrp.Anchored = true
+
+	-- spin up the motors
+	local motor = root:FindFirstChild("DroneMotor")
+	if motor then
+		motor:Play()
+	end
 
 	-- hand physics to the pilot's client so flying feels responsive
 	root.Anchored = false
@@ -149,6 +174,10 @@ local function setupDrone(drone)
 	drone.PrimaryPart = root
 	local spawnCFrame = root.CFrame
 
+	-- fresh battery (attributes replicate, so the client HUD reads these directly)
+	drone:SetAttribute("Battery", FLIGHT_TIME)
+	drone:SetAttribute("MaxBattery", FLIGHT_TIME)
+
 	local exploded = false
 	local function explode(position)
 		if exploded then
@@ -184,20 +213,60 @@ local function setupDrone(drone)
 		end)
 	end
 
+	-- battery empty: motors cut, drone free-falls (still armed, so it blows on impact)
+	local function batteryDied()
+		if exploded or drone:GetAttribute("Dead") then
+			return
+		end
+		drone:SetAttribute("Dead", true)
+
+		local motor = root:FindFirstChild("DroneMotor")
+		if motor then
+			motor:Stop()
+		end
+		local lv = root:FindFirstChild("DroneLinearVelocity")
+		local ao = root:FindFirstChild("DroneAlignOrientation")
+		if lv then lv.Enabled = false end
+		if ao then ao.Enabled = false end
+		root.Anchored = false
+
+		-- failsafe: if it landed too softly to detonate, self-destruct anyway
+		task.delay(DEAD_SELF_DESTRUCT, function()
+			if not exploded and drone.Parent then
+				explode(root.Position)
+			end
+		end)
+	end
+
+	-- drains the battery while this player is flying
+	local function startBatteryDrain(player)
+		task.spawn(function()
+			while drone.Parent and drone:GetAttribute("PilotUserId") == player.UserId do
+				local battery = drone:GetAttribute("Battery") or 0
+				if battery <= 0 then
+					batteryDied()
+					break
+				end
+				drone:SetAttribute("Battery", math.max(battery - 0.5, 0))
+				task.wait(0.5)
+			end
+		end)
+	end
+
 	local function onTouched(hit)
 		if exploded then
 			return
 		end
-		-- only armed while someone is flying it
+		-- only armed while someone is flying it (or after a battery-death fall)
 		local pilotId = drone:GetAttribute("PilotUserId")
-		if not pilotId then
+		if not pilotId and not drone:GetAttribute("Dead") then
 			return
 		end
 		if hit:IsDescendantOf(drone) then
 			return
 		end
 		-- don't detonate on the pilot standing next to the takeoff spot
-		local pilot = Players:GetPlayerByUserId(pilotId)
+		local pilot = pilotId and Players:GetPlayerByUserId(pilotId)
 		if pilot and pilot.Character and hit:IsDescendantOf(pilot.Character) then
 			return
 		end
@@ -248,6 +317,16 @@ local function setupDrone(drone)
 	ao.Enabled = false
 	ao.Parent = root
 
+	-- motor sound everyone nearby can hear (the pilot's client also pitches it with throttle)
+	local motorSound = Instance.new("Sound")
+	motorSound.Name = "DroneMotor"
+	motorSound.SoundId = MOTOR_SOUND_ID
+	motorSound.Looped = true
+	motorSound.Volume = 0.6
+	motorSound.RollOffMinDistance = 10
+	motorSound.RollOffMaxDistance = 200
+	motorSound.Parent = root
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Fly Drone"
 	prompt.ObjectText = drone.Name
@@ -259,6 +338,9 @@ local function setupDrone(drone)
 
 	prompt.Triggered:Connect(function(player)
 		enterDrone(player, drone)
+		if drone:GetAttribute("PilotUserId") == player.UserId then
+			startBatteryDrain(player)
+		end
 	end)
 end
 
