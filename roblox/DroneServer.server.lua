@@ -6,10 +6,20 @@
 	- Put every drone model inside a Folder in Workspace named "Drones"
 	- Each drone model must have a PrimaryPart set (the main body part)
 	- All other parts get auto-welded to the PrimaryPart by this script
+
+	While a drone is being flown it is ARMED: hitting anything at speed
+	makes it explode on impact, damage everything nearby, and respawn
+	at its starting spot after a delay.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- explosion tuning
+local IMPACT_SPEED = 25 -- studs/sec needed to detonate (slower touches are ignored)
+local BLAST_RADIUS = 14 -- studs
+local MAX_DAMAGE = 100 -- damage at the center of the blast (falls off with distance)
+local DRONE_RESPAWN_TIME = 10 -- seconds until the drone respawns at its pad
 
 -- Remotes the client script talks to
 local remotes = Instance.new("Folder")
@@ -108,22 +118,108 @@ local function enterDrone(player, drone)
 	enterEvent:FireClient(player, drone)
 end
 
+-- damage every humanoid (players AND NPCs) caught in the blast, with distance falloff
+local function damageInBlast(position)
+	local damagedHumanoids = {}
+	local overlapParams = OverlapParams.new()
+	local parts = workspace:GetPartBoundsInRadius(position, BLAST_RADIUS, overlapParams)
+	for _, part in parts do
+		local model = part:FindFirstAncestorOfClass("Model")
+		local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 and not damagedHumanoids[humanoid] then
+			damagedHumanoids[humanoid] = true
+			local targetRoot = humanoid.RootPart or part
+			local distance = (targetRoot.Position - position).Magnitude
+			local damage = MAX_DAMAGE * math.clamp(1 - distance / BLAST_RADIUS, 0.1, 1)
+			humanoid:TakeDamage(damage)
+		end
+	end
+end
+
 local function setupDrone(drone)
+	-- keep a clean copy + spawn spot so we can respawn it after it blows up
+	local template = drone:Clone()
+	local spawnParent = drone.Parent
+
 	local root = getRoot(drone)
 	if not root then
 		warn("[FPVDrone] Drone model '" .. drone.Name .. "' has no parts, skipping")
 		return
 	end
 	drone.PrimaryPart = root
+	local spawnCFrame = root.CFrame
 
-	-- weld every other part to the root so the model flies as one assembly
+	local exploded = false
+	local function explode(position)
+		if exploded then
+			return
+		end
+		exploded = true
+
+		-- release the pilot before the drone disappears
+		local pilotId = drone:GetAttribute("PilotUserId")
+		local pilot = pilotId and Players:GetPlayerByUserId(pilotId)
+		if pilot then
+			exitDrone(pilot)
+		end
+
+		local explosion = Instance.new("Explosion")
+		explosion.Position = position
+		explosion.BlastRadius = BLAST_RADIUS
+		explosion.BlastPressure = 500000
+		explosion.DestroyJointRadiusPercent = 0 -- damage is handled by us, not by breaking joints
+		explosion.ExplosionType = Enum.ExplosionType.NoCraters
+		explosion.Parent = workspace
+
+		damageInBlast(position)
+
+		drone:Destroy()
+
+		task.delay(DRONE_RESPAWN_TIME, function()
+			if spawnParent and spawnParent.Parent then
+				local newDrone = template:Clone()
+				newDrone:PivotTo(spawnCFrame)
+				newDrone.Parent = spawnParent -- ChildAdded below re-runs setup on it
+			end
+		end)
+	end
+
+	local function onTouched(hit)
+		if exploded then
+			return
+		end
+		-- only armed while someone is flying it
+		local pilotId = drone:GetAttribute("PilotUserId")
+		if not pilotId then
+			return
+		end
+		if hit:IsDescendantOf(drone) then
+			return
+		end
+		-- don't detonate on the pilot standing next to the takeoff spot
+		local pilot = Players:GetPlayerByUserId(pilotId)
+		if pilot and pilot.Character and hit:IsDescendantOf(pilot.Character) then
+			return
+		end
+		-- gentle touches don't set it off — it has to be a real impact
+		if root.AssemblyLinearVelocity.Magnitude < IMPACT_SPEED then
+			return
+		end
+		explode(root.Position)
+	end
+
+	-- weld every other part to the root so the model flies as one assembly,
+	-- and make every part an impact trigger
 	for _, part in drone:GetDescendants() do
-		if part:IsA("BasePart") and part ~= root then
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = root
-			weld.Part1 = part
-			weld.Parent = root
-			part.Anchored = false
+		if part:IsA("BasePart") then
+			if part ~= root then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = root
+				weld.Part1 = part
+				weld.Parent = root
+				part.Anchored = false
+			end
+			part.Touched:Connect(onTouched)
 		end
 	end
 	root.Anchored = true -- parked until someone flies it

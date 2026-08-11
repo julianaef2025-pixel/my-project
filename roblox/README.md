@@ -2,6 +2,8 @@
 
 Walk up to a drone model, hold **E** for 1 second, and you take off in first-person FPV view. Press **X** to land/exit.
 
+While flying, the drone is **armed**: crashing into anything at speed (a wall, a building, a vehicle, the ground) makes it explode on impact, damaging every player and NPC in the blast radius with distance falloff. The drone respawns at its starting spot after a delay.
+
 ## Setup in Roblox Studio
 
 1. **Workspace**: create a Folder named exactly `Drones` and put your drone model(s) inside it.
@@ -30,7 +32,14 @@ Walk up to a drone model, hold **E** for 1 second, and you take off in first-per
 
 ## Tuning
 
-Top of `DroneClient.client.lua`:
+Top of `DroneServer.server.lua` (explosion):
+
+- `IMPACT_SPEED` — how fast the drone must be moving to detonate (gentle landings won't set it off)
+- `BLAST_RADIUS` — explosion radius in studs
+- `MAX_DAMAGE` — damage at the center of the blast (falls off with distance)
+- `DRONE_RESPAWN_TIME` — seconds until the drone respawns at its pad
+
+Top of `DroneClient.client.lua` (flight):
 
 - `MOVE_SPEED` — horizontal speed (studs/sec)
 - `VERTICAL_SPEED` — climb/descend speed
