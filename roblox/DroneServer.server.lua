@@ -21,6 +21,14 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
+
+-- destruction tuning (what happens to buildings at the impact point)
+local DESTRUCTION_RADIUS = 16 -- studs of building destroyed around the impact
+local CHUNK_SIZE = 4 -- walls get sliced into chunks about this size
+local MAX_CHUNKS = 150 -- per-explosion cap so a big blast can't lag the server
+local VAPORIZE_FRAC = 0.45 -- chunks closer than 45% of the radius are destroyed outright (the hole)
+local DEBRIS_LIFETIME = 15 -- seconds before rubble cleans itself up (+ up to 10 random)
 
 -- explosion tuning
 local IMPACT_SPEED = 25 -- studs/sec needed to detonate (slower touches are ignored)
@@ -55,6 +63,7 @@ exitEvent.Name = "DroneExit"
 exitEvent.Parent = remotes
 
 local activePilots = {} -- [player] = drone model
+local dronesFolder -- assigned at the bottom of the script, needed by the destruction code
 
 local function getRoot(drone)
 	return drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart")
@@ -169,6 +178,180 @@ local function damageInBlast(position)
 	end
 end
 
+--------------------------------------------------------------------
+-- building destruction
+--------------------------------------------------------------------
+
+-- what the blast is allowed to break
+local function isDestructible(part)
+	if not part:IsA("BasePart") then
+		return false
+	end
+	if part.Name == "Baseplate" or part:IsA("SpawnLocation") or part:IsA("Seat") then
+		return false -- never delete the map floor or spawns
+	end
+	if part:GetAttribute("Indestructible") then
+		return false -- opt-out: set this attribute on anything you want blast-proof
+	end
+	if dronesFolder and part:IsDescendantOf(dronesFolder) then
+		return false -- don't eat other parked drones
+	end
+	local model = part:FindFirstAncestorOfClass("Model")
+	if model and model:FindFirstChildOfClass("Humanoid") then
+		return false -- players/NPCs take damage instead, they don't shatter
+	end
+	local size = part.Size
+	if math.max(size.X, size.Y, size.Z) > 100 then
+		return false -- map-sized parts (huge floors etc.) don't crumble
+	end
+	return true
+end
+
+-- strip welds so a flung chunk doesn't drag the rest of the wall with it
+local function breakWelds(part)
+	for _, child in part:GetChildren() do
+		if child:IsA("WeldConstraint") or child:IsA("JointInstance") then
+			child:Destroy()
+		end
+	end
+end
+
+-- turn one flat wall part into two halves along its longest axis
+local function splitInHalf(part)
+	local size = part.Size
+	local halfSize, offset
+	if size.X >= size.Y and size.X >= size.Z then
+		halfSize = Vector3.new(size.X / 2, size.Y, size.Z)
+		offset = CFrame.new(size.X / 4, 0, 0)
+	elseif size.Y >= size.Z then
+		halfSize = Vector3.new(size.X, size.Y / 2, size.Z)
+		offset = CFrame.new(0, size.Y / 4, 0)
+	else
+		halfSize = Vector3.new(size.X, size.Y, size.Z / 2)
+		offset = CFrame.new(0, 0, size.Z / 4)
+	end
+
+	local a = part:Clone()
+	a.Size = halfSize
+	a.CFrame = part.CFrame * offset
+	a.Parent = part.Parent
+
+	local b = part:Clone()
+	b.Size = halfSize
+	b.CFrame = part.CFrame * offset:Inverse()
+	b.Parent = part.Parent
+
+	part:Destroy()
+	return a, b
+end
+
+-- puff of dust/smoke at the impact point
+local function impactSmoke(position)
+	local smokePart = Instance.new("Part")
+	smokePart.Name = "ImpactSmoke"
+	smokePart.Size = Vector3.new(1, 1, 1)
+	smokePart.Position = position
+	smokePart.Transparency = 1
+	smokePart.Anchored = true
+	smokePart.CanCollide = false
+	smokePart.CanQuery = false
+	smokePart.CanTouch = false
+
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Rate = 0
+	smoke.Lifetime = NumberRange.new(1.5, 3)
+	smoke.Speed = NumberRange.new(8, 25)
+	smoke.SpreadAngle = Vector2.new(180, 180)
+	smoke.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 3),
+		NumberSequenceKeypoint.new(1, 12),
+	})
+	smoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	smoke.Color = ColorSequence.new(Color3.fromRGB(90, 85, 80), Color3.fromRGB(140, 135, 130))
+	smoke.Parent = smokePart
+
+	smokePart.Parent = workspace
+	smoke:Emit(45)
+	Debris:AddItem(smokePart, 8)
+end
+
+-- the main destruction pass: voxelize what the blast touches, vaporize the
+-- center, fling the rest as physical rubble
+local function destroyBuildings(position)
+	local overlapParams = OverlapParams.new()
+	local touched = workspace:GetPartBoundsInRadius(position, DESTRUCTION_RADIUS, overlapParams)
+
+	-- collect what we're allowed to break
+	local queue = {}
+	for _, part in touched do
+		if isDestructible(part) then
+			table.insert(queue, part)
+		end
+	end
+
+	-- slice big parts down into chunk-sized pieces (only plain block Parts can
+	-- be sliced — MeshParts/Unions get flung whole instead)
+	local chunkBudget = MAX_CHUNKS
+	local chunks = {}
+	while #queue > 0 do
+		local part = table.remove(queue)
+		local size = part.Size
+		local maxAxis = math.max(size.X, size.Y, size.Z)
+		if part.ClassName == "Part" and maxAxis > CHUNK_SIZE * 1.6 and chunkBudget > 0 then
+			chunkBudget -= 1
+			local a, b = splitInHalf(part)
+			for _, half in {a, b} do
+				-- halves that still touch the blast keep splitting; the rest
+				-- stay anchored in place — that's the surviving wall
+				local reach = (half.Position - position).Magnitude - half.Size.Magnitude / 2
+				if reach <= DESTRUCTION_RADIUS then
+					table.insert(queue, half)
+				end
+			end
+		else
+			table.insert(chunks, part)
+		end
+	end
+
+	-- vaporize the center, fling the edges
+	for _, chunk in chunks do
+		if not chunk.Parent then
+			continue
+		end
+		local distance = (chunk.Position - position).Magnitude
+		if distance > DESTRUCTION_RADIUS then
+			continue
+		end
+
+		local smallEnoughToVaporize = chunk.Size.Magnitude < CHUNK_SIZE * 3
+		if distance < DESTRUCTION_RADIUS * VAPORIZE_FRAC and smallEnoughToVaporize then
+			chunk:Destroy() -- the hole in the wall
+		else
+			breakWelds(chunk)
+			chunk.Anchored = false
+			chunk.CanCollide = true
+
+			local direction = chunk.Position - position
+			direction = direction.Magnitude > 0.01 and direction.Unit or Vector3.yAxis
+			chunk.AssemblyLinearVelocity = direction * math.random(30, 70)
+				+ Vector3.new(0, math.random(15, 35), 0)
+			chunk.AssemblyAngularVelocity = Vector3.new(
+				math.random(-12, 12),
+				math.random(-12, 12),
+				math.random(-12, 12)
+			)
+
+			-- rubble cleans itself up so the server doesn't drown in parts
+			Debris:AddItem(chunk, DEBRIS_LIFETIME + math.random(0, 10))
+		end
+	end
+
+	impactSmoke(position)
+end
+
 local function setupDrone(drone)
 	-- keep a clean copy + spawn spot so we can respawn it after it blows up
 	local template = drone:Clone()
@@ -209,6 +392,7 @@ local function setupDrone(drone)
 		explosion.ExplosionType = Enum.ExplosionType.NoCraters
 		explosion.Parent = workspace
 
+		destroyBuildings(position)
 		damageInBlast(position)
 
 		drone:Destroy()
@@ -394,7 +578,7 @@ Players.PlayerRemoving:Connect(exitDrone)
 exitEvent.OnServerEvent:Connect(exitDrone)
 
 -- set up every drone in the Workspace "Drones" folder
-local dronesFolder = workspace:WaitForChild("Drones")
+dronesFolder = workspace:WaitForChild("Drones")
 for _, drone in dronesFolder:GetChildren() do
 	if drone:IsA("Model") then
 		setupDrone(drone)
