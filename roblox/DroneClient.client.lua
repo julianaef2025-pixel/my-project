@@ -25,6 +25,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+
+-- doppler: the drone's buzz shifts pitch as it flies past people (real physics)
+SoundService.DopplerScale = 2
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -39,13 +43,18 @@ local VERTICAL_SPEED = 40 -- studs/sec up/down
 local MOUSE_SENSITIVITY = 0.0035 -- radians per pixel of mouse movement
 local MAX_PITCH = math.rad(75)
 local BANK_ANGLE = math.rad(20) -- visual roll when strafing
+local ACCEL_RESPONSE = 3.2 -- lower = heavier drone with more momentum/drift
+local FORWARD_TILT = math.rad(10) -- the drone noses into its direction of travel like a real quad
+local HOVER_WOBBLE = math.rad(1.6) -- gentle wobble while hovering (props fighting gravity)
+local WIND_STRENGTH = 3 -- studs/sec of slow wind drift you have to correct for
 local CAMERA_OFFSET = CFrame.new(0, 0.5, -1) -- camera sits at the front of the drone
 
 -- FPV camera tuning
 local FPV_FOV = 100 -- wide goggle view
 local SHAKE_INTENSITY = 0.004 -- motor vibration (radians)
 local LOW_BATTERY_FRAC = 0.2 -- warning kicks in below 20%
-local INTERFERENCE_START_FRAC = 0.55 -- static starts at 55% of max signal range
+local INTERFERENCE_START_FRAC = 0.35 -- static starts creeping in at 35% of max signal range
+local STATIC_FLOOR = 0.03 -- tiny chance of a stray glitch line even on a perfect link
 local STATIC_LINE_COUNT = 14 -- glitch line pool size
 
 local flying = nil -- current drone model
@@ -274,6 +283,7 @@ local function startFlying(drone)
 	local yaw = math.atan2(-root.CFrame.LookVector.X, -root.CFrame.LookVector.Z)
 	local pitch = 0
 	local roll = 0
+	local tilt = 0 -- forward lean into the direction of travel
 	local currentVelocity = Vector3.zero
 	local lastBeep = 0
 	local flightClock = 0
@@ -325,25 +335,45 @@ local function startFlying(drone)
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical += 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vertical -= 1 end
 
-			-- bank into strafes for that FPV feel
+			-- bank into strafes + nose into forward flight, like a real quad
 			local targetRoll = -strafe * BANK_ANGLE
 			roll += (targetRoll - roll) * math.min(dt * 8, 1)
+			local targetTilt = forward * FORWARD_TILT
+			tilt += (targetTilt - tilt) * math.min(dt * 5, 1)
 
-			-- where the drone is pointing (yaw + pitch, roll is visual only)
+			-- where the drone is pointing (yaw + pitch; tilt/roll are the frame leaning)
 			local aimRotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
 
 			local targetVelocity = (aimRotation.LookVector * forward + aimRotation.RightVector * strafe) * MOVE_SPEED
 				+ Vector3.new(0, vertical * VERTICAL_SPEED, 0)
-			currentVelocity = currentVelocity:Lerp(targetVelocity, math.min(dt * 6, 1))
-
-			lv.VectorVelocity = currentVelocity
-			ao.CFrame = aimRotation * CFrame.Angles(0, 0, roll)
+			-- momentum: the drone carries its speed and drifts through turns
+			currentVelocity = currentVelocity:Lerp(targetVelocity, math.min(dt * ACCEL_RESPONSE, 1))
 
 			throttleFrac = math.clamp(currentVelocity.Magnitude / MOVE_SPEED, 0, 1)
 
-			-- motor pitch follows throttle (locally, for the pilot)
+			-- slow wandering wind you have to keep correcting for
+			local windT = flightClock * 0.25
+			local wind = Vector3.new(
+				math.noise(windT, 17.3),
+				math.noise(windT, 89.1) * 0.3,
+				math.noise(windT, 43.7)
+			) * WIND_STRENGTH
+
+			-- hover wobble: props fighting gravity when sitting still
+			local wobbleAmount = HOVER_WOBBLE * (1 - throttleFrac * 0.8)
+			local wobbleT = flightClock * 2.2
+			local wobblePitch = math.noise(wobbleT, 3.7) * wobbleAmount
+			local wobbleRoll = math.noise(wobbleT, 9.2) * wobbleAmount
+
+			lv.VectorVelocity = currentVelocity + wind
+			ao.CFrame = CFrame.Angles(0, yaw, 0)
+				* CFrame.Angles(pitch - tilt + wobblePitch, 0, 0)
+				* CFrame.Angles(0, 0, roll + wobbleRoll)
+
+			-- motor sound follows throttle: higher pitch AND louder under load (locally, for the pilot)
 			if motorSound then
 				motorSound.PlaybackSpeed = 0.85 + throttleFrac * 0.55
+				motorSound.Volume = 0.55 + throttleFrac * 0.45
 			end
 		end
 
@@ -378,8 +408,8 @@ local function startFlying(drone)
 		local altitude = math.max(root.Position.Y, 0)
 
 		hud.battFill.Size = UDim2.new(batteryFrac, 0, 1, 0)
-		-- 4S LiPo: 16.8V full -> 13.2V empty
-		local voltage = 13.2 + 3.6 * batteryFrac
+		-- 4S LiPo: 16.8V full -> 13.2V empty, and it sags under load like a real pack
+		local voltage = 13.2 + 3.6 * batteryFrac - throttleFrac * 0.7
 		hud.battText.Text = string.format("%d%%  %.1fV", math.floor(batteryFrac * 100 + 0.5), voltage)
 
 		if batteryFrac > 0.5 then
@@ -408,8 +438,9 @@ local function startFlying(drone)
 			hud.rssi.TextColor3 = Color3.fromRGB(230, 255, 230)
 		end
 
-		-- video interference grows with distance
-		updateStaticLines(interference)
+		-- video interference grows with distance (with a tiny glitch floor so the
+		-- analog feed never looks perfectly digital-clean)
+		updateStaticLines(math.max(interference, STATIC_FLOOR))
 
 		if dead then
 			hud.lowBatt.Visible = false

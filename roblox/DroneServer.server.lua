@@ -536,9 +536,10 @@ local function setupDrone(drone)
 	motorSound.Name = "DroneMotor"
 	motorSound.SoundId = MOTOR_SOUND_ID
 	motorSound.Looped = true
-	motorSound.Volume = 0.6
-	motorSound.RollOffMinDistance = 10
-	motorSound.RollOffMaxDistance = 200
+	motorSound.Volume = 0.9
+	motorSound.RollOffMode = Enum.RollOffMode.InverseTapered -- ramps up hard as it gets close
+	motorSound.RollOffMinDistance = 5
+	motorSound.RollOffMaxDistance = 250
 	motorSound.Parent = root
 
 	local prompt = Instance.new("ProximityPrompt")
