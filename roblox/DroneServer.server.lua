@@ -722,3 +722,118 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- BOMBER DRONE ADD-ON (server)
+-- Any drone model whose NAME contains "Bomber" carries grenades.
+-- The pilot presses F to drop one. Grenades inherit the drone's
+-- speed, arm shortly after release, and explode on impact with the
+-- same building destruction + damage as a kamikaze crash (and the
+-- explosion FX add-on picks them up automatically).
+--------------------------------------------------------------------
+do
+	local GRENADE_COUNT = 3 -- grenades per battery/respawn
+	local GRENADE_BLAST_RADIUS = 12
+	local GRENADE_ARM_TIME = 0.35 -- seconds after release before the fuse is live
+	local GRENADE_FUSE = 5 -- failsafe: explodes after this long even if it never lands
+
+	local function isBomber(drone)
+		return drone.Name:lower():find("bomber") ~= nil
+	end
+
+	local dropEvent = Instance.new("RemoteEvent")
+	dropEvent.Name = "DroneDropGrenade"
+	dropEvent.Parent = remotes
+
+	local function grenadeExplode(grenade)
+		if grenade:GetAttribute("Exploded") then
+			return
+		end
+		grenade:SetAttribute("Exploded", true)
+		local position = grenade.Position
+
+		local explosion = Instance.new("Explosion")
+		explosion.Position = position
+		explosion.BlastRadius = GRENADE_BLAST_RADIUS
+		explosion.BlastPressure = 500000
+		explosion.DestroyJointRadiusPercent = 0
+		explosion.ExplosionType = Enum.ExplosionType.NoCraters
+		explosion.Parent = workspace
+
+		destroyBuildings(position)
+		damageInBlast(position)
+		grenade:Destroy()
+	end
+
+	dropEvent.OnServerEvent:Connect(function(player, drone)
+		-- validate everything: only the pilot of a live bomber with ammo can drop
+		if typeof(drone) ~= "Instance" or not drone:IsA("Model") then
+			return
+		end
+		if drone:GetAttribute("PilotUserId") ~= player.UserId then
+			return
+		end
+		if drone:GetAttribute("Dead") then
+			return
+		end
+		if not isBomber(drone) then
+			return
+		end
+		local root = drone.PrimaryPart
+		if not root then
+			return
+		end
+
+		local ammo = drone:GetAttribute("Grenades")
+		if ammo == nil then
+			ammo = GRENADE_COUNT
+		end
+		if ammo <= 0 then
+			return
+		end
+		drone:SetAttribute("Grenades", ammo - 1)
+
+		-- the grenade: released under the drone, carrying the drone's speed
+		local grenade = Instance.new("Part")
+		grenade.Name = "DroneGrenade"
+		grenade.Shape = Enum.PartType.Ball
+		grenade.Size = Vector3.new(1, 1, 1)
+		grenade.Color = Color3.fromRGB(60, 70, 50)
+		grenade.Material = Enum.Material.Metal
+		grenade.CFrame = root.CFrame * CFrame.new(0, -2.5, 0)
+		grenade.AssemblyLinearVelocity = root.AssemblyLinearVelocity
+		grenade.CanCollide = true
+		grenade.Parent = workspace
+
+		-- arm after a beat so it can't blow up on the drone that dropped it
+		task.delay(GRENADE_ARM_TIME, function()
+			if grenade.Parent then
+				grenade.Touched:Connect(function(hit)
+					if not hit:IsDescendantOf(drone) then
+						grenadeExplode(grenade)
+					end
+				end)
+			end
+		end)
+		-- failsafe fuse
+		task.delay(GRENADE_FUSE, function()
+			if grenade.Parent then
+				grenadeExplode(grenade)
+			end
+		end)
+	end)
+
+	-- bombers start (and respawn) with a full rack
+	local function initBomber(child)
+		if child:IsA("Model") and isBomber(child) then
+			child:SetAttribute("Grenades", GRENADE_COUNT)
+		end
+	end
+	for _, child in dronesFolder:GetChildren() do
+		initBomber(child)
+	end
+	dronesFolder.ChildAdded:Connect(function(child)
+		task.wait()
+		initBomber(child)
+	end)
+end

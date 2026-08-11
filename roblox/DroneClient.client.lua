@@ -485,3 +485,65 @@ enterEvent.OnClientEvent:Connect(startFlying)
 exitEvent.OnClientEvent:Connect(function()
 	stopFlying(false)
 end)
+
+--------------------------------------------------------------------
+-- BOMBER DRONE ADD-ON (client)
+-- While flying a drone whose name contains "Bomber": press F to
+-- drop a grenade, with an ammo counter on the HUD.
+--------------------------------------------------------------------
+do
+	local dropEvent = remotes:WaitForChild("DroneDropGrenade")
+	local grenadeGui = nil
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.F and flying and flying.Name:lower():find("bomber") then
+			dropEvent:FireServer(flying)
+		end
+	end)
+
+	-- small ammo counter that appears only while flying a bomber
+	task.spawn(function()
+		while true do
+			task.wait(0.2)
+			local drone = flying
+			if drone and drone.Parent and drone.Name:lower():find("bomber") then
+				if not grenadeGui then
+					grenadeGui = Instance.new("ScreenGui")
+					grenadeGui.Name = "DroneGrenadeHud"
+					grenadeGui.ResetOnSpawn = false
+					grenadeGui.DisplayOrder = 11
+
+					local label = Instance.new("TextLabel")
+					label.Name = "Counter"
+					label.AnchorPoint = Vector2.new(0.5, 1)
+					label.Position = UDim2.new(0.5, 0, 1, -66)
+					label.Size = UDim2.new(0, 340, 0, 26)
+					label.BackgroundTransparency = 1
+					label.Font = Enum.Font.Code
+					label.TextSize = 19
+					label.TextColor3 = Color3.fromRGB(230, 255, 230)
+					label.TextStrokeTransparency = 0.6
+					label.Parent = grenadeGui
+
+					grenadeGui.Parent = player:WaitForChild("PlayerGui")
+				end
+
+				local ammo = math.clamp(drone:GetAttribute("Grenades") or 3, 0, 9)
+				local label = grenadeGui.Counter
+				if ammo > 0 then
+					label.Text = "GRENADES " .. string.rep("● ", ammo) .. string.rep("○ ", math.max(3 - ammo, 0)) .. " [F] DROP"
+					label.TextColor3 = Color3.fromRGB(230, 255, 230)
+				else
+					label.Text = "GRENADES EMPTY"
+					label.TextColor3 = Color3.fromRGB(255, 90, 60)
+				end
+			elseif grenadeGui then
+				grenadeGui:Destroy()
+				grenadeGui = nil
+			end
+		end
+	end)
+end
