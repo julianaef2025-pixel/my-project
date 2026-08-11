@@ -397,8 +397,17 @@ local function startFlying(drone)
 
 		if dead and deathReason == "signal" then
 			-- link is gone: the feed freezes on the last frame, you don't see the fall
+		elseif bombSight and bombSight.active then
+			-- belly bomb-sight camera: hangs under the drone looking straight down,
+			-- screen-up stays lined up with the drone's heading
+			camera.CFrame = CFrame.new(root.Position - Vector3.new(0, 1.5, 0))
+				* CFrame.Angles(0, yaw, 0)
+				* CFrame.Angles(-math.pi / 2, 0, 0)
+				* shake
+			camera.FieldOfView = bombSight.fov
 		else
 			camera.CFrame = root.CFrame * CAMERA_OFFSET * shake
+			camera.FieldOfView = FPV_FOV
 		end
 
 		---------------------------------------------------------
@@ -543,6 +552,138 @@ do
 			elseif grenadeGui then
 				grenadeGui:Destroy()
 				grenadeGui = nil
+			end
+		end
+	end)
+end
+
+--------------------------------------------------------------------
+-- BOMB-SIGHT CAMERA ADD-ON (client)
+-- Flying a Bomber: press C to toggle the belly camera (straight
+-- down with a big crosshair), press Z to cycle zoom (1x / 2x / 4x).
+-- NOTE: needs the matching bomb-sight edit in the main flight loop's
+-- camera section.
+--------------------------------------------------------------------
+-- deliberately NOT "local": the main flight loop reads this too
+bombSight = { active = false, fov = 60 }
+
+do
+	local ZOOM_LEVELS = {
+		{ fov = 60, label = "1x" },
+		{ fov = 30, label = "2x" },
+		{ fov = 14, label = "4x" },
+	}
+	local zoomIndex = 1
+	local sightGui = nil
+	local zoomLabel = nil
+
+	local function isBomberFlying()
+		return flying ~= nil and flying.Parent ~= nil and flying.Name:lower():find("bomber") ~= nil
+	end
+
+	local SIGHT_COLOR = Color3.fromRGB(120, 255, 120)
+
+	local function makeSightFrame(parent, size, position)
+		local f = Instance.new("Frame")
+		f.AnchorPoint = Vector2.new(0.5, 0.5)
+		f.Size = size
+		f.Position = position
+		f.BackgroundColor3 = SIGHT_COLOR
+		f.BackgroundTransparency = 0.25
+		f.BorderSizePixel = 0
+		f.Parent = parent
+		return f
+	end
+
+	local function createSightGui()
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "DroneBombSight"
+		gui.ResetOnSpawn = false
+		gui.IgnoreGuiInset = true
+		gui.DisplayOrder = 12
+
+		-- big crosshair: four segments with a gap in the middle + a center dot
+		makeSightFrame(gui, UDim2.new(0, 3, 0.2, 0), UDim2.new(0.5, 0, 0.5, -140)) -- top
+		makeSightFrame(gui, UDim2.new(0, 3, 0.2, 0), UDim2.new(0.5, 0, 0.5, 140)) -- bottom
+		makeSightFrame(gui, UDim2.new(0.14, 0, 0, 3), UDim2.new(0.5, -160, 0.5, 0)) -- left
+		makeSightFrame(gui, UDim2.new(0.14, 0, 0, 3), UDim2.new(0.5, 160, 0.5, 0)) -- right
+		makeSightFrame(gui, UDim2.new(0, 8, 0, 8), UDim2.new(0.5, 0, 0.5, 0)) -- center dot
+
+		-- range tick marks along the vertical line (helps judge the grenade lead)
+		for _, offset in { -70, 70 } do
+			makeSightFrame(gui, UDim2.new(0, 24, 0, 3), UDim2.new(0.5, 0, 0.5, offset))
+		end
+
+		local mode = Instance.new("TextLabel")
+		mode.AnchorPoint = Vector2.new(0.5, 0)
+		mode.Position = UDim2.new(0.5, 0, 0, 96)
+		mode.Size = UDim2.new(0, 520, 0, 24)
+		mode.BackgroundTransparency = 1
+		mode.Font = Enum.Font.Code
+		mode.TextSize = 18
+		mode.TextColor3 = SIGHT_COLOR
+		mode.TextStrokeTransparency = 0.6
+		mode.Text = "BOMB CAM  [C] FPV VIEW  [Z] ZOOM  [F] DROP"
+		mode.Parent = gui
+
+		zoomLabel = Instance.new("TextLabel")
+		zoomLabel.AnchorPoint = Vector2.new(1, 0.5)
+		zoomLabel.Position = UDim2.new(1, -40, 0.5, 0)
+		zoomLabel.Size = UDim2.new(0, 160, 0, 30)
+		zoomLabel.BackgroundTransparency = 1
+		zoomLabel.Font = Enum.Font.Code
+		zoomLabel.TextSize = 24
+		zoomLabel.TextColor3 = SIGHT_COLOR
+		zoomLabel.TextStrokeTransparency = 0.6
+		zoomLabel.TextXAlignment = Enum.TextXAlignment.Right
+		zoomLabel.Text = "ZOOM 1x"
+		zoomLabel.Parent = gui
+
+		gui.Parent = player:WaitForChild("PlayerGui")
+		return gui
+	end
+
+	local function setSight(active)
+		bombSight.active = active
+		if active then
+			zoomIndex = 1
+			bombSight.fov = ZOOM_LEVELS[1].fov
+			if not sightGui then
+				sightGui = createSightGui()
+			end
+		else
+			if sightGui then
+				sightGui:Destroy()
+				sightGui = nil
+				zoomLabel = nil
+			end
+		end
+	end
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		if not isBomberFlying() then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.C then
+			setSight(not bombSight.active)
+		elseif input.KeyCode == Enum.KeyCode.Z and bombSight.active then
+			zoomIndex = zoomIndex % #ZOOM_LEVELS + 1
+			bombSight.fov = ZOOM_LEVELS[zoomIndex].fov
+			if zoomLabel then
+				zoomLabel.Text = "ZOOM " .. ZOOM_LEVELS[zoomIndex].label
+			end
+		end
+	end)
+
+	-- drop back to FPV automatically when you exit or lose the drone
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			if bombSight.active and not isBomberFlying() then
+				setSight(false)
 			end
 		end
 	end)
