@@ -4,6 +4,8 @@ Walk up to a drone model, hold **E** for 1 second, and you take off in first-per
 
 While flying, the drone is **armed**: crashing into anything at speed (a wall, a building, a vehicle, the ground) makes it explode on impact, damaging every player and NPC in the blast radius with distance falloff. The drone respawns at its starting spot after a delay.
 
+Each drone has a **battery** good for ~4 minutes of flight. The FPV view shows a working HUD (battery bar, LiPo voltage, flight time remaining, speed, altitude), a LOW BATTERY warning with beeps under 20%, motor sound with throttle-based pitch, and motor-vibration camera shake. When the battery dies the motors cut, the screen shows flickering SIGNAL LOST static, and the drone falls out of the sky and detonates on impact.
+
 ## Setup in Roblox Studio
 
 1. **Workspace**: create a Folder named exactly `Drones` and put your drone model(s) inside it.
