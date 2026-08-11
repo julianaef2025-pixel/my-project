@@ -735,7 +735,7 @@ do
 	local GRENADE_COUNT = 3 -- grenades per battery/respawn
 	local GRENADE_BLAST_RADIUS = 12
 	local GRENADE_ARM_TIME = 0.35 -- seconds after release before the fuse is live
-	local GRENADE_FUSE = 5 -- failsafe: explodes after this long even if it never lands
+	local GRENADE_FUSE = 20 -- failsafe: explodes after this long even if it never lands (long enough for very high drops)
 
 	local function isBomber(drone)
 		return drone.Name:lower():find("bomber") ~= nil
@@ -815,8 +815,34 @@ do
 				end)
 			end
 		end)
-		-- failsafe fuse
-		task.delay(GRENADE_FUSE, function()
+
+		-- anti-tunneling watcher: from a high drop the grenade falls so fast it
+		-- can skip straight through a roof between physics frames, so raycast
+		-- along its path every frame and detonate at the exact impact point
+		task.spawn(function()
+			local rayParams = RaycastParams.new()
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			rayParams.FilterDescendantsInstances = { grenade, drone }
+			local elapsed = 0
+			local lastPosition = grenade.Position
+			while grenade.Parent and elapsed < GRENADE_FUSE do
+				local dt = task.wait()
+				elapsed += dt
+				local nowPosition = grenade.Position
+				if elapsed >= GRENADE_ARM_TIME then
+					local step = nowPosition - lastPosition
+					if step.Magnitude > 0.1 then
+						local hit = workspace:Raycast(lastPosition, step, rayParams)
+						if hit then
+							grenade.Position = hit.Position
+							grenadeExplode(grenade)
+							break
+						end
+					end
+				end
+				lastPosition = nowPosition
+			end
+			-- fuse ran out without ever landing: blow it anyway
 			if grenade.Parent then
 				grenadeExplode(grenade)
 			end
