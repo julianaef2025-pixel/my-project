@@ -590,3 +590,134 @@ dronesFolder.ChildAdded:Connect(function(child)
 		setupDrone(child)
 	end
 end)
+
+--------------------------------------------------------------------
+-- EXPLOSION FX ADD-ON
+-- Realistic bang, flash, crater fire, burning debris and a rising
+-- smoke column on every explosion in the game. Self-contained: it
+-- watches for Explosion instances, so it needs no other changes.
+--------------------------------------------------------------------
+do
+	local TweenService = game:GetService("TweenService")
+	local DebrisService = game:GetService("Debris")
+
+	-- if the bang is silent, this id got moderated — search the Toolbox
+	-- for "explosion" and paste any sound id you like here
+	local BANG_SOUND_ID = "rbxassetid://165969964"
+	local FIRE_DURATION = 12 -- seconds the crater burns
+	local SMOKE_DURATION = 18 -- seconds the smoke column keeps rising
+	local BURNING_DEBRIS = 4 -- how many rubble chunks catch fire
+
+	local function explosionFX(position)
+		-- invisible anchor part that holds all the effects
+		local fx = Instance.new("Part")
+		fx.Name = "ExplosionFX"
+		fx.Size = Vector3.new(1, 1, 1)
+		fx.Position = position
+		fx.Transparency = 1
+		fx.Anchored = true
+		fx.CanCollide = false
+		fx.CanQuery = false
+		fx.CanTouch = false
+		fx.Parent = workspace
+
+		-- BANG: loud up close, audible far across the map, a bit different every time
+		local bang = Instance.new("Sound")
+		bang.SoundId = BANG_SOUND_ID
+		bang.Volume = 2
+		bang.PlaybackSpeed = 0.9 + math.random() * 0.25
+		bang.RollOffMinDistance = 30
+		bang.RollOffMaxDistance = 1200
+		bang.Parent = fx
+		bang:Play()
+
+		-- white-orange flash that fades out fast
+		local flash = Instance.new("PointLight")
+		flash.Color = Color3.fromRGB(255, 170, 60)
+		flash.Brightness = 15
+		flash.Range = 40
+		flash.Parent = fx
+		TweenService:Create(flash, TweenInfo.new(0.6), { Brightness = 0, Range = 8 }):Play()
+
+		-- fire burning in the crater
+		local fire = Instance.new("Fire")
+		fire.Size = 12
+		fire.Heat = 15
+		fire.Parent = fx
+
+		-- flickery orange glow from the fire while it burns
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 120, 30)
+		glow.Brightness = 3
+		glow.Range = 25
+		glow.Parent = fx
+
+		-- thick rising smoke column
+		local smoke = Instance.new("ParticleEmitter")
+		smoke.Rate = 12
+		smoke.Lifetime = NumberRange.new(3, 6)
+		smoke.Speed = NumberRange.new(6, 12)
+		smoke.Acceleration = Vector3.new(0, 4, 0)
+		smoke.SpreadAngle = Vector2.new(15, 15)
+		smoke.Rotation = NumberRange.new(0, 360)
+		smoke.RotSpeed = NumberRange.new(-20, 20)
+		smoke.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 5),
+			NumberSequenceKeypoint.new(1, 16),
+		})
+		smoke.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.25),
+			NumberSequenceKeypoint.new(0.7, 0.6),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		smoke.Color = ColorSequence.new(Color3.fromRGB(40, 38, 35), Color3.fromRGB(110, 105, 100))
+		smoke.EmissionDirection = Enum.NormalId.Top
+		smoke.Parent = fx
+
+		-- set a few pieces of flying rubble on fire
+		local overlapParams = OverlapParams.new()
+		local nearby = workspace:GetPartBoundsInRadius(position, 12, overlapParams)
+		local lit = 0
+		for _, part in nearby do
+			if lit >= BURNING_DEBRIS then
+				break
+			end
+			if not part.Anchored and part.Name ~= "ExplosionFX" then
+				local debrisFire = Instance.new("Fire")
+				debrisFire.Size = 4
+				debrisFire.Heat = 8
+				debrisFire.Parent = part
+				DebrisService:AddItem(debrisFire, 6 + math.random(0, 4))
+				lit += 1
+			end
+		end
+
+		-- burn down: the fire shrinks, then dies; smoke keeps rising a bit longer
+		task.delay(FIRE_DURATION * 0.6, function()
+			if fire.Parent then
+				fire.Size = 6
+			end
+		end)
+		task.delay(FIRE_DURATION, function()
+			if fire.Parent then
+				fire:Destroy()
+			end
+			if glow.Parent then
+				glow:Destroy()
+			end
+		end)
+		task.delay(SMOKE_DURATION, function()
+			if smoke.Parent then
+				smoke.Enabled = false
+			end
+		end)
+		DebrisService:AddItem(fx, SMOKE_DURATION + 8)
+	end
+
+	-- hook: run the FX every time an explosion goes off anywhere in the game
+	workspace.ChildAdded:Connect(function(child)
+		if child:IsA("Explosion") then
+			explosionFX(child.Position)
+		end
+	end)
+end
