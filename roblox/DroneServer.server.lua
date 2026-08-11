@@ -925,12 +925,15 @@ do
 	dropEvent.Name = "DroneDropGrenade"
 	dropEvent.Parent = remotes
 
-	local function grenadeExplode(grenade)
+	-- position is passed in explicitly: at high fall speeds the grenade part
+	-- can already be deep underground by the time this runs, so we must
+	-- never re-read its Position for the blast location
+	local function grenadeExplode(grenade, position)
 		if grenade:GetAttribute("Exploded") then
 			return
 		end
 		grenade:SetAttribute("Exploded", true)
-		local position = grenade.Position
+		position = position or grenade.Position
 
 		local explosion = Instance.new("Explosion")
 		explosion.Position = position
@@ -985,12 +988,18 @@ do
 		grenade.CanCollide = true
 		grenade.Parent = workspace
 
+		-- server owns the grenade's physics: the pilot's client can't drag
+		-- its position around, so the impact point stays accurate
+		pcall(function()
+			grenade:SetNetworkOwner(nil)
+		end)
+
 		-- arm after a beat so it can't blow up on the drone that dropped it
 		task.delay(GRENADE_ARM_TIME, function()
 			if grenade.Parent then
 				grenade.Touched:Connect(function(hit)
 					if not hit:IsDescendantOf(drone) then
-						grenadeExplode(grenade)
+						grenadeExplode(grenade, grenade.Position)
 					end
 				end)
 			end
@@ -1014,8 +1023,9 @@ do
 					if step.Magnitude > 0.1 then
 						local hit = workspace:Raycast(lastPosition, step, rayParams)
 						if hit then
-							grenade.Position = hit.Position
-							grenadeExplode(grenade)
+							-- detonate exactly on the surface the grenade crossed,
+							-- no matter how far past it the physics has carried it
+							grenadeExplode(grenade, hit.Position + hit.Normal * 0.5)
 							break
 						end
 					end
