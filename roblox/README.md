@@ -4,6 +4,8 @@ Walk up to a drone model, hold **E** for 1 second, and you take off in first-per
 
 While flying, the drone is **armed**: crashing into anything at speed (a wall, a building, a vehicle, the ground) makes it explode on impact, damaging every player and NPC in the blast radius with distance falloff. The drone respawns at its starting spot after a delay.
 
+The video/control **signal** comes from the pilot's position: past ~55% of `SIGNAL_RANGE` (800 studs default) static/glitch lines grow on the FPV feed, RSSI drops, and a WEAK SIGNAL warning flashes. Fly past max range for more than 2 seconds and the feed freezes into SIGNAL LOST static while the drone drops out of the sky and detonates. Range is enforced server-side.
+
 Each drone has a **battery** good for ~4 minutes of flight. The FPV view shows a working HUD (battery bar, LiPo voltage, flight time remaining, speed, altitude), a LOW BATTERY warning with beeps under 20%, motor sound with throttle-based pitch, and motor-vibration camera shake. When the battery dies the motors cut, the screen shows flickering SIGNAL LOST static, and the drone falls out of the sky and detonates on impact.
 
 ## Setup in Roblox Studio

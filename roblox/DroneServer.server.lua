@@ -13,6 +13,10 @@
 
 	Battery: each drone has ~4 minutes of flight time. When it runs out,
 	the motors cut, the drone falls out of the sky and detonates on impact.
+
+	Signal: the video/control link comes from the pilot's position. Fly
+	past SIGNAL_RANGE for more than SIGNAL_GRACE seconds and the link is
+	lost — same result, the drone drops out of the sky.
 ]]
 
 local Players = game:GetService("Players")
@@ -27,6 +31,10 @@ local DRONE_RESPAWN_TIME = 10 -- seconds until the drone respawns at its pad
 -- battery tuning
 local FLIGHT_TIME = 240 -- seconds of flight per battery (4 minutes)
 local DEAD_SELF_DESTRUCT = 8 -- if a dead drone lands too softly to detonate, blow it anyway after this many seconds
+
+-- signal tuning
+local SIGNAL_RANGE = 800 -- studs from the pilot before the link drops (interference starts well before this)
+local SIGNAL_GRACE = 2 -- seconds you can stay out of range before losing the drone
 
 -- sound
 -- NOTE: if the motor is silent in your game, this id may have been moderated —
@@ -174,9 +182,10 @@ local function setupDrone(drone)
 	drone.PrimaryPart = root
 	local spawnCFrame = root.CFrame
 
-	-- fresh battery (attributes replicate, so the client HUD reads these directly)
+	-- fresh battery + link info (attributes replicate, so the client HUD reads these directly)
 	drone:SetAttribute("Battery", FLIGHT_TIME)
 	drone:SetAttribute("MaxBattery", FLIGHT_TIME)
+	drone:SetAttribute("SignalRange", SIGNAL_RANGE)
 
 	local exploded = false
 	local function explode(position)
@@ -213,11 +222,13 @@ local function setupDrone(drone)
 		end)
 	end
 
-	-- battery empty: motors cut, drone free-falls (still armed, so it blows on impact)
-	local function batteryDied()
+	-- power/link gone: motors cut, drone free-falls (still armed, so it blows on impact)
+	-- reason is "battery" or "signal" — the client HUD shows a different message for each
+	local function loseControl(reason)
 		if exploded or drone:GetAttribute("Dead") then
 			return
 		end
+		drone:SetAttribute("DeathReason", reason)
 		drone:SetAttribute("Dead", true)
 
 		local motor = root:FindFirstChild("DroneMotor")
@@ -238,15 +249,34 @@ local function setupDrone(drone)
 		end)
 	end
 
-	-- drains the battery while this player is flying
-	local function startBatteryDrain(player)
+	-- drains the battery + enforces signal range while this player is flying
+	local function startFlightLoop(player)
 		task.spawn(function()
+			local character = player.Character
+			local hrp = character and character:FindFirstChild("HumanoidRootPart")
+			-- the link comes from wherever the pilot is standing (they're frozen there)
+			local homePosition = hrp and hrp.Position or root.Position
+			local outOfRangeTime = 0
+
 			while drone.Parent and drone:GetAttribute("PilotUserId") == player.UserId do
 				local battery = drone:GetAttribute("Battery") or 0
 				if battery <= 0 then
-					batteryDied()
+					loseControl("battery")
 					break
 				end
+
+				-- signal range check (server-enforced so nobody can cheat past it)
+				local distance = (root.Position - homePosition).Magnitude
+				if distance > SIGNAL_RANGE then
+					outOfRangeTime += 0.5
+					if outOfRangeTime >= SIGNAL_GRACE then
+						loseControl("signal")
+						break
+					end
+				else
+					outOfRangeTime = 0
+				end
+
 				drone:SetAttribute("Battery", math.max(battery - 0.5, 0))
 				task.wait(0.5)
 			end
@@ -257,7 +287,7 @@ local function setupDrone(drone)
 		if exploded then
 			return
 		end
-		-- only armed while someone is flying it (or after a battery-death fall)
+		-- only armed while someone is flying it (or after a power-loss fall)
 		local pilotId = drone:GetAttribute("PilotUserId")
 		if not pilotId and not drone:GetAttribute("Dead") then
 			return
@@ -339,7 +369,7 @@ local function setupDrone(drone)
 	prompt.Triggered:Connect(function(player)
 		enterDrone(player, drone)
 		if drone:GetAttribute("PilotUserId") == player.UserId then
-			startBatteryDrain(player)
+			startFlightLoop(player)
 		end
 	end)
 end
