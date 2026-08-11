@@ -593,10 +593,13 @@ dronesFolder.ChildAdded:Connect(function(child)
 end)
 
 --------------------------------------------------------------------
--- EXPLOSION FX ADD-ON
--- Realistic bang, flash, crater fire, burning debris and a rising
--- smoke column on every explosion in the game. Self-contained: it
--- watches for Explosion instances, so it needs no other changes.
+-- EXPLOSION FX ADD-ON v2
+-- Cinematic explosions: fireball, white-hot sparks, shockwave, bang,
+-- and the blast "splashes" onto every surface it can see — burning
+-- fire patches, black scorch marks and smoke wisps stuck to the
+-- floor, walls and ceiling around the impact. Self-contained: it
+-- watches for Explosion instances, so drone crashes AND grenades
+-- both get the full treatment.
 --------------------------------------------------------------------
 do
 	local TweenService = game:GetService("TweenService")
@@ -605,9 +608,126 @@ do
 	-- if the bang is silent, this id got moderated — search the Toolbox
 	-- for "explosion" and paste any sound id you like here
 	local BANG_SOUND_ID = "rbxassetid://165969964"
-	local FIRE_DURATION = 12 -- seconds the crater burns
-	local SMOKE_DURATION = 18 -- seconds the smoke column keeps rising
-	local BURNING_DEBRIS = 4 -- how many rubble chunks catch fire
+	local SPLASH_RANGE = 22 -- how far the blast reaches out to paint surfaces
+	local MAX_PATCHES = 12 -- max fire/scorch patches per explosion (perf cap)
+	local SCORCH_LIFETIME = 40 -- seconds scorch marks stay before fading out
+	local FIRE_DURATION = 14 -- seconds the crater fire burns
+	local SMOKE_DURATION = 25 -- seconds the smoke column keeps rising
+	local BURNING_DEBRIS = 5 -- how many rubble chunks catch fire
+
+	-- ray fan: around the horizon, angled down, angled up, straight up/down —
+	-- so floors, walls AND ceilings all catch the blast
+	local SPLASH_DIRECTIONS = {}
+	for i = 1, 10 do
+		local a = (i / 10) * math.pi * 2
+		table.insert(SPLASH_DIRECTIONS, Vector3.new(math.cos(a), -0.15, math.sin(a)))
+	end
+	for i = 1, 6 do
+		local a = (i / 6) * math.pi * 2 + 0.3
+		table.insert(SPLASH_DIRECTIONS, Vector3.new(math.cos(a) * 0.6, -1, math.sin(a) * 0.6))
+	end
+	for i = 1, 4 do
+		local a = (i / 4) * math.pi * 2 + 0.6
+		table.insert(SPLASH_DIRECTIONS, Vector3.new(math.cos(a) * 0.5, 1, math.sin(a) * 0.5))
+	end
+	table.insert(SPLASH_DIRECTIONS, Vector3.new(0, -1, 0))
+	table.insert(SPLASH_DIRECTIONS, Vector3.new(0, 1, 0))
+
+	-- a patch of scorch + fire + smoke stuck to a floor, wall or ceiling
+	local function surfacePatch(hit)
+		local position = hit.Position
+		local normal = hit.Normal
+
+		-- black scorch plate laid flat on the surface, random size + spin
+		local scorch = Instance.new("Part")
+		scorch.Name = "ExplosionScorch"
+		scorch.Size = Vector3.new(math.random(4, 8), 0.2, math.random(4, 8))
+		scorch.CFrame = CFrame.lookAt(position + normal * 0.1, position + normal)
+			* CFrame.Angles(-math.pi / 2, 0, 0)
+			* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+		scorch.Color = Color3.fromRGB(25, 22, 20)
+		scorch.Material = Enum.Material.Slate
+		scorch.Transparency = 0.15
+		scorch.Anchored = true
+		scorch.CanCollide = false
+		scorch.CanQuery = false
+		scorch.CanTouch = false
+		scorch.CastShadow = false
+		scorch.Parent = workspace
+
+		local life = SCORCH_LIFETIME + math.random(0, 15)
+		task.delay(life - 5, function()
+			if scorch.Parent then
+				TweenService:Create(scorch, TweenInfo.new(5), { Transparency = 1 }):Play()
+			end
+		end)
+		DebrisService:AddItem(scorch, life)
+
+		-- most patches keep burning for a while with their own smoke + glow
+		if math.random() < 0.8 then
+			local burnTime = math.random(6, 14)
+
+			local fire = Instance.new("Fire")
+			fire.Size = math.random(4, 9)
+			fire.Heat = math.random(6, 12)
+			fire.Parent = scorch
+
+			local glow = Instance.new("PointLight")
+			glow.Color = Color3.fromRGB(255, 120, 30)
+			glow.Brightness = 2
+			glow.Range = 14
+			glow.Parent = scorch
+
+			local wisp = Instance.new("ParticleEmitter")
+			wisp.Rate = 4
+			wisp.Lifetime = NumberRange.new(2, 4)
+			wisp.Speed = NumberRange.new(3, 7)
+			wisp.Acceleration = Vector3.new(0, 5, 0)
+			wisp.SpreadAngle = Vector2.new(25, 25)
+			wisp.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1.5),
+				NumberSequenceKeypoint.new(1, 6),
+			})
+			wisp.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.45),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			wisp.Color = ColorSequence.new(Color3.fromRGB(60, 55, 50), Color3.fromRGB(120, 115, 110))
+			wisp.EmissionDirection = Enum.NormalId.Top
+			wisp.Parent = scorch
+
+			task.delay(burnTime, function()
+				if fire.Parent then
+					fire:Destroy()
+				end
+				if glow.Parent then
+					glow:Destroy()
+				end
+				if wisp.Parent then
+					wisp.Enabled = false
+				end
+			end)
+		end
+	end
+
+	-- throw fire/scorch/smoke onto every surface the blast can see
+	local function splashSurfaces(position)
+		local rayParams = RaycastParams.new()
+		local patches = 0
+		for _, dir in SPLASH_DIRECTIONS do
+			if patches >= MAX_PATCHES then
+				break
+			end
+			local hit = workspace:Raycast(position, dir.Unit * SPLASH_RANGE, rayParams)
+			if hit and hit.Instance.Anchored then
+				local model = hit.Instance:FindFirstAncestorOfClass("Model")
+				if not (model and model:FindFirstChildOfClass("Humanoid")) then
+					patches += 1
+					surfacePatch(hit)
+				end
+			end
+		end
+	end
 
 	local function explosionFX(position)
 		-- invisible anchor part that holds all the effects
@@ -632,17 +752,74 @@ do
 		bang.Parent = fx
 		bang:Play()
 
+		-- expanding fireball of flame particles
+		local fireball = Instance.new("ParticleEmitter")
+		fireball.Rate = 0
+		fireball.Lifetime = NumberRange.new(0.35, 0.8)
+		fireball.Speed = NumberRange.new(15, 45)
+		fireball.SpreadAngle = Vector2.new(180, 180)
+		fireball.LightEmission = 0.9
+		fireball.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 6),
+			NumberSequenceKeypoint.new(1, 16),
+		})
+		fireball.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.1),
+			NumberSequenceKeypoint.new(0.7, 0.5),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		fireball.Color = ColorSequence.new(Color3.fromRGB(255, 200, 90), Color3.fromRGB(200, 60, 20))
+		fireball.Parent = fx
+		fireball:Emit(55)
+
+		-- white-hot sparks that arc out and rain down
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Rate = 0
+		sparks.Lifetime = NumberRange.new(0.5, 1.4)
+		sparks.Speed = NumberRange.new(45, 90)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Acceleration = Vector3.new(0, -70, 0)
+		sparks.LightEmission = 1
+		sparks.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(1, 0.1),
+		})
+		sparks.Color = ColorSequence.new(Color3.fromRGB(255, 240, 180), Color3.fromRGB(255, 150, 50))
+		sparks.Parent = fx
+		sparks:Emit(90)
+
+		-- shockwave: a glowing sphere that blasts outward and vanishes
+		local wave = Instance.new("Part")
+		wave.Name = "ExplosionShockwave"
+		wave.Shape = Enum.PartType.Ball
+		wave.Size = Vector3.new(2, 2, 2)
+		wave.Position = position
+		wave.Material = Enum.Material.Neon
+		wave.Color = Color3.fromRGB(255, 190, 120)
+		wave.Transparency = 0.4
+		wave.Anchored = true
+		wave.CanCollide = false
+		wave.CanQuery = false
+		wave.CanTouch = false
+		wave.CastShadow = false
+		wave.Parent = workspace
+		TweenService:Create(wave, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = Vector3.one * (SPLASH_RANGE * 2),
+			Transparency = 1,
+		}):Play()
+		DebrisService:AddItem(wave, 0.6)
+
 		-- white-orange flash that fades out fast
 		local flash = Instance.new("PointLight")
 		flash.Color = Color3.fromRGB(255, 170, 60)
-		flash.Brightness = 15
-		flash.Range = 40
+		flash.Brightness = 20
+		flash.Range = 50
 		flash.Parent = fx
 		TweenService:Create(flash, TweenInfo.new(0.6), { Brightness = 0, Range = 8 }):Play()
 
 		-- fire burning in the crater
 		local fire = Instance.new("Fire")
-		fire.Size = 12
+		fire.Size = 14
 		fire.Heat = 15
 		fire.Parent = fx
 
@@ -655,9 +832,9 @@ do
 
 		-- thick rising smoke column
 		local smoke = Instance.new("ParticleEmitter")
-		smoke.Rate = 12
-		smoke.Lifetime = NumberRange.new(3, 6)
-		smoke.Speed = NumberRange.new(6, 12)
+		smoke.Rate = 18
+		smoke.Lifetime = NumberRange.new(4, 8)
+		smoke.Speed = NumberRange.new(6, 14)
 		smoke.Acceleration = Vector3.new(0, 4, 0)
 		smoke.SpreadAngle = Vector2.new(15, 15)
 		smoke.Rotation = NumberRange.new(0, 360)
@@ -693,10 +870,13 @@ do
 			end
 		end
 
+		-- paint fire + scorch + smoke onto the floor, walls and ceiling
+		splashSurfaces(position)
+
 		-- burn down: the fire shrinks, then dies; smoke keeps rising a bit longer
 		task.delay(FIRE_DURATION * 0.6, function()
 			if fire.Parent then
-				fire.Size = 6
+				fire.Size = 7
 			end
 		end)
 		task.delay(FIRE_DURATION, function()
