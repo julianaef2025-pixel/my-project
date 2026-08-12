@@ -1,21 +1,27 @@
 --[[
 	MOVEMENT — CLIENT LocalScript (StarterPlayer > StarterPlayerScripts)
-	Crouch / sprint / prone. A separate LocalScript: don't paste into others.
+	v2, animation-based. Crouch / sprint / prone.
+
+	SETUP: paste your two animation IDs below! Make them with the
+	Animation Editor (Avatar tab), set Priority = Action + Looping ON,
+	publish, and copy the numbers into CROUCH_ANIM_ID / PRONE_ANIM_ID.
 
 	On foot:
 	- Left Shift (hold) : sprint
 	- C (toggle)        : crouch
 	- X (toggle)        : prone
 	- Jump              : stand up from crouch/prone
-
-	All keys are ignored while flying a drone (those have their own
-	C/X/Shift meanings) — the character is frozen then anyway.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+
+-- ▼▼▼ PASTE YOUR ANIMATION IDS HERE ▼▼▼
+local CROUCH_ANIM_ID = 0 -- e.g. 123456789012345
+local PRONE_ANIM_ID = 0 -- e.g. 123456789012345
+-- ▲▲▲ PASTE YOUR ANIMATION IDS HERE ▲▲▲
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -25,13 +31,66 @@ local stanceEvent = ReplicatedStorage:WaitForChild("StanceEvent")
 local CAMERA_OFFSETS = {
 	Stand = Vector3.new(0, 0, 0),
 	Crouch = Vector3.new(0, -1, 0),
-	Prone = Vector3.new(0, -2.2, 0),
+	Prone = Vector3.new(0, -2, 0),
 }
 local SPRINT_FOV_BOOST = 8
 
 local stance = "Stand"
 local sprinting = false
 local baseFOV = 70
+
+if CROUCH_ANIM_ID == 0 or PRONE_ANIM_ID == 0 then
+	warn("[Movement] Animation IDs not set! Open the Movement LocalScript and paste your CrouchIdle / ProneIdle animation IDs at the top.")
+end
+
+--------------------------------------------------------------------
+-- animation tracks (playing them on your own character replicates
+-- to every other player automatically)
+--------------------------------------------------------------------
+
+local tracks = {} -- Crouch / Prone -> AnimationTrack
+
+local function loadTracks(character)
+	tracks = {}
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if not humanoid then
+		return
+	end
+	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+
+	local function load(name, id)
+		if id == 0 then
+			return
+		end
+		local anim = Instance.new("Animation")
+		anim.AnimationId = "rbxassetid://" .. id
+		local ok, track = pcall(function()
+			return animator:LoadAnimation(anim)
+		end)
+		if ok and track then
+			track.Priority = Enum.AnimationPriority.Action
+			track.Looped = true
+			tracks[name] = track
+		else
+			warn("[Movement] Could not load " .. name .. " animation — is the ID right and owned by you?")
+		end
+	end
+
+	load("Crouch", CROUCH_ANIM_ID)
+	load("Prone", PRONE_ANIM_ID)
+end
+
+local function playStanceAnimation()
+	for name, track in tracks do
+		if name == stance then
+			if not track.IsPlaying then
+				track:Play(0.2)
+			end
+		else
+			track:Stop(0.2)
+		end
+	end
+end
 
 --------------------------------------------------------------------
 -- tiny stance indicator, bottom-left
@@ -69,7 +128,7 @@ local function updateIndicator()
 end
 
 --------------------------------------------------------------------
--- helpers
+-- stance switching
 --------------------------------------------------------------------
 
 local function getCharacterBits()
@@ -81,19 +140,19 @@ end
 
 local function onFoot()
 	local _, humanoid, hrp = getCharacterBits()
-	-- anchored HRP = flying a drone; dead = no
 	return humanoid ~= nil and humanoid.Health > 0 and hrp ~= nil and not hrp.Anchored
 end
 
 local function sendStance()
 	stanceEvent:FireServer(stance, sprinting)
+	playStanceAnimation()
+
 	local _, humanoid = getCharacterBits()
 	if humanoid then
 		TweenService:Create(humanoid, TweenInfo.new(0.25), {
 			CameraOffset = CAMERA_OFFSETS[stance] or Vector3.zero,
 		}):Play()
 	end
-	-- sprint FOV kick (only when the normal camera is in charge, not a drone cam)
 	if camera.CameraType == Enum.CameraType.Custom then
 		local targetFOV = (sprinting and stance == "Stand") and (baseFOV + SPRINT_FOV_BOOST) or baseFOV
 		TweenService:Create(camera, TweenInfo.new(0.3), { FieldOfView = targetFOV }):Play()
@@ -116,7 +175,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 	if input.KeyCode == Enum.KeyCode.LeftShift then
 		sprinting = true
-		-- sprinting stands you up
 		if stance ~= "Stand" then
 			stance = "Stand"
 		end
@@ -146,13 +204,13 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- reset on respawn
-player.CharacterAdded:Connect(function()
+-- load animations for each new character, reset stance on respawn
+player.CharacterAdded:Connect(function(character)
 	stance = "Stand"
 	sprinting = false
-	task.wait(0.5)
-	if onFoot() then
-		sendStance()
-	end
+	loadTracks(character)
 	updateIndicator()
 end)
+if player.Character then
+	loadTracks(player.Character)
+end
