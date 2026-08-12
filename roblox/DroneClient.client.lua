@@ -1276,3 +1276,124 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- BOMBER REARM ADD-ON (client)
+-- When the bomber is out of grenades: flashing RETURN TO BASE with
+-- an arrow pointing at the nearest rearm zone + distance. Inside
+-- the zone: a green REARMING indicator while grenades refill.
+--------------------------------------------------------------------
+do
+	local rearmGui = nil
+	local statusLabel = nil
+	local arrowLabel = nil
+
+	local function isBomberFlying()
+		return flying ~= nil and flying.Parent ~= nil and flying.Name:lower():find("bomber") ~= nil
+	end
+
+	local function nearestZone(fromPosition)
+		local folder = workspace:FindFirstChild("RearmZones")
+		if not folder then
+			return nil
+		end
+		local best, bestDist
+		for _, zone in folder:GetChildren() do
+			if zone:IsA("BasePart") then
+				local d = (zone.Position - fromPosition).Magnitude
+				if not bestDist or d < bestDist then
+					best, bestDist = zone, d
+				end
+			end
+		end
+		return best, bestDist
+	end
+
+	local function buildGui()
+		rearmGui = Instance.new("ScreenGui")
+		rearmGui.Name = "DroneRearmHud"
+		rearmGui.ResetOnSpawn = false
+		rearmGui.DisplayOrder = 11
+
+		statusLabel = Instance.new("TextLabel")
+		statusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		statusLabel.Position = UDim2.new(0.5, 0, 0.34, 0)
+		statusLabel.Size = UDim2.new(0, 520, 0, 30)
+		statusLabel.BackgroundTransparency = 1
+		statusLabel.Font = Enum.Font.GothamBlack
+		statusLabel.TextSize = 24
+		statusLabel.TextStrokeTransparency = 0.5
+		statusLabel.Text = ""
+		statusLabel.Parent = rearmGui
+
+		arrowLabel = Instance.new("TextLabel")
+		arrowLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		arrowLabel.Position = UDim2.new(0.5, 0, 0.42, 0)
+		arrowLabel.Size = UDim2.new(0, 60, 0, 60)
+		arrowLabel.BackgroundTransparency = 1
+		arrowLabel.Font = Enum.Font.GothamBlack
+		arrowLabel.TextSize = 44
+		arrowLabel.TextColor3 = Color3.fromRGB(255, 200, 80)
+		arrowLabel.TextStrokeTransparency = 0.5
+		arrowLabel.Text = "⬆"
+		arrowLabel.Visible = false
+		arrowLabel.Parent = rearmGui
+
+		rearmGui.Parent = player:WaitForChild("PlayerGui")
+	end
+
+	task.spawn(function()
+		local clock = 0
+		while true do
+			task.wait(0.1)
+			clock += 0.1
+
+			if not isBomberFlying() then
+				if rearmGui then
+					rearmGui:Destroy()
+					rearmGui = nil
+					statusLabel = nil
+					arrowLabel = nil
+				end
+				continue
+			end
+
+			if not rearmGui then
+				buildGui()
+			end
+
+			local drone = flying
+			local root = drone.PrimaryPart
+			local ammo = drone:GetAttribute("Grenades") or 0
+			local rearming = drone:GetAttribute("Rearming") == true
+
+			if rearming then
+				statusLabel.Text = "⟳ REARMING GRENADES..."
+				statusLabel.TextColor3 = Color3.fromRGB(120, 230, 140)
+				statusLabel.TextTransparency = 0
+				arrowLabel.Visible = false
+			elseif ammo <= 0 and root then
+				local zone, dist = nearestZone(root.Position)
+				if zone then
+					-- flashing RTB warning
+					statusLabel.Text = string.format("OUT OF AMMO — RETURN TO BASE (%d studs)", math.floor(dist + 0.5))
+					statusLabel.TextColor3 = Color3.fromRGB(255, 90, 60)
+					statusLabel.TextTransparency = (math.floor(clock * 3) % 2 == 0) and 0 or 0.6
+
+					-- arrow that points toward the rearm zone relative to your view
+					local dir = camera.CFrame:VectorToObjectSpace(zone.Position - root.Position)
+					local angle = math.deg(math.atan2(dir.X, -dir.Z))
+					arrowLabel.Rotation = angle
+					arrowLabel.Visible = true
+				else
+					statusLabel.Text = "OUT OF AMMO"
+					statusLabel.TextColor3 = Color3.fromRGB(255, 90, 60)
+					arrowLabel.Visible = false
+				end
+			else
+				statusLabel.Text = ""
+				arrowLabel.Visible = false
+			end
+		end
+	end)
+end

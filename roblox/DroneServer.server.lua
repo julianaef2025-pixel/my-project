@@ -1160,3 +1160,106 @@ do
 		lastMark[p] = nil
 	end)
 end
+
+--------------------------------------------------------------------
+-- BOMBER REARM ADD-ON (server)
+-- Put invisible zone parts in a Workspace folder named "RearmZones"
+-- (one big part at each base). A bomber hovering inside a zone
+-- refills one grenade every few seconds, up to full.
+--------------------------------------------------------------------
+do
+	local REFILL_SECONDS = 2.5 -- time per grenade
+	local MAX_GRENADES = 3 -- keep in sync with GRENADE_COUNT in the bomber add-on
+	local ZONE_SLACK = Vector3.new(2, 8, 2) -- extra room above the zone so hovering counts
+
+	local function isBomber(drone)
+		return drone.Name:lower():find("bomber") ~= nil
+	end
+
+	local rearmFolder = workspace:FindFirstChild("RearmZones")
+	if not rearmFolder then
+		rearmFolder = Instance.new("Folder")
+		rearmFolder.Name = "RearmZones"
+		rearmFolder.Parent = workspace
+		warn("[Rearm] Created empty 'RearmZones' folder — put a big Part in it at each base")
+	end
+
+	-- make zones invisible + give each a floating hologram tag
+	local function setupZone(zone)
+		if not zone:IsA("BasePart") then
+			return
+		end
+		zone.Transparency = 1
+		zone.CanCollide = false
+		zone.Anchored = true
+
+		if not zone:FindFirstChild("RearmTag") then
+			local tag = Instance.new("BillboardGui")
+			tag.Name = "RearmTag"
+			tag.Size = UDim2.new(0, 120, 0, 30)
+			tag.StudsOffsetWorldSpace = Vector3.new(0, zone.Size.Y / 2 + 6, 0)
+			tag.AlwaysOnTop = false
+			tag.MaxDistance = 250
+			local text = Instance.new("TextLabel")
+			text.Size = UDim2.new(1, 0, 1, 0)
+			text.BackgroundTransparency = 1
+			text.Font = Enum.Font.Code
+			text.TextSize = 20
+			text.TextColor3 = Color3.fromRGB(120, 220, 140)
+			text.TextStrokeTransparency = 0.5
+			text.Text = "⟳ REARM"
+			text.Parent = tag
+			tag.Parent = zone
+		end
+	end
+	for _, zone in rearmFolder:GetChildren() do
+		setupZone(zone)
+	end
+	rearmFolder.ChildAdded:Connect(setupZone)
+
+	local function insideAnyZone(position)
+		for _, zone in rearmFolder:GetChildren() do
+			if zone:IsA("BasePart") then
+				local rel = zone.CFrame:PointToObjectSpace(position)
+				local half = zone.Size / 2 + ZONE_SLACK
+				if math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z then
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	local refillProgress = {} -- [drone] = seconds accumulated toward the next grenade
+
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			for _, drone in dronesFolder:GetChildren() do
+				if drone:IsA("Model") and isBomber(drone) and drone.PrimaryPart
+					and drone:GetAttribute("PilotUserId") and not drone:GetAttribute("Dead") then
+					local ammo = drone:GetAttribute("Grenades") or 0
+					if ammo < MAX_GRENADES and insideAnyZone(drone.PrimaryPart.Position) then
+						drone:SetAttribute("Rearming", true)
+						refillProgress[drone] = (refillProgress[drone] or 0) + 0.5
+						if refillProgress[drone] >= REFILL_SECONDS then
+							refillProgress[drone] = 0
+							drone:SetAttribute("Grenades", math.min(ammo + 1, MAX_GRENADES))
+						end
+					else
+						if drone:GetAttribute("Rearming") then
+							drone:SetAttribute("Rearming", nil)
+						end
+						refillProgress[drone] = nil
+					end
+				end
+			end
+			-- forget drones that no longer exist
+			for drone in refillProgress do
+				if not drone.Parent then
+					refillProgress[drone] = nil
+				end
+			end
+		end
+	end)
+end
