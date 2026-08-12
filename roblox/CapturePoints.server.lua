@@ -317,9 +317,43 @@ task.spawn(function()
 					point.capturingTeam = nil
 					point.progress = 0
 					playCaptureAnimation(point, attackerTeam)
+					-- XP for everyone standing on the point they just captured
+					local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+					if xpSignal then
+						for _, plr in Players:GetPlayers() do
+							if plr.Team and plr.Team.Name == attackerTeam then
+								local char = plr.Character
+								local hrp = char and char:FindFirstChild("HumanoidRootPart")
+								if hrp then
+									local offset = hrp.Position - point.center
+									if Vector2.new(offset.X, offset.Z).Magnitude <= point.radius and math.abs(offset.Y) <= 12 then
+										xpSignal:Fire(plr.UserId, "capture")
+									end
+								end
+							end
+						end
+					end
 				end
 			elseif attackerTeam and attackerTeam == point.owner then
 				-- defenders on their own point: wipe enemy progress fast
+				-- (and earn a defence XP trickle while actively denying)
+				if point.progress > 0 then
+					local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+					if xpSignal then
+						for _, plr in Players:GetPlayers() do
+							if plr.Team and plr.Team.Name == point.owner then
+								local char = plr.Character
+								local hrp = char and char:FindFirstChild("HumanoidRootPart")
+								if hrp then
+									local offset = hrp.Position - point.center
+									if Vector2.new(offset.X, offset.Z).Magnitude <= point.radius and math.abs(offset.Y) <= 12 then
+										xpSignal:Fire(plr.UserId, "defend")
+									end
+								end
+							end
+						end
+					end
+				end
 				point.progress = math.max(point.progress - DECAY_RATE * 3 * dt, 0)
 				if point.progress <= 0 then
 					point.capturingTeam = nil

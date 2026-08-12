@@ -161,7 +161,8 @@ local function enterDrone(player, drone)
 end
 
 -- damage every humanoid (players AND NPCs) caught in the blast, with distance falloff
-local function damageInBlast(position)
+-- attackerUserId tags victims so the XP system can credit kills
+local function damageInBlast(position, attackerUserId)
 	local damagedHumanoids = {}
 	local overlapParams = OverlapParams.new()
 	local parts = workspace:GetPartBoundsInRadius(position, BLAST_RADIUS, overlapParams)
@@ -170,6 +171,10 @@ local function damageInBlast(position)
 		local humanoid = model and model:FindFirstChildOfClass("Humanoid")
 		if humanoid and humanoid.Health > 0 and not damagedHumanoids[humanoid] then
 			damagedHumanoids[humanoid] = true
+			if attackerUserId then
+				humanoid:SetAttribute("LastHitBy", attackerUserId)
+				humanoid:SetAttribute("LastHitTime", os.clock())
+			end
 			local targetRoot = humanoid.RootPart or part
 			local distance = (targetRoot.Position - position).Magnitude
 			local damage = MAX_DAMAGE * math.clamp(1 - distance / BLAST_RADIUS, 0.1, 1)
@@ -393,7 +398,13 @@ local function setupDrone(drone)
 		explosion.Parent = workspace
 
 		destroyBuildings(position)
-		damageInBlast(position)
+		damageInBlast(position, pilotId)
+
+		-- report the demolition to the XP system
+		local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+		if xpSignal and pilotId then
+			xpSignal:Fire(pilotId, "demolition")
+		end
 
 		drone:Destroy()
 
@@ -943,8 +954,16 @@ do
 		explosion.ExplosionType = Enum.ExplosionType.NoCraters
 		explosion.Parent = workspace
 
+		local ownerId = grenade:GetAttribute("OwnerUserId")
 		destroyBuildings(position)
-		damageInBlast(position)
+		damageInBlast(position, ownerId)
+
+		-- report the demolition to the XP system
+		local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+		if xpSignal and ownerId then
+			xpSignal:Fire(ownerId, "demolition")
+		end
+
 		grenade:Destroy()
 	end
 
@@ -979,6 +998,7 @@ do
 		-- the grenade: released under the drone, carrying the drone's speed
 		local grenade = Instance.new("Part")
 		grenade.Name = "DroneGrenade"
+		grenade:SetAttribute("OwnerUserId", player.UserId)
 		grenade.Shape = Enum.PartType.Ball
 		grenade.Size = Vector3.new(1, 1, 1)
 		grenade.Color = Color3.fromRGB(60, 70, 50)
@@ -1140,6 +1160,9 @@ do
 			if targetPlayer and pilot.Team and targetPlayer.Team == pilot.Team then
 				return
 			end
+			-- record the mark so the XP system can pay out assists
+			target:SetAttribute("MarkedByUserId", pilot.UserId)
+			target:SetAttribute("MarkedUntil", os.clock() + MARK_DURATION)
 			payload = target
 			duration = MARK_DURATION
 		else
