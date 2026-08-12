@@ -88,22 +88,41 @@ end
 
 -- Robux purchase handling
 MarketplaceService.ProcessReceipt = function(receiptInfo)
+	print("[Unlocks] Receipt received: product " .. tostring(receiptInfo.ProductId)
+		.. " from player " .. tostring(receiptInfo.PlayerId))
+
 	local kind = productToKind[receiptInfo.ProductId]
 	if not kind then
-		-- not one of ours; don't eat someone else's product
+		warn("[Unlocks] Product " .. tostring(receiptInfo.ProductId)
+			.. " doesn't match any PRODUCT_IDS entry — check the IDs at the top of this script!")
 		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	print("[Unlocks] Product matches drone kind: " .. kind)
+
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+
+	if not unlockStore then
+		-- no DataStore access (Studio without API services): grant for this
+		-- session so testing works, but it won't survive a rejoin
+		warn("[Unlocks] DataStore unavailable — granting " .. kind .. " for this session only. "
+			.. "Turn ON Game Settings > Security > 'Enable Studio Access to API Services' for real saving!")
+		if player then
+			player:SetAttribute("Owns" .. kind, true)
+		end
+		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
 	-- save FIRST so a crash can't take their Robux without the unlock
 	local saved = saveUnlock(receiptInfo.PlayerId, kind)
 	if not saved then
+		warn("[Unlocks] Saving the unlock FAILED — will retry later (purchase not granted yet)")
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
+	print("[Unlocks] Unlock saved to DataStore")
 
-	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
 	if player then
 		player:SetAttribute("Owns" .. kind, true)
-		print("[Unlocks] " .. player.Name .. " unlocked " .. kind .. " with Robux")
+		print("[Unlocks] " .. player.Name .. " unlocked " .. kind .. " with Robux ✔")
 	end
 
 	return Enum.ProductPurchaseDecision.PurchaseGranted
