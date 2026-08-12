@@ -224,145 +224,232 @@ task.spawn(function()
 end)
 
 --------------------------------------------------------------------
--- 3) SIDE TABS + slide-out drone panel
+-- 3) SIDE TABS + slide-out drone panel (v2 — the good-looking one)
 --------------------------------------------------------------------
 
 local sideTabs = Instance.new("Frame")
 sideTabs.Name = "SideTabs"
-sideTabs.Size = UDim2.new(0, 46, 0, 200)
+sideTabs.Size = UDim2.new(0, 52, 0, 210)
 sideTabs.Position = UDim2.new(0, 0, 0.5, 0)
 sideTabs.AnchorPoint = Vector2.new(0, 0.5)
 sideTabs.BackgroundTransparency = 1
 sideTabs.Visible = false
 sideTabs.Parent = gui
 
-local function makeTab(text, yOffset, accent)
+local function makeTab(icon, letters, yOffset, accent)
 	local tab = Instance.new("TextButton")
-	tab.Size = UDim2.new(0, 42, 0, 86)
+	tab.Size = UDim2.new(0, 44, 0, 96)
 	tab.Position = UDim2.new(0, 0, 0, yOffset)
 	tab.BackgroundColor3 = COLORS.panel
-	tab.BackgroundTransparency = 0.15
+	tab.BackgroundTransparency = 0.1
 	tab.BorderSizePixel = 0
-	tab.Font = Enum.Font.GothamBold
-	tab.TextSize = 15
-	tab.TextColor3 = accent
-	tab.Text = text
+	tab.Text = ""
+	tab.AutoButtonColor = false
 	tab.Parent = sideTabs
-	corner(tab, 8)
-	stroke(tab, accent, 1, 0.6)
-	return tab
+	corner(tab, 10)
+	local tabStroke = stroke(tab, accent, 1.5, 0.55)
+
+	local iconLabel = label(tab, icon, UDim2.new(1, 0, 0, 26), UDim2.new(0.5, 0, 0, 6), Vector2.new(0.5, 0), 18, Enum.Font.GothamBold, accent)
+	local lettersLabel = label(tab, letters, UDim2.new(1, 0, 1, -34), UDim2.new(0.5, 0, 0, 32), Vector2.new(0.5, 0), 11, Enum.Font.GothamBold, accent)
+
+	tab.MouseEnter:Connect(function()
+		TweenService:Create(tab, TweenInfo.new(0.15), { Position = UDim2.new(0, 6, 0, yOffset), BackgroundTransparency = 0 }):Play()
+		TweenService:Create(tabStroke, TweenInfo.new(0.15), { Transparency = 0.1 }):Play()
+	end)
+	tab.MouseLeave:Connect(function()
+		TweenService:Create(tab, TweenInfo.new(0.15), { Position = UDim2.new(0, 0, 0, yOffset), BackgroundTransparency = 0.1 }):Play()
+		TweenService:Create(tabStroke, TweenInfo.new(0.15), { Transparency = 0.55 }):Play()
+	end)
+
+	return tab, tabStroke
 end
 
-local dronesTab = makeTab("🛩", 0, COLORS.amber)
-local dronesTabText = label(dronesTab, "D\nR\nO\nN\nE\nS", UDim2.new(1, 0, 1, -30), UDim2.new(0.5, 0, 0, 28), Vector2.new(0.5, 0), 11, Enum.Font.GothamBold, COLORS.amber)
-local teamsTab = makeTab("⚑", 96, COLORS.dim)
-local teamsTabText = label(teamsTab, "T\nE\nA\nM\nS", UDim2.new(1, 0, 1, -30), UDim2.new(0.5, 0, 0, 28), Vector2.new(0.5, 0), 11, Enum.Font.GothamBold, COLORS.dim)
+local dronesTab, dronesTabStroke = makeTab("🛩", "D\nR\nO\nN\nE\nS", 0, COLORS.amber)
+local teamsTab = makeTab("⚑", "T\nE\nA\nM\nS", 108, COLORS.dim)
 
--- slide-out drone panel
-local PANEL_HIDDEN = UDim2.new(0, -340, 0.5, 0)
-local PANEL_SHOWN = UDim2.new(0, 56, 0.5, 0)
+-- slide-out drone panel (CanvasGroup so it can fade as it slides)
+local PANEL_HIDDEN = UDim2.new(0, -400, 0.5, 0)
+local PANEL_SHOWN = UDim2.new(0, 62, 0.5, 0)
 
-local dronePanel = Instance.new("Frame")
+local dronePanel = Instance.new("CanvasGroup")
 dronePanel.Name = "DronePanel"
-dronePanel.Size = UDim2.new(0, 320, 0, 530)
+dronePanel.Size = UDim2.new(0, 356, 0, 596)
 dronePanel.Position = PANEL_HIDDEN
 dronePanel.AnchorPoint = Vector2.new(0, 0.5)
 dronePanel.BackgroundColor3 = COLORS.panel
 dronePanel.BorderSizePixel = 0
+dronePanel.GroupTransparency = 1
 dronePanel.Parent = gui
-corner(dronePanel, 14)
-stroke(dronePanel, COLORS.amber, 1, 0.5)
-gradient(dronePanel, COLORS.panelLight, COLORS.panel, 120)
+corner(dronePanel, 16)
+stroke(dronePanel, COLORS.amber, 1.5, 0.55)
+gradient(dronePanel, Color3.fromRGB(30, 36, 30), Color3.fromRGB(16, 20, 16), 115)
 
-label(dronePanel, "🛩 DRONE ARSENAL", UDim2.new(1, 0, 0, 34), UDim2.new(0.5, 0, 0, 16), Vector2.new(0.5, 0), 22, Enum.Font.GothamBlack)
+-- header
+local headerTitle = label(dronePanel, "DRONE ARSENAL", UDim2.new(1, -60, 0, 30), UDim2.new(0, 20, 0, 16), Vector2.new(0, 0), 24, Enum.Font.GothamBlack)
+headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+gradient(headerTitle, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 160, 150), 90)
+local headerSub = label(dronePanel, "choose your loadout, pilot", UDim2.new(1, -60, 0, 16), UDim2.new(0, 20, 0, 46), Vector2.new(0, 0), 13, Enum.Font.Gotham, COLORS.dim)
+headerSub.TextXAlignment = Enum.TextXAlignment.Left
+
+local headerLine = Instance.new("Frame")
+headerLine.Size = UDim2.new(1, -40, 0, 1)
+headerLine.Position = UDim2.new(0, 20, 0, 70)
+headerLine.BackgroundColor3 = COLORS.amber
+headerLine.BackgroundTransparency = 0.7
+headerLine.BorderSizePixel = 0
+headerLine.Parent = dronePanel
 
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 28, 0, 28)
-closeButton.Position = UDim2.new(1, -12, 0, 12)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -14, 0, 14)
 closeButton.AnchorPoint = Vector2.new(1, 0)
 closeButton.BackgroundColor3 = COLORS.panelLight
 closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 16
+closeButton.TextSize = 15
 closeButton.TextColor3 = COLORS.dim
 closeButton.Text = "✕"
 closeButton.BorderSizePixel = 0
 closeButton.Parent = dronePanel
-corner(closeButton, 6)
+corner(closeButton, 15)
 
-local droneCards = {} -- [kind] = { lock = Frame }
+-- forward declared so card buttons can write to it
+local droneStatus
 
-local function makeDroneCard(name, desc, accent, yOffset, kind)
+local droneCards = {} -- [kind] = refs for the refresh loop
+
+local function makeDroneCard(config)
+	-- config: kind, name, icon, desc, accent, accentDark, chips, yOffset
 	local card = Instance.new("TextButton")
-	card.Size = UDim2.new(1, -32, 0, 120)
-	card.Position = UDim2.new(0.5, 0, 0, yOffset)
+	card.Name = config.kind .. "Card"
+	card.Size = UDim2.new(1, -32, 0, 150)
+	card.Position = UDim2.new(0.5, 0, 0, config.yOffset)
 	card.AnchorPoint = Vector2.new(0.5, 0)
 	card.BackgroundColor3 = COLORS.panelLight
 	card.BorderSizePixel = 0
 	card.Text = ""
 	card.AutoButtonColor = false
 	card.Parent = dronePanel
-	corner(card, 10)
-	local cardStroke = stroke(card, accent, 1.5, 0.6)
+	corner(card, 12)
+	gradient(card, Color3.fromRGB(38, 44, 38), Color3.fromRGB(26, 31, 26), 100)
+	local cardStroke = stroke(card, config.accent, 1.5, 0.6)
 
-	label(card, name, UDim2.new(1, -24, 0, 26), UDim2.new(0, 12, 0, 12), Vector2.new(0, 0), 20, Enum.Font.GothamBold, accent).TextXAlignment = Enum.TextXAlignment.Left
-	local descLabel = label(card, desc, UDim2.new(1, -24, 0, 54), UDim2.new(0, 12, 0, 42), Vector2.new(0, 0), 13, Enum.Font.Gotham, COLORS.dim)
+	local cardScale = Instance.new("UIScale")
+	cardScale.Parent = card
+
+	-- icon badge
+	local iconBox = Instance.new("Frame")
+	iconBox.Size = UDim2.new(0, 52, 0, 52)
+	iconBox.Position = UDim2.new(0, 14, 0, 14)
+	iconBox.BackgroundColor3 = config.accentDark
+	iconBox.BorderSizePixel = 0
+	iconBox.Parent = card
+	corner(iconBox, 10)
+	stroke(iconBox, config.accent, 1, 0.5)
+	local iconLabel = label(iconBox, config.icon, UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), Vector2.new(0.5, 0.5), 26)
+
+	-- name + stat chips
+	local nameLabel = label(card, config.name, UDim2.new(1, -160, 0, 24), UDim2.new(0, 78, 0, 14), Vector2.new(0, 0), 19, Enum.Font.GothamBlack, config.accent)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local chipRow = Instance.new("Frame")
+	chipRow.Size = UDim2.new(1, -92, 0, 18)
+	chipRow.Position = UDim2.new(0, 78, 0, 42)
+	chipRow.BackgroundTransparency = 1
+	chipRow.Parent = card
+	local chipLayout = Instance.new("UIListLayout")
+	chipLayout.FillDirection = Enum.FillDirection.Horizontal
+	chipLayout.Padding = UDim.new(0, 6)
+	chipLayout.Parent = chipRow
+
+	for _, chipText in config.chips do
+		local chip = Instance.new("TextLabel")
+		chip.AutomaticSize = Enum.AutomaticSize.X
+		chip.Size = UDim2.new(0, 0, 1, 0)
+		chip.BackgroundColor3 = Color3.fromRGB(18, 22, 18)
+		chip.BackgroundTransparency = 0.2
+		chip.Font = Enum.Font.GothamBold
+		chip.TextSize = 10
+		chip.TextColor3 = config.accent
+		chip.Text = " " .. chipText .. " "
+		chip.BorderSizePixel = 0
+		chip.Parent = chipRow
+		corner(chip, 4)
+	end
+
+	-- description
+	local descLabel = label(card, config.desc, UDim2.new(1, -28, 0, 34), UDim2.new(0, 14, 0, 72), Vector2.new(0, 0), 12, Enum.Font.Gotham, COLORS.dim)
 	descLabel.TextXAlignment = Enum.TextXAlignment.Left
 	descLabel.TextYAlignment = Enum.TextYAlignment.Top
 	descLabel.TextWrapped = true
 
+	-- bottom row: status text left, action button right
+	local statusLabel = label(card, "", UDim2.new(1, -140, 0, 30), UDim2.new(0, 14, 1, -40), Vector2.new(0, 0), 12, Enum.Font.GothamBold, COLORS.dim)
+	statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local deployBtn = Instance.new("TextButton")
+	deployBtn.Size = UDim2.new(0, 108, 0, 32)
+	deployBtn.Position = UDim2.new(1, -12, 1, -10)
+	deployBtn.AnchorPoint = Vector2.new(1, 1)
+	deployBtn.BackgroundColor3 = config.accent
+	deployBtn.Font = Enum.Font.GothamBlack
+	deployBtn.TextSize = 14
+	deployBtn.TextColor3 = Color3.fromRGB(15, 18, 15)
+	deployBtn.Text = "DEPLOY ▸"
+	deployBtn.BorderSizePixel = 0
+	deployBtn.Visible = false
+	deployBtn.Parent = card
+	corner(deployBtn, 8)
+
+	-- compact unlock pill (bottom-right, doesn't cover the card)
+	local buyBtn = Instance.new("TextButton")
+	buyBtn.Size = UDim2.new(0, 108, 0, 32)
+	buyBtn.Position = UDim2.new(1, -12, 1, -10)
+	buyBtn.AnchorPoint = Vector2.new(1, 1)
+	buyBtn.BackgroundColor3 = Color3.fromRGB(52, 165, 82)
+	buyBtn.Font = Enum.Font.GothamBlack
+	buyBtn.TextSize = 14
+	buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buyBtn.Text = "⚡ " .. (ROBUX_PRICES[config.kind] or "?") .. " R$"
+	buyBtn.BorderSizePixel = 0
+	buyBtn.Visible = false
+	buyBtn.Parent = card
+	corner(buyBtn, 8)
+	stroke(buyBtn, Color3.fromRGB(110, 230, 140), 1, 0.5)
+
+	-- hover: card lifts slightly, stroke brightens
 	card.MouseEnter:Connect(function()
-		TweenService:Create(cardStroke, TweenInfo.new(0.15), { Transparency = 0 }):Play()
-		TweenService:Create(card, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(42, 48, 42) }):Play()
+		TweenService:Create(cardScale, TweenInfo.new(0.12), { Scale = 1.02 }):Play()
+		TweenService:Create(cardStroke, TweenInfo.new(0.12), { Transparency = 0.15 }):Play()
 	end)
 	card.MouseLeave:Connect(function()
-		TweenService:Create(cardStroke, TweenInfo.new(0.15), { Transparency = 0.6 }):Play()
-		TweenService:Create(card, TweenInfo.new(0.15), { BackgroundColor3 = COLORS.panelLight }):Play()
+		TweenService:Create(cardScale, TweenInfo.new(0.12), { Scale = 1 }):Play()
+		TweenService:Create(cardStroke, TweenInfo.new(0.12), { Transparency = 0.6 }):Play()
 	end)
 
-	-- lock overlay: shown until the level is reached or it's bought with Robux
-	local lock = Instance.new("Frame")
-	lock.Name = "Lock"
-	lock.Size = UDim2.new(1, 0, 1, 0)
-	lock.BackgroundColor3 = Color3.fromRGB(10, 12, 10)
-	lock.BackgroundTransparency = 0.2
-	lock.BorderSizePixel = 0
-	lock.ZIndex = 5
-	lock.Visible = false
-	lock.Parent = card
-	corner(lock, 10)
-
-	local lockText = label(lock, "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1),
-		UDim2.new(1, -20, 0, 26), UDim2.new(0.5, 0, 0, 22), Vector2.new(0.5, 0), 17, Enum.Font.GothamBold, Color3.fromRGB(225, 225, 215))
-	lockText.ZIndex = 6
-
-	local buyButton = Instance.new("TextButton")
-	buyButton.Size = UDim2.new(0, 200, 0, 34)
-	buyButton.Position = UDim2.new(0.5, 0, 1, -14)
-	buyButton.AnchorPoint = Vector2.new(0.5, 1)
-	buyButton.BackgroundColor3 = Color3.fromRGB(50, 160, 80)
-	buyButton.Font = Enum.Font.GothamBold
-	buyButton.TextSize = 16
-	buyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-	buyButton.Text = "UNLOCK NOW —  " .. (ROBUX_PRICES[kind] or "?") .. " R$"
-	buyButton.BorderSizePixel = 0
-	buyButton.ZIndex = 6
-	buyButton.Parent = lock
-	corner(buyButton, 8)
-
-	buyButton.MouseButton1Click:Connect(function()
-		local productId = ReplicatedStorage:GetAttribute("Product" .. kind)
+	buyBtn.MouseButton1Click:Connect(function()
+		local productId = ReplicatedStorage:GetAttribute("Product" .. config.kind)
 		if productId and productId ~= 0 then
 			MarketplaceService:PromptProductPurchase(player, productId)
-		else
-			lockText.Text = "⚠ purchase not set up yet"
-			task.delay(2, function()
-				lockText.Text = "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
-			end)
+		elseif droneStatus then
+			droneStatus.Text = "⚠ purchase not set up yet"
+			droneStatus.TextColor3 = Color3.fromRGB(255, 140, 80)
 		end
 	end)
 
-	droneCards[kind] = { lock = lock }
-	return card
+	droneCards[config.kind] = {
+		card = card,
+		scale = cardScale,
+		stroke = cardStroke,
+		accent = config.accent,
+		accentDark = config.accentDark,
+		iconBox = iconBox,
+		iconLabel = iconLabel,
+		nameLabel = nameLabel,
+		statusLabel = statusLabel,
+		deployBtn = deployBtn,
+		buyBtn = buyBtn,
+	}
+	return card, deployBtn
 end
 
 local function isUnlocked(kind)
@@ -371,34 +458,70 @@ local function isUnlocked(kind)
 	return level >= required or player:GetAttribute("Owns" .. kind) == true
 end
 
--- keep the lock overlays in sync with level / purchases
+-- restyle every card to match its live locked/unlocked state
+local LOCKED_GRAY = Color3.fromRGB(120, 126, 120)
+local function refreshCards()
+	for kind, c in droneCards do
+		local unlocked = isUnlocked(kind)
+		c.deployBtn.Visible = unlocked
+		c.buyBtn.Visible = not unlocked
+		if unlocked then
+			c.nameLabel.TextColor3 = c.accent
+			c.iconBox.BackgroundColor3 = c.accentDark
+			c.iconLabel.TextTransparency = 0
+			c.stroke.Color = c.accent
+			c.statusLabel.Text = "✓ UNLOCKED"
+			c.statusLabel.TextColor3 = Color3.fromRGB(120, 210, 130)
+		else
+			c.nameLabel.TextColor3 = LOCKED_GRAY
+			c.iconBox.BackgroundColor3 = Color3.fromRGB(34, 38, 34)
+			c.iconLabel.TextTransparency = 0.45
+			c.stroke.Color = LOCKED_GRAY
+			c.statusLabel.Text = "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
+			c.statusLabel.TextColor3 = LOCKED_GRAY
+		end
+	end
+end
+
 task.spawn(function()
 	while gui.Parent do
-		for kind, entry in droneCards do
-			entry.lock.Visible = not isUnlocked(kind)
-		end
+		refreshCards()
 		task.wait(1)
 	end
 end)
 
-local kamikazeCard = makeDroneCard(
-	"💥 FPV KAMIKAZE",
-	"One-way attack drone. Fly it straight into the target — it detonates on impact. Fast and agile.",
-	COLORS.amber, 64, "Kamikaze"
-)
-local bomberCard = makeDroneCard(
-	"💣 BOMBER",
-	"Carries 3 grenades — press F to drop, C for the bomb-sight camera, Z to zoom. Slower but reusable.",
-	COLORS.green, 196, "Bomber"
-)
-local reconCard = makeDroneCard(
-	"🔭 RECON",
-	"Eyes in the sky. 7-min battery, double range, quiet motor. T marks enemies for your whole team, V is thermal vision.",
-	Color3.fromRGB(120, 170, 255), 328, "Recon"
-)
+local kamikazeCard, kamikazeDeploy = makeDroneCard({
+	kind = "Kamikaze",
+	name = "FPV KAMIKAZE",
+	icon = "💥",
+	desc = "One-way attack drone. Fly it straight into the target — detonates on impact.",
+	accent = COLORS.amber,
+	accentDark = Color3.fromRGB(70, 48, 18),
+	chips = { "ONE-WAY", "FAST", "IMPACT WARHEAD" },
+	yOffset = 86,
+})
+local bomberCard, bomberDeploy = makeDroneCard({
+	kind = "Bomber",
+	name = "BOMBER",
+	icon = "💣",
+	desc = "Drops grenades from above. F to drop, C for bomb cam, Z to zoom. Rearm at base.",
+	accent = COLORS.green,
+	accentDark = Color3.fromRGB(30, 55, 30),
+	chips = { "3× GRENADES", "BOMB CAM", "REARMS" },
+	yOffset = 250,
+})
+local reconCard, reconDeploy = makeDroneCard({
+	kind = "Recon",
+	name = "RECON",
+	icon = "🔭",
+	desc = "Eyes in the sky. C for the stabilized gimbal, Z to zoom, T marks targets, V is thermal.",
+	accent = Color3.fromRGB(120, 170, 255),
+	accentDark = Color3.fromRGB(25, 38, 70),
+	chips = { "7 MIN", "15× ZOOM", "THERMAL", "MARKS" },
+	yOffset = 414,
+})
 
-local droneStatus = label(dronePanel, "", UDim2.new(1, 0, 0, 22), UDim2.new(0.5, 0, 1, -56), Vector2.new(0.5, 0), 14, Enum.Font.Gotham, COLORS.green)
-label(dronePanel, "delivered right in front of you", UDim2.new(1, 0, 0, 18), UDim2.new(0.5, 0, 1, -30), Vector2.new(0.5, 0), 12, Enum.Font.Gotham, COLORS.dim)
+droneStatus = label(dronePanel, "", UDim2.new(1, -40, 0, 20), UDim2.new(0.5, 0, 1, -18), Vector2.new(0.5, 1), 13, Enum.Font.GothamBold, COLORS.green)
 
 --------------------------------------------------------------------
 -- behavior
@@ -410,9 +533,12 @@ local function setPanel(open)
 	panelOpen = open
 	TweenService:Create(dronePanel, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 		Position = open and PANEL_SHOWN or PANEL_HIDDEN,
+		GroupTransparency = open and 0 or 1,
 	}):Play()
+	TweenService:Create(dronesTabStroke, TweenInfo.new(0.2), { Transparency = open and 0 or 0.55 }):Play()
 	if open then
 		droneStatus.Text = ""
+		refreshCards()
 	end
 end
 
@@ -460,6 +586,14 @@ local function orderDrone(kind, statusText)
 		droneStatus.TextColor3 = Color3.fromRGB(255, 140, 80)
 		return
 	end
+	-- click punch on the card
+	local c = droneCards[kind]
+	if c then
+		TweenService:Create(c.scale, TweenInfo.new(0.08), { Scale = 0.97 }):Play()
+		task.delay(0.09, function()
+			TweenService:Create(c.scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end)
+	end
 	droneSelect:FireServer(kind)
 	droneStatus.Text = statusText
 	droneStatus.TextColor3 = COLORS.green
@@ -470,14 +604,14 @@ local function orderDrone(kind, statusText)
 	end)
 end
 
-kamikazeCard.MouseButton1Click:Connect(function()
-	orderDrone("Kamikaze", "✔ kamikaze drone delivered!")
+kamikazeDeploy.MouseButton1Click:Connect(function()
+	orderDrone("Kamikaze", "✔ kamikaze delivered right in front of you")
 end)
-bomberCard.MouseButton1Click:Connect(function()
-	orderDrone("Bomber", "✔ bomber drone delivered!")
+bomberDeploy.MouseButton1Click:Connect(function()
+	orderDrone("Bomber", "✔ bomber delivered right in front of you")
 end)
-reconCard.MouseButton1Click:Connect(function()
-	orderDrone("Recon", "✔ recon drone delivered!")
+reconDeploy.MouseButton1Click:Connect(function()
+	orderDrone("Recon", "✔ recon delivered right in front of you")
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -504,7 +638,7 @@ task.spawn(function()
 	})
 	barTween:Play()
 
-	for i, line in LOAD_LINES do
+	for _, line in LOAD_LINES do
 		loadStatus.Text = line
 		task.wait(2.8 / #LOAD_LINES)
 	end
