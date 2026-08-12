@@ -258,7 +258,7 @@ local PANEL_SHOWN = UDim2.new(0, 56, 0.5, 0)
 
 local dronePanel = Instance.new("Frame")
 dronePanel.Name = "DronePanel"
-dronePanel.Size = UDim2.new(0, 320, 0, 400)
+dronePanel.Size = UDim2.new(0, 320, 0, 530)
 dronePanel.Position = PANEL_HIDDEN
 dronePanel.AnchorPoint = Vector2.new(0, 0.5)
 dronePanel.BackgroundColor3 = COLORS.panel
@@ -323,6 +323,11 @@ local bomberCard = makeDroneCard(
 	"💣 BOMBER",
 	"Carries 3 grenades — press F to drop, C for the bomb-sight camera, Z to zoom. Slower but reusable.",
 	COLORS.green, 196, "Bomber"
+)
+local reconCard = makeDroneCard(
+	"🔭 RECON",
+	"Eyes in the sky. 7-min battery, double range, quiet motor. T marks enemies for your whole team, V is thermal vision.",
+	Color3.fromRGB(120, 170, 255), 328, "Recon"
 )
 
 local droneStatus = label(dronePanel, "", UDim2.new(1, 0, 0, 22), UDim2.new(0.5, 0, 1, -56), Vector2.new(0.5, 0), 14, Enum.Font.Gotham, COLORS.green)
@@ -397,6 +402,9 @@ kamikazeCard.MouseButton1Click:Connect(function()
 end)
 bomberCard.MouseButton1Click:Connect(function()
 	orderDrone("Bomber", "✔ bomber drone delivered!")
+end)
+reconCard.MouseButton1Click:Connect(function()
+	orderDrone("Recon", "✔ recon drone delivered!")
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)

@@ -101,23 +101,31 @@ end
 local personalDrones = {} -- [player] = their delivered drone model
 local lastDroneRequest = {} -- [player] = os.clock() of last delivery
 
+local function matchesKind(model, kind)
+	local name = model.Name:lower()
+	if kind == "Bomber" then
+		return name:find("bomber") ~= nil
+	elseif kind == "Recon" then
+		return name:find("recon") ~= nil
+	end
+	-- Kamikaze = any drone that isn't a bomber or recon
+	return not name:find("bomber") and not name:find("recon")
+end
+
 local function findTemplate(kind)
 	if not templatesFolder then
 		return nil
 	end
 	for _, model in templatesFolder:GetChildren() do
-		if model:IsA("Model") then
-			local isBomber = model.Name:lower():find("bomber") ~= nil
-			if (kind == "Bomber") == isBomber then
-				return model
-			end
+		if model:IsA("Model") and matchesKind(model, kind) then
+			return model
 		end
 	end
 	return nil
 end
 
 droneSelect.OnServerEvent:Connect(function(player, kind)
-	if kind ~= "Bomber" and kind ~= "Kamikaze" then
+	if kind ~= "Bomber" and kind ~= "Kamikaze" and kind ~= "Recon" then
 		return
 	end
 	local now = os.clock()

@@ -1053,3 +1053,94 @@ do
 		initBomber(child)
 	end)
 end
+
+--------------------------------------------------------------------
+-- RECON DRONE ADD-ON (server)
+-- Any drone model whose NAME contains "Recon" is a scout: huge
+-- battery + signal range and a quiet motor. Its pilot presses T to
+-- MARK an enemy — the mark is broadcast to the pilot's whole team
+-- (the client add-on draws the red through-wall glow).
+--------------------------------------------------------------------
+do
+	local RECON_BATTERY = 420 -- 7 minutes of flight
+	local RECON_SIGNAL = 1600 -- double the normal video link range
+	local MARK_DURATION = 6 -- seconds the mark stays on the target
+	local MARK_RANGE = 300 -- max marking distance from the drone
+	local MARK_COOLDOWN = 2 -- seconds between marks per pilot
+
+	local function isRecon(drone)
+		return drone.Name:lower():find("recon") ~= nil
+	end
+
+	local markEvent = Instance.new("RemoteEvent")
+	markEvent.Name = "DroneMark"
+	markEvent.Parent = remotes
+
+	-- upgrade recon drones after the main system sets them up
+	task.spawn(function()
+		while true do
+			for _, drone in dronesFolder:GetChildren() do
+				if drone:IsA("Model") and isRecon(drone) and drone.PrimaryPart
+					and not drone:GetAttribute("ReconBoosted") then
+					drone:SetAttribute("ReconBoosted", true)
+					drone:SetAttribute("Battery", RECON_BATTERY)
+					drone:SetAttribute("MaxBattery", RECON_BATTERY)
+					drone:SetAttribute("SignalRange", RECON_SIGNAL)
+					local motor = drone.PrimaryPart:FindFirstChild("DroneMotor")
+					if motor then
+						motor.Volume = 0.35 -- stealthy: much harder to hear coming
+						motor.RollOffMaxDistance = 90
+					end
+				end
+			end
+			task.wait(2)
+		end
+	end)
+
+	local lastMark = {}
+
+	markEvent.OnServerEvent:Connect(function(pilot, targetCharacter)
+		-- validate everything server-side
+		if typeof(targetCharacter) ~= "Instance" or not targetCharacter:IsA("Model") then
+			return
+		end
+		local drone = activePilots[pilot]
+		if not drone or not isRecon(drone) or drone:GetAttribute("Dead") then
+			return
+		end
+		local root = drone.PrimaryPart
+		if not root then
+			return
+		end
+		local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+		local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+			or (targetHumanoid and targetHumanoid.RootPart)
+		if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot then
+			return
+		end
+		if (targetRoot.Position - root.Position).Magnitude > MARK_RANGE then
+			return
+		end
+		-- no marking your own teammates
+		local targetPlayer = Players:GetPlayerFromCharacter(targetCharacter)
+		if targetPlayer and pilot.Team and targetPlayer.Team == pilot.Team then
+			return
+		end
+		local now = os.clock()
+		if lastMark[pilot] and now - lastMark[pilot] < MARK_COOLDOWN then
+			return
+		end
+		lastMark[pilot] = now
+
+		-- broadcast the mark to the pilot's entire team
+		for _, teammate in Players:GetPlayers() do
+			if teammate == pilot or (pilot.Team and teammate.Team == pilot.Team) then
+				markEvent:FireClient(teammate, targetCharacter, MARK_DURATION)
+			end
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(p)
+		lastMark[p] = nil
+	end)
+end

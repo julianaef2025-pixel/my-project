@@ -714,3 +714,318 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- RECON DRONE ADD-ON (client)
+-- Flying a drone whose name contains "Recon":
+--   T = mark the enemy under your crosshair (red glow + tag your
+--       whole team can see through walls for ~6 seconds)
+--   V = thermal vision: the world goes cold gray, warm bodies,
+--       fires and drone motors glow white-hot (real thermal — it
+--       detects heat, it does NOT see through walls)
+--------------------------------------------------------------------
+do
+	local Lighting = game:GetService("Lighting")
+
+	local markEvent = remotes:WaitForChild("DroneMark")
+
+	local THERMAL_SCAN_RANGE = 500
+	local MAX_HEAT_SOURCES = 25 -- Roblox caps visible Highlights, stay under it
+
+	local function isReconFlying()
+		return flying ~= nil and flying.Parent ~= nil and flying.Name:lower():find("recon") ~= nil
+	end
+
+	----------------------------------------------------------------
+	-- receiving marks (every teammate's client runs this)
+	----------------------------------------------------------------
+	markEvent.OnClientEvent:Connect(function(character, duration)
+		if typeof(character) ~= "Instance" or not character.Parent then
+			return
+		end
+		-- refresh instead of stacking if the target is already marked
+		local old = character:FindFirstChild("ReconMark")
+		if old then
+			old:Destroy()
+		end
+		local oldTag = character:FindFirstChild("ReconMarkTag")
+		if oldTag then
+			oldTag:Destroy()
+		end
+
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "ReconMark"
+		highlight.FillColor = Color3.fromRGB(255, 60, 50)
+		highlight.FillTransparency = 0.55
+		highlight.OutlineColor = Color3.fromRGB(255, 90, 70)
+		highlight.OutlineTransparency = 0
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- marks DO show through walls
+		highlight.Parent = character
+
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "ReconMarkTag"
+		tag.Size = UDim2.new(0, 130, 0, 28)
+		tag.StudsOffset = Vector3.new(0, 3.6, 0)
+		tag.AlwaysOnTop = true
+		local tagText = Instance.new("TextLabel")
+		tagText.Size = UDim2.new(1, 0, 1, 0)
+		tagText.BackgroundTransparency = 1
+		tagText.Font = Enum.Font.GothamBlack
+		tagText.TextSize = 16
+		tagText.TextColor3 = Color3.fromRGB(255, 80, 60)
+		tagText.TextStrokeTransparency = 0.4
+		tagText.Text = "▼ MARKED"
+		tagText.Parent = tag
+		tag.Parent = character
+
+		task.delay(duration or 6, function()
+			if highlight.Parent then
+				highlight:Destroy()
+			end
+			if tag.Parent then
+				tag:Destroy()
+			end
+		end)
+	end)
+
+	----------------------------------------------------------------
+	-- recon HUD (hints + mark feedback), shown only while flying recon
+	----------------------------------------------------------------
+	local reconGui = nil
+	local feedbackLabel = nil
+
+	local function setFeedback(text, color)
+		if feedbackLabel then
+			feedbackLabel.Text = text
+			feedbackLabel.TextColor3 = color
+			feedbackLabel.TextTransparency = 0
+			task.delay(1.2, function()
+				if feedbackLabel then
+					feedbackLabel.TextTransparency = 1
+				end
+			end)
+		end
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			if isReconFlying() then
+				if not reconGui then
+					reconGui = Instance.new("ScreenGui")
+					reconGui.Name = "DroneReconHud"
+					reconGui.ResetOnSpawn = false
+					reconGui.DisplayOrder = 11
+
+					local hints = Instance.new("TextLabel")
+					hints.AnchorPoint = Vector2.new(0.5, 1)
+					hints.Position = UDim2.new(0.5, 0, 1, -66)
+					hints.Size = UDim2.new(0, 420, 0, 24)
+					hints.BackgroundTransparency = 1
+					hints.Font = Enum.Font.Code
+					hints.TextSize = 17
+					hints.TextColor3 = Color3.fromRGB(160, 200, 255)
+					hints.TextStrokeTransparency = 0.6
+					hints.Text = "RECON  ◈  [T] MARK TARGET  ◈  [V] THERMAL"
+					hints.Parent = reconGui
+
+					feedbackLabel = Instance.new("TextLabel")
+					feedbackLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+					feedbackLabel.Position = UDim2.new(0.5, 0, 0.6, 0)
+					feedbackLabel.Size = UDim2.new(0, 300, 0, 28)
+					feedbackLabel.BackgroundTransparency = 1
+					feedbackLabel.Font = Enum.Font.GothamBlack
+					feedbackLabel.TextSize = 22
+					feedbackLabel.TextTransparency = 1
+					feedbackLabel.TextStrokeTransparency = 0.5
+					feedbackLabel.Text = ""
+					feedbackLabel.Parent = reconGui
+
+					reconGui.Parent = player:WaitForChild("PlayerGui")
+				end
+			elseif reconGui then
+				reconGui:Destroy()
+				reconGui = nil
+				feedbackLabel = nil
+			end
+		end
+	end)
+
+	----------------------------------------------------------------
+	-- T: mark whatever is under the crosshair
+	----------------------------------------------------------------
+	local function tryMark()
+		local rayParams = RaycastParams.new()
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		local exclude = { flying }
+		if player.Character then
+			table.insert(exclude, player.Character)
+		end
+		rayParams.FilterDescendantsInstances = exclude
+
+		local hit = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * 320, rayParams)
+		if hit then
+			local model = hit.Instance:FindFirstAncestorOfClass("Model")
+			local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				markEvent:FireServer(model)
+				setFeedback("◈ TARGET MARKED", Color3.fromRGB(255, 80, 60))
+				return
+			end
+		end
+		setFeedback("NO TARGET", Color3.fromRGB(160, 165, 160))
+	end
+
+	----------------------------------------------------------------
+	-- V: thermal vision
+	----------------------------------------------------------------
+	local thermalOn = false
+
+	local thermalCC = Instance.new("ColorCorrectionEffect")
+	thermalCC.Name = "ReconThermal"
+	thermalCC.Enabled = false
+	thermalCC.Saturation = -1 -- the cold world loses all its color
+	thermalCC.Contrast = 0.55
+	thermalCC.Brightness = -0.08
+	thermalCC.TintColor = Color3.fromRGB(170, 185, 210)
+	thermalCC.Parent = Lighting
+
+	local heatHighlights = {} -- [model or part] = Highlight
+
+	local function clearHeat()
+		for _, hl in heatHighlights do
+			hl:Destroy()
+		end
+		table.clear(heatHighlights)
+	end
+
+	local function addHeat(target, fillColor, outlineColor, count)
+		if heatHighlights[target] then
+			return count
+		end
+		if count >= MAX_HEAT_SOURCES then
+			return count
+		end
+		local hl = Instance.new("Highlight")
+		hl.FillColor = fillColor
+		hl.FillTransparency = 0.05
+		hl.OutlineColor = outlineColor
+		hl.OutlineTransparency = 0.4
+		hl.DepthMode = Enum.HighlightDepthMode.Occluded -- heat doesn't glow through walls
+		hl.Parent = target
+		heatHighlights[target] = hl
+		return count + 1
+	end
+
+	local function updateThermal()
+		local camPos = camera.CFrame.Position
+		local seen = {}
+		local count = 0
+		for _ in heatHighlights do
+			count += 1
+		end
+
+		local BODY_FILL = Color3.fromRGB(255, 250, 235) -- white-hot
+		local BODY_EDGE = Color3.fromRGB(255, 180, 90)
+		local FIRE_FILL = Color3.fromRGB(255, 160, 60) -- burning-hot orange
+		local FIRE_EDGE = Color3.fromRGB(255, 120, 30)
+
+		-- warm bodies: other players
+		for _, otherPlayer in Players:GetPlayers() do
+			local character = otherPlayer ~= player and otherPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local hrp = character and character:FindFirstChild("HumanoidRootPart")
+			if humanoid and humanoid.Health > 0 and hrp and (hrp.Position - camPos).Magnitude <= THERMAL_SCAN_RANGE then
+				seen[character] = true
+				count = addHeat(character, BODY_FILL, BODY_EDGE, count)
+			end
+		end
+
+		-- warm bodies: NPCs
+		local npcs = workspace:FindFirstChild("NPCs")
+		if npcs then
+			for _, model in npcs:GetChildren() do
+				if model:IsA("Model") then
+					local humanoid = model:FindFirstChildOfClass("Humanoid")
+					local hrp = model:FindFirstChild("HumanoidRootPart")
+					if humanoid and humanoid.Health > 0 and hrp and (hrp.Position - camPos).Magnitude <= THERMAL_SCAN_RANGE then
+						seen[model] = true
+						count = addHeat(model, BODY_FILL, BODY_EDGE, count)
+					end
+				end
+			end
+		end
+
+		-- hot spots: fires, burning wreckage, live grenades
+		for _, obj in workspace:GetChildren() do
+			if obj:IsA("BasePart")
+				and (obj.Name == "ExplosionFX" or obj.Name == "ExplosionScorch" or obj.Name == "DroneGrenade")
+				and (obj.Position - camPos).Magnitude <= THERMAL_SCAN_RANGE then
+				seen[obj] = true
+				count = addHeat(obj, FIRE_FILL, FIRE_EDGE, count)
+			end
+		end
+
+		-- other airborne drones run hot motors
+		local drones = workspace:FindFirstChild("Drones")
+		if drones then
+			for _, d in drones:GetChildren() do
+				if d:IsA("Model") and d ~= flying and d:GetAttribute("PilotUserId") and d.PrimaryPart
+					and (d.PrimaryPart.Position - camPos).Magnitude <= THERMAL_SCAN_RANGE then
+					seen[d] = true
+					count = addHeat(d, FIRE_FILL, FIRE_EDGE, count)
+				end
+			end
+		end
+
+		-- cool off anything that left range or died
+		for key, hl in heatHighlights do
+			if not seen[key] or not key.Parent then
+				hl:Destroy()
+				heatHighlights[key] = nil
+			end
+		end
+	end
+
+	local function setThermal(on)
+		thermalOn = on
+		thermalCC.Enabled = on
+		if on then
+			setFeedback("THERMAL ON", Color3.fromRGB(255, 200, 120))
+			updateThermal()
+		else
+			setFeedback("THERMAL OFF", Color3.fromRGB(160, 165, 160))
+			clearHeat()
+		end
+	end
+
+	-- thermal refresh loop + auto-shutoff when you leave the drone
+	task.spawn(function()
+		while true do
+			task.wait(0.4)
+			if thermalOn then
+				if isReconFlying() then
+					updateThermal()
+				else
+					thermalOn = false
+					thermalCC.Enabled = false
+					clearHeat()
+				end
+			end
+		end
+	end)
+
+	----------------------------------------------------------------
+	-- keys
+	----------------------------------------------------------------
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed or not isReconFlying() then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.T then
+			tryMark()
+		elseif input.KeyCode == Enum.KeyCode.V then
+			setThermal(not thermalOn)
+		end
+	end)
+end
