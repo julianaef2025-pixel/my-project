@@ -124,8 +124,18 @@ local function findTemplate(kind)
 	return nil
 end
 
+-- level requirements (buyable early with Robux via the unlock system)
+local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7 }
+
 droneSelect.OnServerEvent:Connect(function(player, kind)
 	if kind ~= "Bomber" and kind ~= "Kamikaze" and kind ~= "Recon" then
+		return
+	end
+	-- locked? need the level OR a Robux unlock
+	local required = LEVEL_REQUIREMENTS[kind] or 1
+	local level = player:GetAttribute("Level") or 1
+	local owned = player:GetAttribute("Owns" .. kind) == true
+	if level < required and not owned then
 		return
 	end
 	local now = os.clock()

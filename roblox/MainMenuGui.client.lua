@@ -16,6 +16,12 @@ local Teams = game:GetService("Teams")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+-- drone unlock levels + Robux early-unlock prices (display only —
+-- the real price lives on the Developer Product)
+local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7 }
+local ROBUX_PRICES = { Kamikaze = 5, Recon = 10, Bomber = 15 }
 
 local player = Players.LocalPlayer
 
@@ -283,6 +289,8 @@ closeButton.BorderSizePixel = 0
 closeButton.Parent = dronePanel
 corner(closeButton, 6)
 
+local droneCards = {} -- [kind] = { lock = Frame }
+
 local function makeDroneCard(name, desc, accent, yOffset, kind)
 	local card = Instance.new("TextButton")
 	card.Size = UDim2.new(1, -32, 0, 120)
@@ -311,8 +319,67 @@ local function makeDroneCard(name, desc, accent, yOffset, kind)
 		TweenService:Create(card, TweenInfo.new(0.15), { BackgroundColor3 = COLORS.panelLight }):Play()
 	end)
 
+	-- lock overlay: shown until the level is reached or it's bought with Robux
+	local lock = Instance.new("Frame")
+	lock.Name = "Lock"
+	lock.Size = UDim2.new(1, 0, 1, 0)
+	lock.BackgroundColor3 = Color3.fromRGB(10, 12, 10)
+	lock.BackgroundTransparency = 0.2
+	lock.BorderSizePixel = 0
+	lock.ZIndex = 5
+	lock.Visible = false
+	lock.Parent = card
+	corner(lock, 10)
+
+	local lockText = label(lock, "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1),
+		UDim2.new(1, -20, 0, 26), UDim2.new(0.5, 0, 0, 22), Vector2.new(0.5, 0), 17, Enum.Font.GothamBold, Color3.fromRGB(225, 225, 215))
+	lockText.ZIndex = 6
+
+	local buyButton = Instance.new("TextButton")
+	buyButton.Size = UDim2.new(0, 200, 0, 34)
+	buyButton.Position = UDim2.new(0.5, 0, 1, -14)
+	buyButton.AnchorPoint = Vector2.new(0.5, 1)
+	buyButton.BackgroundColor3 = Color3.fromRGB(50, 160, 80)
+	buyButton.Font = Enum.Font.GothamBold
+	buyButton.TextSize = 16
+	buyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buyButton.Text = "UNLOCK NOW —  " .. (ROBUX_PRICES[kind] or "?") .. " R$"
+	buyButton.BorderSizePixel = 0
+	buyButton.ZIndex = 6
+	buyButton.Parent = lock
+	corner(buyButton, 8)
+
+	buyButton.MouseButton1Click:Connect(function()
+		local productId = ReplicatedStorage:GetAttribute("Product" .. kind)
+		if productId and productId ~= 0 then
+			MarketplaceService:PromptProductPurchase(player, productId)
+		else
+			lockText.Text = "⚠ purchase not set up yet"
+			task.delay(2, function()
+				lockText.Text = "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
+			end)
+		end
+	end)
+
+	droneCards[kind] = { lock = lock }
 	return card
 end
+
+local function isUnlocked(kind)
+	local level = player:GetAttribute("Level") or 1
+	local required = LEVEL_REQUIREMENTS[kind] or 1
+	return level >= required or player:GetAttribute("Owns" .. kind) == true
+end
+
+-- keep the lock overlays in sync with level / purchases
+task.spawn(function()
+	while gui.Parent do
+		for kind, entry in droneCards do
+			entry.lock.Visible = not isUnlocked(kind)
+		end
+		task.wait(1)
+	end
+end)
 
 local kamikazeCard = makeDroneCard(
 	"💥 FPV KAMIKAZE",
@@ -388,8 +455,14 @@ teamsTab.MouseButton1Click:Connect(function()
 end)
 
 local function orderDrone(kind, statusText)
+	if not isUnlocked(kind) then
+		droneStatus.Text = "🔒 reach level " .. (LEVEL_REQUIREMENTS[kind] or 1) .. " or unlock with Robux"
+		droneStatus.TextColor3 = Color3.fromRGB(255, 140, 80)
+		return
+	end
 	droneSelect:FireServer(kind)
 	droneStatus.Text = statusText
+	droneStatus.TextColor3 = COLORS.green
 	task.delay(1.2, function()
 		if panelOpen then
 			setPanel(false)

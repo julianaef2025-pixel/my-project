@@ -97,6 +97,7 @@ local function sendUpdate(player, gained, reasonLabel, leveledUp)
 		return
 	end
 	local level, intoLevel, needed = levelFromXP(d.xp)
+	player:SetAttribute("Level", level) -- other systems (drone unlocks) read this
 	xpUpdate:FireClient(player, d.xp, level, intoLevel, needed, gained or 0, reasonLabel, leveledUp or false)
 end
 
