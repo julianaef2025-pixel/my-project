@@ -1063,9 +1063,10 @@ end
 --------------------------------------------------------------------
 do
 	local RECON_BATTERY = 420 -- 7 minutes of flight
-	local RECON_SIGNAL = 1600 -- double the normal video link range
-	local MARK_DURATION = 6 -- seconds the mark stays on the target
-	local MARK_RANGE = 300 -- max marking distance from the drone
+	local RECON_SIGNAL = 2200 -- nearly triple the normal link range: fly high, fly far
+	local MARK_DURATION = 6 -- seconds a mark stays on a person
+	local LOCATION_MARK_DURATION = 20 -- seconds a marked spot on the ground/building stays lit
+	local MARK_RANGE = 1000 -- max lasing distance from the drone (high-altitude marking)
 	local MARK_COOLDOWN = 2 -- seconds between marks per pilot
 
 	local function isRecon(drone)
@@ -1099,11 +1100,8 @@ do
 
 	local lastMark = {}
 
-	markEvent.OnServerEvent:Connect(function(pilot, targetCharacter)
+	markEvent.OnServerEvent:Connect(function(pilot, target)
 		-- validate everything server-side
-		if typeof(targetCharacter) ~= "Instance" or not targetCharacter:IsA("Model") then
-			return
-		end
 		local drone = activePilots[pilot]
 		if not drone or not isRecon(drone) or drone:GetAttribute("Dead") then
 			return
@@ -1112,30 +1110,48 @@ do
 		if not root then
 			return
 		end
-		local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
-		local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-			or (targetHumanoid and targetHumanoid.RootPart)
-		if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot then
-			return
-		end
-		if (targetRoot.Position - root.Position).Magnitude > MARK_RANGE then
-			return
-		end
-		-- no marking your own teammates
-		local targetPlayer = Players:GetPlayerFromCharacter(targetCharacter)
-		if targetPlayer and pilot.Team and targetPlayer.Team == pilot.Team then
-			return
-		end
 		local now = os.clock()
 		if lastMark[pilot] and now - lastMark[pilot] < MARK_COOLDOWN then
 			return
 		end
+
+		local payload, duration
+
+		if typeof(target) == "Vector3" then
+			-- lasing a spot on the ground / a building
+			if (target - root.Position).Magnitude > MARK_RANGE then
+				return
+			end
+			payload = target
+			duration = LOCATION_MARK_DURATION
+		elseif typeof(target) == "Instance" and target:IsA("Model") then
+			-- marking a person
+			local targetHumanoid = target:FindFirstChildOfClass("Humanoid")
+			local targetRoot = target:FindFirstChild("HumanoidRootPart")
+				or (targetHumanoid and targetHumanoid.RootPart)
+			if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot then
+				return
+			end
+			if (targetRoot.Position - root.Position).Magnitude > MARK_RANGE then
+				return
+			end
+			-- no marking your own teammates
+			local targetPlayer = Players:GetPlayerFromCharacter(target)
+			if targetPlayer and pilot.Team and targetPlayer.Team == pilot.Team then
+				return
+			end
+			payload = target
+			duration = MARK_DURATION
+		else
+			return
+		end
+
 		lastMark[pilot] = now
 
 		-- broadcast the mark to the pilot's entire team
 		for _, teammate in Players:GetPlayers() do
 			if teammate == pilot or (pilot.Team and teammate.Team == pilot.Team) then
-				markEvent:FireClient(teammate, targetCharacter, MARK_DURATION)
+				markEvent:FireClient(teammate, payload, duration)
 			end
 		end
 	end)

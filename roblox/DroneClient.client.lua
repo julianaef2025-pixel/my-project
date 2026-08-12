@@ -323,10 +323,17 @@ local function startFlying(drone)
 		local throttleFrac = 0
 
 		if not dead then
-			-- steer with the mouse
+			-- steer with the mouse (unless the recon gimbal camera has the mouse)
 			local delta = UserInputService:GetMouseDelta()
-			yaw -= delta.X * MOUSE_SENSITIVITY
-			pitch = math.clamp(pitch - delta.Y * MOUSE_SENSITIVITY, -MAX_PITCH, MAX_PITCH)
+			if reconSight and reconSight.active then
+				-- gimbal slew: slower when zoomed in, like a real camera operator
+				local slew = MOUSE_SENSITIVITY * (reconSight.fov / 60)
+				reconSight.yaw -= delta.X * slew
+				reconSight.pitch = math.clamp(reconSight.pitch - delta.Y * slew, -math.rad(89), math.rad(25))
+			else
+				yaw -= delta.X * MOUSE_SENSITIVITY
+				pitch = math.clamp(pitch - delta.Y * MOUSE_SENSITIVITY, -MAX_PITCH, MAX_PITCH)
+			end
 
 			-- movement input
 			local forward = 0
@@ -423,6 +430,12 @@ local function startFlying(drone)
 
 		if dead and deathReason == "signal" then
 			-- link is gone: the feed freezes on the last frame, you don't see the fall
+		elseif reconSight and reconSight.active then
+			-- gyro-stabilized recon gimbal: aim anywhere, zero vibration
+			camera.CFrame = CFrame.new(root.Position - Vector3.new(0, 1, 0))
+				* CFrame.Angles(0, reconSight.yaw, 0)
+				* CFrame.Angles(reconSight.pitch, 0, 0)
+			camera.FieldOfView = reconSight.fov
 		elseif bombSight and bombSight.active then
 			-- belly bomb-sight camera: hangs under the drone looking straight down,
 			-- screen-up stays lined up with the drone's heading
@@ -716,21 +729,38 @@ do
 end
 
 --------------------------------------------------------------------
--- RECON DRONE ADD-ON (client)
+-- RECON DRONE ADD-ON v2 (client)
 -- Flying a drone whose name contains "Recon":
---   T = mark the enemy under your crosshair (red glow + tag your
---       whole team can see through walls for ~6 seconds)
---   V = thermal vision: the world goes cold gray, warm bodies,
---       fires and drone motors glow white-hot (real thermal — it
---       detects heat, it does NOT see through walls)
+--   C = gyro-stabilized GIMBAL camera: mouse aims the camera freely
+--       while WASD keeps flying the drone (orbit your target!)
+--   Z = gimbal zoom: 1x / 2x / 5x / 15x
+--   T = mark what's under the crosshair — people get a moving red
+--       mark, ground/buildings get a 20s target-point beacon with
+--       live distance, visible to your whole team
+--   V = thermal vision: real heat detection (no wallhacks)
+-- Needs the reconSight edits in the main flight loop.
 --------------------------------------------------------------------
+-- deliberately NOT "local": the main flight loop reads this too
+reconSight = { active = false, fov = 60, yaw = 0, pitch = 0 }
+
 do
 	local Lighting = game:GetService("Lighting")
+	local TweenService = game:GetService("TweenService")
+	local Debris = game:GetService("Debris")
 
 	local markEvent = remotes:WaitForChild("DroneMark")
 
 	local THERMAL_SCAN_RANGE = 500
-	local MAX_HEAT_SOURCES = 25 -- Roblox caps visible Highlights, stay under it
+	local MAX_HEAT_SOURCES = 25
+	local MARK_RAY_RANGE = 1200
+
+	local ZOOM_LEVELS = {
+		{ fov = 60, label = "1x" },
+		{ fov = 30, label = "2x" },
+		{ fov = 12, label = "5x" },
+		{ fov = 4, label = "15x" },
+	}
+	local zoomIndex = 1
 
 	local function isReconFlying()
 		return flying ~= nil and flying.Parent ~= nil and flying.Name:lower():find("recon") ~= nil
@@ -739,16 +769,100 @@ do
 	----------------------------------------------------------------
 	-- receiving marks (every teammate's client runs this)
 	----------------------------------------------------------------
-	markEvent.OnClientEvent:Connect(function(character, duration)
-		if typeof(character) ~= "Instance" or not character.Parent then
+
+	-- red beacon planted on a marked spot (ground / building)
+	local function createLocationMarker(position, duration)
+		local marker = Instance.new("Part")
+		marker.Name = "ReconLocationMarker"
+		marker.Size = Vector3.new(1, 1, 1)
+		marker.Position = position
+		marker.Transparency = 1
+		marker.Anchored = true
+		marker.CanCollide = false
+		marker.CanQuery = false
+		marker.CanTouch = false
+		marker.Parent = workspace
+
+		-- light column reaching up from the spot
+		local column = Instance.new("Part")
+		column.Name = "Column"
+		column.Shape = Enum.PartType.Cylinder
+		column.Size = Vector3.new(36, 1.4, 1.4)
+		column.CFrame = CFrame.new(position + Vector3.new(0, 18, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+		column.Material = Enum.Material.Neon
+		column.Color = Color3.fromRGB(255, 70, 60)
+		column.Transparency = 0.6
+		column.Anchored = true
+		column.CanCollide = false
+		column.CanQuery = false
+		column.CanTouch = false
+		column.CastShadow = false
+		column.Parent = marker
+
+		-- pulsing ring at the base
+		local ring = Instance.new("Part")
+		ring.Name = "Ring"
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Size = Vector3.new(0.3, 8, 8)
+		ring.CFrame = CFrame.new(position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+		ring.Material = Enum.Material.Neon
+		ring.Color = Color3.fromRGB(255, 70, 60)
+		ring.Transparency = 0.3
+		ring.Anchored = true
+		ring.CanCollide = false
+		ring.CanQuery = false
+		ring.CanTouch = false
+		ring.CastShadow = false
+		ring.Parent = marker
+
+		-- floating tag with live distance
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "Tag"
+		tag.Size = UDim2.new(0, 170, 0, 44)
+		tag.StudsOffsetWorldSpace = Vector3.new(0, 39, 0)
+		tag.AlwaysOnTop = true
+		tag.MaxDistance = 2500
+		local tagText = Instance.new("TextLabel")
+		tagText.Size = UDim2.new(1, 0, 1, 0)
+		tagText.BackgroundTransparency = 1
+		tagText.Font = Enum.Font.Code
+		tagText.TextSize = 17
+		tagText.TextColor3 = Color3.fromRGB(255, 90, 70)
+		tagText.TextStrokeTransparency = 0.4
+		tagText.Text = "◈ TARGET POINT"
+		tagText.Parent = tag
+		tag.Parent = marker
+
+		-- pulse the ring and keep the distance readout live
+		task.spawn(function()
+			local t0 = os.clock()
+			while marker.Parent do
+				local pulse = (math.sin((os.clock() - t0) * 4) + 1) / 2
+				ring.Transparency = 0.2 + pulse * 0.5
+				ring.Size = Vector3.new(0.3, 7 + pulse * 3, 7 + pulse * 3)
+				local myPos = camera.CFrame.Position
+				tagText.Text = string.format("◈ TARGET POINT\n%d studs", math.floor((position - myPos).Magnitude + 0.5))
+				task.wait(0.15)
+			end
+		end)
+
+		Debris:AddItem(marker, duration)
+	end
+
+	markEvent.OnClientEvent:Connect(function(target, duration)
+		if typeof(target) == "Vector3" then
+			createLocationMarker(target, duration or 20)
 			return
 		end
-		-- refresh instead of stacking if the target is already marked
-		local old = character:FindFirstChild("ReconMark")
+		if typeof(target) ~= "Instance" or not target.Parent then
+			return
+		end
+		-- person mark: refresh instead of stacking
+		local old = target:FindFirstChild("ReconMark")
 		if old then
 			old:Destroy()
 		end
-		local oldTag = character:FindFirstChild("ReconMarkTag")
+		local oldTag = target:FindFirstChild("ReconMarkTag")
 		if oldTag then
 			oldTag:Destroy()
 		end
@@ -759,8 +873,8 @@ do
 		highlight.FillTransparency = 0.55
 		highlight.OutlineColor = Color3.fromRGB(255, 90, 70)
 		highlight.OutlineTransparency = 0
-		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- marks DO show through walls
-		highlight.Parent = character
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.Parent = target
 
 		local tag = Instance.new("BillboardGui")
 		tag.Name = "ReconMarkTag"
@@ -776,7 +890,7 @@ do
 		tagText.TextStrokeTransparency = 0.4
 		tagText.Text = "▼ MARKED"
 		tagText.Parent = tag
-		tag.Parent = character
+		tag.Parent = target
 
 		task.delay(duration or 6, function()
 			if highlight.Parent then
@@ -789,10 +903,13 @@ do
 	end)
 
 	----------------------------------------------------------------
-	-- recon HUD (hints + mark feedback), shown only while flying recon
+	-- recon HUD: hints, feedback, gimbal overlay
 	----------------------------------------------------------------
 	local reconGui = nil
 	local feedbackLabel = nil
+	local gimbalFrame = nil
+	local zoomLabel = nil
+	local rangeLabel = nil
 
 	local function setFeedback(text, color)
 		if feedbackLabel then
@@ -807,52 +924,176 @@ do
 		end
 	end
 
+	local SIGHT_GREEN = Color3.fromRGB(140, 255, 160)
+
+	local function buildReconGui()
+		reconGui = Instance.new("ScreenGui")
+		reconGui.Name = "DroneReconHud"
+		reconGui.ResetOnSpawn = false
+		reconGui.IgnoreGuiInset = true
+		reconGui.DisplayOrder = 11
+
+		local hints = Instance.new("TextLabel")
+		hints.AnchorPoint = Vector2.new(0.5, 1)
+		hints.Position = UDim2.new(0.5, 0, 1, -66)
+		hints.Size = UDim2.new(0, 560, 0, 24)
+		hints.BackgroundTransparency = 1
+		hints.Font = Enum.Font.Code
+		hints.TextSize = 17
+		hints.TextColor3 = Color3.fromRGB(160, 200, 255)
+		hints.TextStrokeTransparency = 0.6
+		hints.Text = "RECON  ◈  [C] GIMBAL  [Z] ZOOM  [T] MARK  [V] THERMAL"
+		hints.Parent = reconGui
+
+		feedbackLabel = Instance.new("TextLabel")
+		feedbackLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		feedbackLabel.Position = UDim2.new(0.5, 0, 0.6, 0)
+		feedbackLabel.Size = UDim2.new(0, 300, 0, 28)
+		feedbackLabel.BackgroundTransparency = 1
+		feedbackLabel.Font = Enum.Font.GothamBlack
+		feedbackLabel.TextSize = 22
+		feedbackLabel.TextTransparency = 1
+		feedbackLabel.TextStrokeTransparency = 0.5
+		feedbackLabel.Text = ""
+		feedbackLabel.Parent = reconGui
+
+		-- gimbal overlay: fine crosshair, brackets, zoom + range readouts
+		gimbalFrame = Instance.new("Frame")
+		gimbalFrame.Size = UDim2.new(1, 0, 1, 0)
+		gimbalFrame.BackgroundTransparency = 1
+		gimbalFrame.Visible = false
+		gimbalFrame.Parent = reconGui
+
+		local function sightLine(size, position)
+			local f = Instance.new("Frame")
+			f.AnchorPoint = Vector2.new(0.5, 0.5)
+			f.Size = size
+			f.Position = position
+			f.BackgroundColor3 = SIGHT_GREEN
+			f.BackgroundTransparency = 0.25
+			f.BorderSizePixel = 0
+			f.Parent = gimbalFrame
+			return f
+		end
+
+		-- fine cross
+		sightLine(UDim2.new(0, 1, 0, 60), UDim2.new(0.5, 0, 0.5, -50))
+		sightLine(UDim2.new(0, 1, 0, 60), UDim2.new(0.5, 0, 0.5, 50))
+		sightLine(UDim2.new(0, 60, 0, 1), UDim2.new(0.5, -50, 0.5, 0))
+		sightLine(UDim2.new(0, 60, 0, 1), UDim2.new(0.5, 50, 0.5, 0))
+		sightLine(UDim2.new(0, 4, 0, 4), UDim2.new(0.5, 0, 0.5, 0))
+		-- corner brackets
+		for _, cx in { -1, 1 } do
+			for _, cy in { -1, 1 } do
+				sightLine(UDim2.new(0, 34, 0, 2), UDim2.new(0.5, cx * 190, 0.5, cy * 150))
+				sightLine(UDim2.new(0, 2, 0, 34), UDim2.new(0.5, cx * 190, 0.5, cy * 150))
+			end
+		end
+
+		local mode = Instance.new("TextLabel")
+		mode.AnchorPoint = Vector2.new(0.5, 0)
+		mode.Position = UDim2.new(0.5, 0, 0, 96)
+		mode.Size = UDim2.new(0, 520, 0, 24)
+		mode.BackgroundTransparency = 1
+		mode.Font = Enum.Font.Code
+		mode.TextSize = 17
+		mode.TextColor3 = SIGHT_GREEN
+		mode.TextStrokeTransparency = 0.6
+		mode.Text = "◈ GIMBAL — GYRO STABILIZED"
+		mode.Parent = gimbalFrame
+
+		zoomLabel = Instance.new("TextLabel")
+		zoomLabel.AnchorPoint = Vector2.new(1, 0.5)
+		zoomLabel.Position = UDim2.new(1, -40, 0.5, 0)
+		zoomLabel.Size = UDim2.new(0, 160, 0, 30)
+		zoomLabel.BackgroundTransparency = 1
+		zoomLabel.Font = Enum.Font.Code
+		zoomLabel.TextSize = 24
+		zoomLabel.TextColor3 = SIGHT_GREEN
+		zoomLabel.TextStrokeTransparency = 0.6
+		zoomLabel.TextXAlignment = Enum.TextXAlignment.Right
+		zoomLabel.Text = "ZOOM 1x"
+		zoomLabel.Parent = gimbalFrame
+
+		rangeLabel = Instance.new("TextLabel")
+		rangeLabel.AnchorPoint = Vector2.new(0, 0.5)
+		rangeLabel.Position = UDim2.new(0, 40, 0.5, 0)
+		rangeLabel.Size = UDim2.new(0, 200, 0, 30)
+		rangeLabel.BackgroundTransparency = 1
+		rangeLabel.Font = Enum.Font.Code
+		rangeLabel.TextSize = 20
+		rangeLabel.TextColor3 = SIGHT_GREEN
+		rangeLabel.TextStrokeTransparency = 0.6
+		rangeLabel.TextXAlignment = Enum.TextXAlignment.Left
+		rangeLabel.Text = "TGT ---"
+		rangeLabel.Parent = gimbalFrame
+
+		reconGui.Parent = player:WaitForChild("PlayerGui")
+	end
+
+	----------------------------------------------------------------
+	-- gimbal control
+	----------------------------------------------------------------
+	local function setGimbal(active)
+		reconSight.active = active
+		if gimbalFrame then
+			gimbalFrame.Visible = active
+		end
+		if active then
+			-- start the gimbal looking where the camera currently looks
+			local look = camera.CFrame.LookVector
+			reconSight.yaw = math.atan2(-look.X, -look.Z)
+			reconSight.pitch = math.asin(math.clamp(look.Y, -1, 1))
+			zoomIndex = 1
+			reconSight.fov = ZOOM_LEVELS[1].fov
+			if zoomLabel then
+				zoomLabel.Text = "ZOOM " .. ZOOM_LEVELS[1].label
+			end
+		end
+	end
+
+	-- live range-to-target readout while the gimbal is up
 	task.spawn(function()
 		while true do
 			task.wait(0.25)
-			if isReconFlying() then
-				if not reconGui then
-					reconGui = Instance.new("ScreenGui")
-					reconGui.Name = "DroneReconHud"
-					reconGui.ResetOnSpawn = false
-					reconGui.DisplayOrder = 11
-
-					local hints = Instance.new("TextLabel")
-					hints.AnchorPoint = Vector2.new(0.5, 1)
-					hints.Position = UDim2.new(0.5, 0, 1, -66)
-					hints.Size = UDim2.new(0, 420, 0, 24)
-					hints.BackgroundTransparency = 1
-					hints.Font = Enum.Font.Code
-					hints.TextSize = 17
-					hints.TextColor3 = Color3.fromRGB(160, 200, 255)
-					hints.TextStrokeTransparency = 0.6
-					hints.Text = "RECON  ◈  [T] MARK TARGET  ◈  [V] THERMAL"
-					hints.Parent = reconGui
-
-					feedbackLabel = Instance.new("TextLabel")
-					feedbackLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-					feedbackLabel.Position = UDim2.new(0.5, 0, 0.6, 0)
-					feedbackLabel.Size = UDim2.new(0, 300, 0, 28)
-					feedbackLabel.BackgroundTransparency = 1
-					feedbackLabel.Font = Enum.Font.GothamBlack
-					feedbackLabel.TextSize = 22
-					feedbackLabel.TextTransparency = 1
-					feedbackLabel.TextStrokeTransparency = 0.5
-					feedbackLabel.Text = ""
-					feedbackLabel.Parent = reconGui
-
-					reconGui.Parent = player:WaitForChild("PlayerGui")
+			if reconSight.active and rangeLabel and isReconFlying() then
+				local rayParams = RaycastParams.new()
+				rayParams.FilterType = Enum.RaycastFilterType.Exclude
+				local exclude = { flying }
+				if player.Character then
+					table.insert(exclude, player.Character)
 				end
-			elseif reconGui then
-				reconGui:Destroy()
-				reconGui = nil
-				feedbackLabel = nil
+				rayParams.FilterDescendantsInstances = exclude
+				local hit = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * 3000, rayParams)
+				rangeLabel.Text = hit and string.format("TGT %d", math.floor((hit.Position - camera.CFrame.Position).Magnitude + 0.5)) or "TGT ---"
 			end
 		end
 	end)
 
 	----------------------------------------------------------------
-	-- T: mark whatever is under the crosshair
+	-- HUD lifecycle
+	----------------------------------------------------------------
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			if isReconFlying() then
+				if not reconGui then
+					buildReconGui()
+				end
+			elseif reconGui then
+				reconGui:Destroy()
+				reconGui = nil
+				feedbackLabel = nil
+				gimbalFrame = nil
+				zoomLabel = nil
+				rangeLabel = nil
+				reconSight.active = false
+			end
+		end
+	end)
+
+	----------------------------------------------------------------
+	-- T: mark whatever is under the crosshair (person OR location)
 	----------------------------------------------------------------
 	local function tryMark()
 		local rayParams = RaycastParams.new()
@@ -863,17 +1104,21 @@ do
 		end
 		rayParams.FilterDescendantsInstances = exclude
 
-		local hit = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * 320, rayParams)
-		if hit then
-			local model = hit.Instance:FindFirstAncestorOfClass("Model")
-			local humanoid = model and model:FindFirstChildOfClass("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				markEvent:FireServer(model)
-				setFeedback("◈ TARGET MARKED", Color3.fromRGB(255, 80, 60))
-				return
-			end
+		local hit = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * MARK_RAY_RANGE, rayParams)
+		if not hit then
+			setFeedback("NO TARGET", Color3.fromRGB(160, 165, 160))
+			return
 		end
-		setFeedback("NO TARGET", Color3.fromRGB(160, 165, 160))
+
+		local model = hit.Instance:FindFirstAncestorOfClass("Model")
+		local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			markEvent:FireServer(model)
+			setFeedback("◈ TARGET MARKED", Color3.fromRGB(255, 80, 60))
+		else
+			markEvent:FireServer(hit.Position)
+			setFeedback("◈ LOCATION MARKED", Color3.fromRGB(255, 140, 80))
+		end
 	end
 
 	----------------------------------------------------------------
@@ -884,13 +1129,13 @@ do
 	local thermalCC = Instance.new("ColorCorrectionEffect")
 	thermalCC.Name = "ReconThermal"
 	thermalCC.Enabled = false
-	thermalCC.Saturation = -1 -- the cold world loses all its color
+	thermalCC.Saturation = -1
 	thermalCC.Contrast = 0.55
 	thermalCC.Brightness = -0.08
 	thermalCC.TintColor = Color3.fromRGB(170, 185, 210)
 	thermalCC.Parent = Lighting
 
-	local heatHighlights = {} -- [model or part] = Highlight
+	local heatHighlights = {}
 
 	local function clearHeat()
 		for _, hl in heatHighlights do
@@ -911,7 +1156,7 @@ do
 		hl.FillTransparency = 0.05
 		hl.OutlineColor = outlineColor
 		hl.OutlineTransparency = 0.4
-		hl.DepthMode = Enum.HighlightDepthMode.Occluded -- heat doesn't glow through walls
+		hl.DepthMode = Enum.HighlightDepthMode.Occluded
 		hl.Parent = target
 		heatHighlights[target] = hl
 		return count + 1
@@ -925,12 +1170,11 @@ do
 			count += 1
 		end
 
-		local BODY_FILL = Color3.fromRGB(255, 250, 235) -- white-hot
+		local BODY_FILL = Color3.fromRGB(255, 250, 235)
 		local BODY_EDGE = Color3.fromRGB(255, 180, 90)
-		local FIRE_FILL = Color3.fromRGB(255, 160, 60) -- burning-hot orange
+		local FIRE_FILL = Color3.fromRGB(255, 160, 60)
 		local FIRE_EDGE = Color3.fromRGB(255, 120, 30)
 
-		-- warm bodies: other players
 		for _, otherPlayer in Players:GetPlayers() do
 			local character = otherPlayer ~= player and otherPlayer.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -941,7 +1185,6 @@ do
 			end
 		end
 
-		-- warm bodies: NPCs
 		local npcs = workspace:FindFirstChild("NPCs")
 		if npcs then
 			for _, model in npcs:GetChildren() do
@@ -956,7 +1199,6 @@ do
 			end
 		end
 
-		-- hot spots: fires, burning wreckage, live grenades
 		for _, obj in workspace:GetChildren() do
 			if obj:IsA("BasePart")
 				and (obj.Name == "ExplosionFX" or obj.Name == "ExplosionScorch" or obj.Name == "DroneGrenade")
@@ -966,7 +1208,6 @@ do
 			end
 		end
 
-		-- other airborne drones run hot motors
 		local drones = workspace:FindFirstChild("Drones")
 		if drones then
 			for _, d in drones:GetChildren() do
@@ -978,7 +1219,6 @@ do
 			end
 		end
 
-		-- cool off anything that left range or died
 		for key, hl in heatHighlights do
 			if not seen[key] or not key.Parent then
 				hl:Destroy()
@@ -999,7 +1239,6 @@ do
 		end
 	end
 
-	-- thermal refresh loop + auto-shutoff when you leave the drone
 	task.spawn(function()
 		while true do
 			task.wait(0.4)
@@ -1026,6 +1265,14 @@ do
 			tryMark()
 		elseif input.KeyCode == Enum.KeyCode.V then
 			setThermal(not thermalOn)
+		elseif input.KeyCode == Enum.KeyCode.C then
+			setGimbal(not reconSight.active)
+		elseif input.KeyCode == Enum.KeyCode.Z and reconSight.active then
+			zoomIndex = zoomIndex % #ZOOM_LEVELS + 1
+			reconSight.fov = ZOOM_LEVELS[zoomIndex].fov
+			if zoomLabel then
+				zoomLabel.Text = "ZOOM " .. ZOOM_LEVELS[zoomIndex].label
+			end
 		end
 	end)
 end
