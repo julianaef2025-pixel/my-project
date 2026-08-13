@@ -162,10 +162,11 @@ end
 
 -- damage every humanoid (players AND NPCs) caught in the blast, with distance falloff
 -- attackerUserId tags victims so the XP system can credit kills
-local function damageInBlast(position, attackerUserId)
+local function damageInBlast(position, attackerUserId, radiusOverride)
+	local radius = radiusOverride or BLAST_RADIUS
 	local damagedHumanoids = {}
 	local overlapParams = OverlapParams.new()
-	local parts = workspace:GetPartBoundsInRadius(position, BLAST_RADIUS, overlapParams)
+	local parts = workspace:GetPartBoundsInRadius(position, radius, overlapParams)
 	for _, part in parts do
 		local model = part:FindFirstAncestorOfClass("Model")
 		local humanoid = model and model:FindFirstChildOfClass("Humanoid")
@@ -177,7 +178,7 @@ local function damageInBlast(position, attackerUserId)
 			end
 			local targetRoot = humanoid.RootPart or part
 			local distance = (targetRoot.Position - position).Magnitude
-			local damage = MAX_DAMAGE * math.clamp(1 - distance / BLAST_RADIUS, 0.1, 1)
+			local damage = MAX_DAMAGE * math.clamp(1 - distance / radius, 0.1, 1)
 			humanoid:TakeDamage(damage)
 		end
 	end
@@ -285,9 +286,10 @@ end
 
 -- the main destruction pass: voxelize what the blast touches, vaporize the
 -- center, fling the rest as physical rubble
-local function destroyBuildings(position)
+local function destroyBuildings(position, radiusOverride)
+	local radius = radiusOverride or DESTRUCTION_RADIUS
 	local overlapParams = OverlapParams.new()
-	local touched = workspace:GetPartBoundsInRadius(position, DESTRUCTION_RADIUS, overlapParams)
+	local touched = workspace:GetPartBoundsInRadius(position, radius, overlapParams)
 
 	-- collect what we're allowed to break
 	local queue = {}
@@ -312,7 +314,7 @@ local function destroyBuildings(position)
 				-- halves that still touch the blast keep splitting; the rest
 				-- stay anchored in place — that's the surviving wall
 				local reach = (half.Position - position).Magnitude - half.Size.Magnitude / 2
-				if reach <= DESTRUCTION_RADIUS then
+				if reach <= radius then
 					table.insert(queue, half)
 				end
 			end
@@ -327,12 +329,12 @@ local function destroyBuildings(position)
 			continue
 		end
 		local distance = (chunk.Position - position).Magnitude
-		if distance > DESTRUCTION_RADIUS then
+		if distance > radius then
 			continue
 		end
 
 		local smallEnoughToVaporize = chunk.Size.Magnitude < CHUNK_SIZE * 3
-		if distance < DESTRUCTION_RADIUS * VAPORIZE_FRAC and smallEnoughToVaporize then
+		if distance < radius * VAPORIZE_FRAC and smallEnoughToVaporize then
 			chunk:Destroy() -- the hole in the wall
 		else
 			breakWelds(chunk)
@@ -1395,5 +1397,294 @@ do
 		if hit and hit.Normal.Y > 0.65 and hit.Instance.Anchored then
 			spawnCraterPatch(hit.Position, radius)
 		end
+	end)
+end
+
+--------------------------------------------------------------------
+-- RPG DRONE ADD-ON (server)
+-- Any drone model whose NAME contains "RPG" or "Rocket" carries 2
+-- rockets. F launches one straight where the drone is aiming: fire
+-- tail, hanging smoke trail, launch backblast, and a blast bigger
+-- than a grenade. Reloads while hovering in a RearmZone.
+--------------------------------------------------------------------
+do
+	local ROCKET_COUNT = 2
+	local ROCKET_SPEED = 180 -- studs/sec
+	local ROCKET_GRAVITY = 12 -- slight drop over long shots
+	local ROCKET_LIFETIME = 4 -- seconds before it self-detonates mid-air
+	local ROCKET_COOLDOWN = 1.5 -- seconds between shots
+	local ROCKET_BLAST_RADIUS = 13 -- grenade is 9
+	local ROCKET_DESTRUCTION_RADIUS = 16 -- bigger hole than a grenade (12)
+	local ROCKET_DAMAGE_RADIUS = 14
+	local ROCKET_REARM_SECONDS = 4 -- per rocket, hovering in a RearmZone
+
+	local function isRPG(drone)
+		local n = drone.Name:lower()
+		return n:find("rpg") ~= nil or n:find("rocket") ~= nil
+	end
+
+	local fireEvent = Instance.new("RemoteEvent")
+	fireEvent.Name = "DroneFireRocket"
+	fireEvent.Parent = remotes
+
+	-- give RPG drones their rockets
+	task.spawn(function()
+		while true do
+			for _, drone in dronesFolder:GetChildren() do
+				if drone:IsA("Model") and isRPG(drone) and drone.PrimaryPart
+					and drone:GetAttribute("Rockets") == nil then
+					drone:SetAttribute("Rockets", ROCKET_COUNT)
+				end
+			end
+			task.wait(2)
+		end
+	end)
+
+	-- reload rockets while hovering inside a RearmZone
+	local reloadProgress = {}
+	local function insideRearmZone(position)
+		local folder = workspace:FindFirstChild("RearmZones")
+		if not folder then
+			return false
+		end
+		for _, zone in folder:GetChildren() do
+			if zone:IsA("BasePart") then
+				local rel = zone.CFrame:PointToObjectSpace(position)
+				local half = zone.Size / 2 + Vector3.new(2, 8, 2)
+				if math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z then
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			for _, drone in dronesFolder:GetChildren() do
+				if drone:IsA("Model") and isRPG(drone) and drone.PrimaryPart
+					and drone:GetAttribute("PilotUserId") and not drone:GetAttribute("Dead") then
+					local ammo = drone:GetAttribute("Rockets") or 0
+					if ammo < ROCKET_COUNT and insideRearmZone(drone.PrimaryPart.Position) then
+						drone:SetAttribute("Rearming", true)
+						reloadProgress[drone] = (reloadProgress[drone] or 0) + 0.5
+						if reloadProgress[drone] >= ROCKET_REARM_SECONDS then
+							reloadProgress[drone] = 0
+							drone:SetAttribute("Rockets", math.min(ammo + 1, ROCKET_COUNT))
+						end
+					else
+						if drone:GetAttribute("Rearming") and not drone.Name:lower():find("bomber") then
+							drone:SetAttribute("Rearming", nil)
+						end
+						reloadProgress[drone] = nil
+					end
+				end
+			end
+			for drone in reloadProgress do
+				if not drone.Parent then
+					reloadProgress[drone] = nil
+				end
+			end
+		end
+	end)
+
+	local function explodeRocket(rocket, position, ownerId)
+		if rocket:GetAttribute("Exploded") then
+			return
+		end
+		rocket:SetAttribute("Exploded", true)
+
+		local explosion = Instance.new("Explosion")
+		explosion.Position = position
+		explosion.BlastRadius = ROCKET_BLAST_RADIUS
+		explosion.BlastPressure = 500000
+		explosion.DestroyJointRadiusPercent = 0
+		explosion.ExplosionType = Enum.ExplosionType.NoCraters
+		explosion.Parent = workspace
+
+		destroyBuildings(position, ROCKET_DESTRUCTION_RADIUS)
+		damageInBlast(position, ownerId, ROCKET_DAMAGE_RADIUS)
+
+		local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+		if xpSignal and ownerId then
+			xpSignal:Fire(ownerId, "demolition")
+		end
+
+		rocket:Destroy()
+	end
+
+	local lastFire = {}
+
+	fireEvent.OnServerEvent:Connect(function(player, drone, direction)
+		-- validate everything
+		if typeof(drone) ~= "Instance" or not drone:IsA("Model") then
+			return
+		end
+		if activePilots[player] ~= drone or not isRPG(drone) or drone:GetAttribute("Dead") then
+			return
+		end
+		if typeof(direction) ~= "Vector3" or direction.Magnitude < 0.5 or direction.Magnitude > 2 then
+			return
+		end
+		if direction.X ~= direction.X then -- NaN guard
+			return
+		end
+		local root = drone.PrimaryPart
+		if not root then
+			return
+		end
+		local now = os.clock()
+		if lastFire[player] and now - lastFire[player] < ROCKET_COOLDOWN then
+			return
+		end
+		local ammo = drone:GetAttribute("Rockets") or 0
+		if ammo <= 0 then
+			return
+		end
+		drone:SetAttribute("Rockets", ammo - 1)
+		lastFire[player] = now
+
+		local dir = direction.Unit
+		local spawnPos = root.Position - root.CFrame.UpVector * 1.8 + dir * 2.5
+
+		-- the rocket itself
+		local rocket = Instance.new("Part")
+		rocket.Name = "DroneRocket"
+		rocket.Size = Vector3.new(0.5, 0.5, 2.6)
+		rocket.CFrame = CFrame.lookAt(spawnPos, spawnPos + dir)
+		rocket.Color = Color3.fromRGB(60, 66, 52)
+		rocket.Material = Enum.Material.Metal
+		rocket.Anchored = true
+		rocket.CanCollide = false
+		rocket.CanQuery = false
+		rocket.CanTouch = false
+		rocket.CastShadow = false
+
+		-- motor flame + hanging smoke trail from the tail
+		local tail = Instance.new("Attachment")
+		tail.Position = Vector3.new(0, 0, 1.3)
+		tail.Parent = rocket
+
+		local flame = Instance.new("ParticleEmitter")
+		flame.Rate = 120
+		flame.Lifetime = NumberRange.new(0.08, 0.16)
+		flame.Speed = NumberRange.new(8, 14)
+		flame.LightEmission = 1
+		flame.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.9),
+			NumberSequenceKeypoint.new(1, 0.2),
+		})
+		flame.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130), Color3.fromRGB(255, 120, 40))
+		flame.EmissionDirection = Enum.NormalId.Back
+		flame.Parent = tail
+
+		local trail = Instance.new("ParticleEmitter")
+		trail.Rate = 90
+		trail.Lifetime = NumberRange.new(1.8, 3.2)
+		trail.Speed = NumberRange.new(1, 3)
+		trail.SpreadAngle = Vector2.new(10, 10)
+		trail.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.7),
+			NumberSequenceKeypoint.new(1, 3.2),
+		})
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.35),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.Color = ColorSequence.new(Color3.fromRGB(180, 180, 175), Color3.fromRGB(120, 120, 115))
+		trail.Parent = tail
+
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 150, 60)
+		glow.Brightness = 3
+		glow.Range = 14
+		glow.Parent = rocket
+
+		-- rocket hiss (motor sound pitched way up)
+		local hiss = Instance.new("Sound")
+		hiss.SoundId = MOTOR_SOUND_ID
+		hiss.PlaybackSpeed = 2.4
+		hiss.Volume = 0.5
+		hiss.Looped = true
+		hiss.RollOffMaxDistance = 300
+		hiss.Parent = rocket
+		hiss:Play()
+
+		rocket.Parent = workspace
+
+		-- launch: sharp crack + backblast puff behind the drone
+		local crack = Instance.new("Sound")
+		crack.SoundId = "rbxassetid://165969964"
+		crack.PlaybackSpeed = 1.7
+		crack.Volume = 0.7
+		crack.RollOffMaxDistance = 500
+		crack.Parent = root
+		crack:Play()
+		Debris:AddItem(crack, 2)
+
+		local backblast = Instance.new("Part")
+		backblast.Size = Vector3.new(1, 1, 1)
+		backblast.Position = spawnPos - dir * 3
+		backblast.Transparency = 1
+		backblast.Anchored = true
+		backblast.CanCollide = false
+		backblast.CanQuery = false
+		backblast.CanTouch = false
+		backblast.Parent = workspace
+		local puff = Instance.new("ParticleEmitter")
+		puff.Rate = 0
+		puff.Lifetime = NumberRange.new(0.5, 1.1)
+		puff.Speed = NumberRange.new(10, 22)
+		puff.SpreadAngle = Vector2.new(35, 35)
+		puff.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.5),
+			NumberSequenceKeypoint.new(1, 4.5),
+		})
+		puff.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.4),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		puff.Color = ColorSequence.new(Color3.fromRGB(150, 150, 145))
+		puff.EmissionDirection = Enum.NormalId.Back
+		puff.Parent = backblast
+		backblast.CFrame = CFrame.lookAt(backblast.Position, backblast.Position + dir)
+		puff:Emit(25)
+		Debris:AddItem(backblast, 2)
+
+		-- server-side flight: stepped raycasts can't tunnel through walls
+		task.spawn(function()
+			local vel = dir * ROCKET_SPEED
+			local pos = spawnPos
+			local elapsed = 0
+			local rayParams = RaycastParams.new()
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			local exclude = { drone, rocket }
+			if player.Character then
+				table.insert(exclude, player.Character)
+			end
+			rayParams.FilterDescendantsInstances = exclude
+
+			while rocket.Parent and elapsed < ROCKET_LIFETIME do
+				local dt = task.wait()
+				elapsed += dt
+				vel += Vector3.new(0, -ROCKET_GRAVITY * dt, 0)
+				local newPos = pos + vel * dt
+				local hit = workspace:Raycast(pos, newPos - pos, rayParams)
+				if hit then
+					explodeRocket(rocket, hit.Position + hit.Normal * 0.5, player.UserId)
+					return
+				end
+				pos = newPos
+				rocket.CFrame = CFrame.lookAt(pos, pos + vel)
+			end
+			if rocket.Parent then
+				explodeRocket(rocket, pos, player.UserId)
+			end
+		end)
+	end)
+
+	Players.PlayerRemoving:Connect(function(p)
+		lastFire[p] = nil
 	end)
 end

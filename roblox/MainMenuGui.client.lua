@@ -20,8 +20,8 @@ local MarketplaceService = game:GetService("MarketplaceService")
 
 -- drone unlock levels + Robux early-unlock prices (display only —
 -- the real price lives on the Developer Product)
-local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7 }
-local ROBUX_PRICES = { Kamikaze = 5, Recon = 10, Bomber = 15 }
+local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7, RPG = 9 }
+local ROBUX_PRICES = { Kamikaze = 5, Recon = 10, Bomber = 15, RPG = 20 }
 
 local player = Players.LocalPlayer
 
@@ -273,7 +273,7 @@ local PANEL_SHOWN = UDim2.new(0, 62, 0.5, 0)
 
 local dronePanel = Instance.new("CanvasGroup")
 dronePanel.Name = "DronePanel"
-dronePanel.Size = UDim2.new(0, 356, 0, 596)
+dronePanel.Size = UDim2.new(0, 356, 0, 760)
 dronePanel.Position = PANEL_HIDDEN
 dronePanel.AnchorPoint = Vector2.new(0, 0.5)
 dronePanel.BackgroundColor3 = COLORS.panel
@@ -520,6 +520,16 @@ local reconCard, reconDeploy = makeDroneCard({
 	chips = { "7 MIN", "15× ZOOM", "THERMAL", "MARKS" },
 	yOffset = 414,
 })
+local rpgCard, rpgDeploy = makeDroneCard({
+	kind = "RPG",
+	name = "RPG STRIKER",
+	icon = "🚀",
+	desc = "Rocket launcher on wings. F fires a rocket straight where you aim — big blast, big hole. Reload at base.",
+	accent = Color3.fromRGB(255, 110, 90),
+	accentDark = Color3.fromRGB(70, 26, 20),
+	chips = { "2× ROCKETS", "AIMED SHOT", "BIG BOOM" },
+	yOffset = 578,
+})
 
 droneStatus = label(dronePanel, "", UDim2.new(1, -40, 0, 20), UDim2.new(0.5, 0, 1, -18), Vector2.new(0.5, 1), 13, Enum.Font.GothamBold, COLORS.green)
 
@@ -612,6 +622,9 @@ bomberDeploy.MouseButton1Click:Connect(function()
 end)
 reconDeploy.MouseButton1Click:Connect(function()
 	orderDrone("Recon", "✔ recon delivered right in front of you")
+end)
+rpgDeploy.MouseButton1Click:Connect(function()
+	orderDrone("RPG", "✔ rpg striker delivered right in front of you")
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)

@@ -1397,3 +1397,100 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- RPG DRONE ADD-ON (client)
+-- Flying a drone whose name contains "RPG" or "Rocket": press F to
+-- launch a rocket exactly where you're aiming. HUD shows your two
+-- rockets, reload state, and rearm status.
+--------------------------------------------------------------------
+do
+	local fireEvent = remotes:WaitForChild("DroneFireRocket")
+
+	local ROCKET_COOLDOWN = 1.5
+
+	local rpgGui = nil
+	local ammoLabel = nil
+	local lastShot = 0
+
+	local function isRPGFlying()
+		if flying == nil or flying.Parent == nil then
+			return false
+		end
+		local n = flying.Name:lower()
+		return n:find("rpg") ~= nil or n:find("rocket") ~= nil
+	end
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed or not isRPGFlying() then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.F then
+			if os.clock() - lastShot < ROCKET_COOLDOWN then
+				return
+			end
+			lastShot = os.clock()
+			-- fire exactly where the FPV camera is aiming
+			fireEvent:FireServer(flying, camera.CFrame.LookVector)
+		end
+	end)
+
+	task.spawn(function()
+		local clock = 0
+		while true do
+			task.wait(0.15)
+			clock += 0.15
+
+			if not isRPGFlying() then
+				if rpgGui then
+					rpgGui:Destroy()
+					rpgGui = nil
+					ammoLabel = nil
+				end
+				continue
+			end
+
+			if not rpgGui then
+				rpgGui = Instance.new("ScreenGui")
+				rpgGui.Name = "DroneRPGHud"
+				rpgGui.ResetOnSpawn = false
+				rpgGui.DisplayOrder = 11
+
+				ammoLabel = Instance.new("TextLabel")
+				ammoLabel.AnchorPoint = Vector2.new(0.5, 1)
+				ammoLabel.Position = UDim2.new(0.5, 0, 1, -66)
+				ammoLabel.Size = UDim2.new(0, 420, 0, 24)
+				ammoLabel.BackgroundTransparency = 1
+				ammoLabel.Font = Enum.Font.Code
+				ammoLabel.TextSize = 18
+				ammoLabel.TextColor3 = Color3.fromRGB(255, 190, 120)
+				ammoLabel.TextStrokeTransparency = 0.6
+				ammoLabel.Parent = rpgGui
+
+				rpgGui.Parent = player:WaitForChild("PlayerGui")
+			end
+
+			local rockets = flying:GetAttribute("Rockets") or 0
+			local rearming = flying:GetAttribute("Rearming") == true
+			local reloading = os.clock() - lastShot < ROCKET_COOLDOWN
+
+			if rearming then
+				ammoLabel.Text = "⟳ RELOADING ROCKETS..."
+				ammoLabel.TextColor3 = Color3.fromRGB(120, 230, 140)
+				ammoLabel.TextTransparency = 0
+			elseif rockets <= 0 then
+				ammoLabel.Text = "OUT OF ROCKETS — REARM AT BASE"
+				ammoLabel.TextColor3 = Color3.fromRGB(255, 90, 60)
+				ammoLabel.TextTransparency = (math.floor(clock * 3) % 2 == 0) and 0 or 0.55
+			elseif reloading then
+				ammoLabel.Text = "ROCKETS " .. string.rep("▰ ", rockets) .. string.rep("▱ ", math.max(2 - rockets, 0)) .. " RELOADING..."
+				ammoLabel.TextColor3 = Color3.fromRGB(200, 200, 190)
+				ammoLabel.TextTransparency = 0
+			else
+				ammoLabel.Text = "ROCKETS " .. string.rep("▰ ", rockets) .. string.rep("▱ ", math.max(2 - rockets, 0)) .. " [F] FIRE"
+				ammoLabel.TextColor3 = Color3.fromRGB(255, 190, 120)
+				ammoLabel.TextTransparency = 0
+			end
+		end
+	end)
+end

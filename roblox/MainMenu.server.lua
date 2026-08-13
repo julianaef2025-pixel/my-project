@@ -107,9 +107,12 @@ local function matchesKind(model, kind)
 		return name:find("bomber") ~= nil
 	elseif kind == "Recon" then
 		return name:find("recon") ~= nil
+	elseif kind == "RPG" then
+		return name:find("rpg") ~= nil or name:find("rocket") ~= nil
 	end
-	-- Kamikaze = any drone that isn't a bomber or recon
+	-- Kamikaze = any drone that isn't one of the special kinds
 	return not name:find("bomber") and not name:find("recon")
+		and not name:find("rpg") and not name:find("rocket")
 end
 
 local function findTemplate(kind)
@@ -125,10 +128,10 @@ local function findTemplate(kind)
 end
 
 -- level requirements (buyable early with Robux via the unlock system)
-local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7 }
+local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7, RPG = 9 }
 
 droneSelect.OnServerEvent:Connect(function(player, kind)
-	if kind ~= "Bomber" and kind ~= "Kamikaze" and kind ~= "Recon" then
+	if kind ~= "Bomber" and kind ~= "Kamikaze" and kind ~= "Recon" and kind ~= "RPG" then
 		return
 	end
 	-- locked? need the level OR a Robux unlock

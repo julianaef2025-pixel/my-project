@@ -24,6 +24,7 @@ local PRODUCT_IDS = {
 	Kamikaze = 0, -- e.g. 1234567890
 	Recon = 0,
 	Bomber = 0,
+	RPG = 0,
 }
 -- ▲▲▲ PASTE YOUR DEVELOPER PRODUCT IDS HERE ▲▲▲
 
