@@ -1288,43 +1288,112 @@ do
 end
 
 --------------------------------------------------------------------
--- CRATER ADD-ON (server)
--- Every explosion that lands on Roblox Terrain scoops out a real
--- walkable crater: a churned-mud rim with a bowl carved out of it.
--- Make the terrain ground at least ~10 studs thick so craters don't
--- punch through. Runtime carving never changes your saved map.
+-- CRATER ADD-ON v2 (server)
+-- Real carved craters on Roblox Terrain; on part-based floors it
+-- keeps your floor untouched and lays down a crater PATCH instead:
+-- scorched disc + dark bowl center + a rim of churned dirt.
+-- Patches clean themselves up after PATCH_LIFETIME seconds.
 --------------------------------------------------------------------
 do
 	local CRATER_SCALE = 0.6 -- crater radius = explosion BlastRadius * this
 	local MIN_CRATER_RADIUS = 3
 	local MAX_CRATER_RADIUS = 8
+	local PATCH_LIFETIME = 120 -- seconds crater patches stay on part floors
 
 	local terrain = workspace.Terrain
-	local rayParams = RaycastParams.new()
-	rayParams.FilterType = Enum.RaycastFilterType.Include
-	rayParams.FilterDescendantsInstances = { terrain }
+
+	local terrainRay = RaycastParams.new()
+	terrainRay.FilterType = Enum.RaycastFilterType.Include
+	terrainRay.FilterDescendantsInstances = { terrain }
+
+	local floorRay = RaycastParams.new()
+	floorRay.FilterType = Enum.RaycastFilterType.Exclude
+
+	local function makeDisc(parent, position, radius, height, color, yNudge)
+		local disc = Instance.new("Part")
+		disc.Shape = Enum.PartType.Cylinder
+		disc.Size = Vector3.new(height, radius * 2, radius * 2)
+		disc.CFrame = CFrame.new(position + Vector3.new(0, yNudge, 0)) * CFrame.Angles(0, math.random() * math.pi, math.pi / 2)
+		disc.Color = color
+		disc.Material = Enum.Material.Slate
+		disc.Anchored = true
+		disc.CanCollide = false
+		disc.CanQuery = false
+		disc.CanTouch = false
+		disc.CastShadow = false
+		disc.Parent = parent
+		return disc
+	end
+
+	-- fake crater for part-based floors: keeps the floor, looks the part
+	local function spawnCraterPatch(position, radius)
+		local patch = Instance.new("Model")
+		patch.Name = "CraterPatch"
+
+		-- wide scorched ring, then the darker bowl center on top
+		makeDisc(patch, position, radius * 1.35, 0.12, Color3.fromRGB(32, 29, 26), 0.06)
+		makeDisc(patch, position, radius * 0.75, 0.14, Color3.fromRGB(16, 15, 13), 0.11)
+
+		-- churned dirt rim: rough clods thrown around the edge
+		for i = 1, 10 do
+			local angle = (i / 10) * math.pi * 2 + math.random() * 0.5
+			local dist = radius * (1.05 + math.random() * 0.35)
+			local clod = Instance.new("Part")
+			local size = 0.6 + math.random() * 1.1
+			clod.Size = Vector3.new(size, size * 0.55, size)
+			clod.CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * dist, 0.15, math.sin(angle) * dist))
+				* CFrame.Angles(math.random() * 0.6, math.random() * math.pi * 2, math.random() * 0.6)
+			clod.Color = Color3.fromRGB(58, 45, 33)
+			clod.Material = Enum.Material.Ground
+			clod.Anchored = true
+			clod.CanCollide = false
+			clod.CanQuery = false
+			clod.CanTouch = false
+			clod.CastShadow = false
+			clod.Parent = patch
+		end
+
+		patch.Parent = workspace
+		Debris:AddItem(patch, PATCH_LIFETIME)
+	end
 
 	workspace.ChildAdded:Connect(function(child)
 		if not child:IsA("Explosion") then
 			return
 		end
 		local radius = math.clamp(child.BlastRadius * CRATER_SCALE, MIN_CRATER_RADIUS, MAX_CRATER_RADIUS)
+		local rayOrigin = child.Position + Vector3.new(0, 2, 0)
+		local rayDir = Vector3.new(0, -(radius + 10), 0)
 
-		-- only carve if the blast actually happened on/above terrain
-		local hit = workspace:Raycast(
-			child.Position + Vector3.new(0, 2, 0),
-			Vector3.new(0, -(radius + 8), 0),
-			rayParams
-		)
-		if not hit then
+		-- terrain under the blast? carve a REAL crater
+		local terrainHit = workspace:Raycast(rayOrigin, rayDir, terrainRay)
+		if terrainHit then
+			local center = terrainHit.Position
+			terrain:FillBall(center, radius * 1.3, Enum.Material.Mud)
+			terrain:FillBall(center + Vector3.new(0, radius * 0.55, 0), radius, Enum.Material.Air)
 			return
 		end
 
-		local center = hit.Position
-		-- churned mud around the impact first...
-		terrain:FillBall(center, radius * 1.3, Enum.Material.Mud)
-		-- ...then scoop the bowl out of it (air ball centered slightly
-		-- above the surface, so it carves a crater, not a buried sphere)
-		terrain:FillBall(center + Vector3.new(0, radius * 0.55, 0), radius, Enum.Material.Air)
+		-- otherwise: find the part floor and lay a crater patch on it
+		local exclude = {}
+		if dronesFolder then
+			table.insert(exclude, dronesFolder)
+		end
+		local npcs = workspace:FindFirstChild("NPCs")
+		if npcs then
+			table.insert(exclude, npcs)
+		end
+		for _, plr in Players:GetPlayers() do
+			if plr.Character then
+				table.insert(exclude, plr.Character)
+			end
+		end
+		floorRay.FilterDescendantsInstances = exclude
+
+		local hit = workspace:Raycast(rayOrigin, rayDir, floorRay)
+		-- only on mostly-flat, anchored surfaces (floors, not walls or debris)
+		if hit and hit.Normal.Y > 0.65 and hit.Instance.Anchored then
+			spawnCraterPatch(hit.Position, radius)
+		end
 	end)
 end
