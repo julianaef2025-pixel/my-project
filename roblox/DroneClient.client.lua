@@ -37,20 +37,15 @@ local remotes = ReplicatedStorage:WaitForChild("DroneRemotes")
 local enterEvent = remotes:WaitForChild("DroneEnter")
 local exitEvent = remotes:WaitForChild("DroneExit")
 
--- flight tuning: real-quad physics. WASD leans the airframe and the tilted
--- rotor thrust is what accelerates the drone — gravity, momentum and air
--- drag are all simulated for real.
+-- flight tuning: classic direct control. W flies where you're looking
+-- (aim down + W = dive), snappy response, no wind or gravity sag.
+local MOVE_SPEED = 70 -- studs/sec
+local VERTICAL_SPEED = 45 -- studs/sec up/down with Space/Shift
+local RESPONSE = 8 -- higher = snappier speed changes
 local MOUSE_SENSITIVITY = 0.0035 -- radians per pixel of mouse movement
 local MAX_PITCH = math.rad(75)
-local MAX_LEAN = math.rad(35) -- how far the frame tilts into WASD (tilt = acceleration)
-local LEAN_RESPONSE = 6 -- how quickly the frame leans into your input
-local GRAVITY_COMP = 0.7 -- 1 = holds altitude perfectly while leaning; lower = sags in hard forward flight like a real quad
-local CLIMB_ACCEL = 70 -- extra rotor thrust from Space (studs/sec^2)
-local DESCEND_ACCEL = 140 -- thrust cut from Left Shift: a hard, fast drop (studs/sec^2)
-local LINEAR_DRAG = 1.2 -- air resistance: sets the top speed and how far momentum carries
-local MAX_SPEED = 110 -- hard safety cap, studs/sec (physics tops out ~90 before this)
-local HOVER_WOBBLE = math.rad(1.6) -- gentle wobble while hovering (props fighting gravity)
-local WIND_STRENGTH = 3 -- studs/sec of slow wind drift you have to correct for
+local BANK_ANGLE = math.rad(20) -- visual roll when strafing
+local FORWARD_TILT = math.rad(10) -- visual nose-down lean when flying forward
 local CAMERA_OFFSET = CFrame.new(0, 0.5, -1) -- camera sits at the front of the drone
 
 -- FPV camera tuning
@@ -346,62 +341,27 @@ local function startFlying(drone)
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical += 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vertical -= 1 end
 
-			-- === real-quad physics ===
-			-- WASD doesn't move the drone — it LEANS the airframe, and the
-			-- tilted rotor thrust is what accelerates it, like a real quad
-			local targetLeanPitch = forward * MAX_LEAN
-			local targetLeanRoll = -strafe * MAX_LEAN * 0.7
-			tilt += (targetLeanPitch - tilt) * math.min(dt * LEAN_RESPONSE, 1)
-			roll += (targetLeanRoll - roll) * math.min(dt * LEAN_RESPONSE, 1)
+			-- === classic flight: direct velocity control ===
+			-- W flies exactly where the camera looks (aim down = dive),
+			-- A/D strafe, Space/Shift up/down — instant and responsive
+			local aimRotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
 
-			local heading = CFrame.Angles(0, yaw, 0)
+			local targetVelocity = (aimRotation.LookVector * forward + aimRotation.RightVector * strafe) * MOVE_SPEED
+				+ Vector3.new(0, vertical * VERTICAL_SPEED, 0)
+			currentVelocity = currentVelocity:Lerp(targetVelocity, math.min(dt * RESPONSE, 1))
 
-			-- rotor thrust pushes along the leaned frame's up axis
-			local leanedFrame = heading * CFrame.Angles(-tilt, 0, roll)
-			local thrustDir = leanedFrame.UpVector
+			throttleFrac = math.clamp(currentVelocity.Magnitude / MOVE_SPEED, 0, 1)
 
-			-- hover thrust ~ gravity, with only partial compensation for lean:
-			-- hard forward flight sags a little unless you feed in Space,
-			-- exactly like a real quad in angle mode
-			local gravity = workspace.Gravity
-			local uprightness = math.max(thrustDir.Y, 0.4)
-			local thrust = gravity * (1 + GRAVITY_COMP * (1 / uprightness - 1))
-			if vertical > 0 then
-				thrust += CLIMB_ACCEL
-			elseif vertical < 0 then
-				thrust -= DESCEND_ACCEL
-			end
+			-- visual banking + forward lean (looks, not physics)
+			local targetRoll = -strafe * BANK_ANGLE
+			roll += (targetRoll - roll) * math.min(dt * 8, 1)
+			local targetTilt = forward * FORWARD_TILT
+			tilt += (targetTilt - tilt) * math.min(dt * 5, 1)
 
-			-- integrate thrust + gravity + air drag: momentum, glide and
-			-- drifting turns all come out of this for free
-			local accel = thrustDir * thrust
-				+ Vector3.new(0, -gravity, 0)
-				- currentVelocity * LINEAR_DRAG
-			currentVelocity += accel * dt
-			if currentVelocity.Magnitude > MAX_SPEED then
-				currentVelocity = currentVelocity.Unit * MAX_SPEED
-			end
-
-			throttleFrac = math.clamp(currentVelocity.Magnitude / 90, 0, 1)
-
-			-- slow wandering wind you have to keep correcting for
-			local windT = flightClock * 0.25
-			local wind = Vector3.new(
-				math.noise(windT, 17.3),
-				math.noise(windT, 89.1) * 0.3,
-				math.noise(windT, 43.7)
-			) * WIND_STRENGTH
-
-			-- hover wobble: props fighting gravity when sitting still
-			local wobbleAmount = HOVER_WOBBLE * (1 - throttleFrac * 0.8)
-			local wobbleT = flightClock * 2.2
-			local wobblePitch = math.noise(wobbleT, 3.7) * wobbleAmount
-			local wobbleRoll = math.noise(wobbleT, 9.2) * wobbleAmount
-
-			lv.VectorVelocity = currentVelocity + wind
-			ao.CFrame = heading
-				* CFrame.Angles(pitch - tilt + wobblePitch, 0, 0)
-				* CFrame.Angles(0, 0, roll + wobbleRoll)
+			lv.VectorVelocity = currentVelocity
+			ao.CFrame = CFrame.Angles(0, yaw, 0)
+				* CFrame.Angles(pitch - tilt, 0, 0)
+				* CFrame.Angles(0, 0, roll)
 
 			-- motor sound follows throttle: higher pitch AND louder under load (locally, for the pilot)
 			if motorSound then
