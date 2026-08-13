@@ -1286,3 +1286,45 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- CRATER ADD-ON (server)
+-- Every explosion that lands on Roblox Terrain scoops out a real
+-- walkable crater: a churned-mud rim with a bowl carved out of it.
+-- Make the terrain ground at least ~10 studs thick so craters don't
+-- punch through. Runtime carving never changes your saved map.
+--------------------------------------------------------------------
+do
+	local CRATER_SCALE = 0.6 -- crater radius = explosion BlastRadius * this
+	local MIN_CRATER_RADIUS = 3
+	local MAX_CRATER_RADIUS = 8
+
+	local terrain = workspace.Terrain
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Include
+	rayParams.FilterDescendantsInstances = { terrain }
+
+	workspace.ChildAdded:Connect(function(child)
+		if not child:IsA("Explosion") then
+			return
+		end
+		local radius = math.clamp(child.BlastRadius * CRATER_SCALE, MIN_CRATER_RADIUS, MAX_CRATER_RADIUS)
+
+		-- only carve if the blast actually happened on/above terrain
+		local hit = workspace:Raycast(
+			child.Position + Vector3.new(0, 2, 0),
+			Vector3.new(0, -(radius + 8), 0),
+			rayParams
+		)
+		if not hit then
+			return
+		end
+
+		local center = hit.Position
+		-- churned mud around the impact first...
+		terrain:FillBall(center, radius * 1.3, Enum.Material.Mud)
+		-- ...then scoop the bowl out of it (air ball centered slightly
+		-- above the surface, so it carves a crater, not a buried sphere)
+		terrain:FillBall(center + Vector3.new(0, radius * 0.55, 0), radius, Enum.Material.Air)
+	end)
+end
