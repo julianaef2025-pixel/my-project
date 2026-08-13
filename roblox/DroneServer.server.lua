@@ -24,7 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
 
 -- destruction tuning (what happens to buildings at the impact point)
-local DESTRUCTION_RADIUS = 16 -- studs of building destroyed around the impact
+local DESTRUCTION_RADIUS = 12 -- studs of building destroyed around the impact
 local CHUNK_SIZE = 4 -- walls get sliced into chunks about this size
 local MAX_CHUNKS = 150 -- per-explosion cap so a big blast can't lag the server
 local VAPORIZE_FRAC = 0.45 -- chunks closer than 45% of the radius are destroyed outright (the hole)
@@ -32,7 +32,7 @@ local DEBRIS_LIFETIME = 15 -- seconds before rubble cleans itself up (+ up to 10
 
 -- explosion tuning
 local IMPACT_SPEED = 25 -- studs/sec needed to detonate (slower touches are ignored)
-local BLAST_RADIUS = 14 -- studs
+local BLAST_RADIUS = 10 -- studs
 local MAX_DAMAGE = 100 -- damage at the center of the blast (falls off with distance)
 local DRONE_RESPAWN_TIME = 10 -- seconds until the drone respawns at its pad
 
@@ -619,7 +619,7 @@ do
 	-- if the bang is silent, this id got moderated — search the Toolbox
 	-- for "explosion" and paste any sound id you like here
 	local BANG_SOUND_ID = "rbxassetid://165969964"
-	local SPLASH_RANGE = 22 -- how far the blast reaches out to paint surfaces
+	local SPLASH_RANGE = 16 -- how far the blast reaches out to paint surfaces
 	local MAX_PATCHES = 12 -- max fire/scorch patches per explosion (perf cap)
 	local SCORCH_LIFETIME = 40 -- seconds scorch marks stay before fading out
 	local FIRE_DURATION = 14 -- seconds the crater fire burns
@@ -767,12 +767,12 @@ do
 		local fireball = Instance.new("ParticleEmitter")
 		fireball.Rate = 0
 		fireball.Lifetime = NumberRange.new(0.35, 0.8)
-		fireball.Speed = NumberRange.new(15, 45)
+		fireball.Speed = NumberRange.new(12, 34)
 		fireball.SpreadAngle = Vector2.new(180, 180)
 		fireball.LightEmission = 0.9
 		fireball.Size = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 6),
-			NumberSequenceKeypoint.new(1, 16),
+			NumberSequenceKeypoint.new(0, 4.5),
+			NumberSequenceKeypoint.new(1, 12),
 		})
 		fireball.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0.1),
@@ -781,13 +781,13 @@ do
 		})
 		fireball.Color = ColorSequence.new(Color3.fromRGB(255, 200, 90), Color3.fromRGB(200, 60, 20))
 		fireball.Parent = fx
-		fireball:Emit(55)
+		fireball:Emit(45)
 
 		-- white-hot sparks that arc out and rain down
 		local sparks = Instance.new("ParticleEmitter")
 		sparks.Rate = 0
 		sparks.Lifetime = NumberRange.new(0.5, 1.4)
-		sparks.Speed = NumberRange.new(45, 90)
+		sparks.Speed = NumberRange.new(34, 68)
 		sparks.SpreadAngle = Vector2.new(180, 180)
 		sparks.Acceleration = Vector3.new(0, -70, 0)
 		sparks.LightEmission = 1
@@ -797,7 +797,7 @@ do
 		})
 		sparks.Color = ColorSequence.new(Color3.fromRGB(255, 240, 180), Color3.fromRGB(255, 150, 50))
 		sparks.Parent = fx
-		sparks:Emit(90)
+		sparks:Emit(70)
 
 		-- shockwave: a glowing sphere that blasts outward and vanishes
 		local wave = Instance.new("Part")
@@ -824,13 +824,13 @@ do
 		local flash = Instance.new("PointLight")
 		flash.Color = Color3.fromRGB(255, 170, 60)
 		flash.Brightness = 20
-		flash.Range = 50
+		flash.Range = 38
 		flash.Parent = fx
 		TweenService:Create(flash, TweenInfo.new(0.6), { Brightness = 0, Range = 8 }):Play()
 
 		-- fire burning in the crater
 		local fire = Instance.new("Fire")
-		fire.Size = 14
+		fire.Size = 10
 		fire.Heat = 15
 		fire.Parent = fx
 
@@ -887,7 +887,7 @@ do
 		-- burn down: the fire shrinks, then dies; smoke keeps rising a bit longer
 		task.delay(FIRE_DURATION * 0.6, function()
 			if fire.Parent then
-				fire.Size = 7
+				fire.Size = 5
 			end
 		end)
 		task.delay(FIRE_DURATION, function()
@@ -924,7 +924,7 @@ end
 --------------------------------------------------------------------
 do
 	local GRENADE_COUNT = 3 -- grenades per battery/respawn
-	local GRENADE_BLAST_RADIUS = 12
+	local GRENADE_BLAST_RADIUS = 9
 	local GRENADE_ARM_TIME = 0.35 -- seconds after release before the fuse is live
 	local GRENADE_FUSE = 20 -- failsafe: explodes after this long even if it never lands (long enough for very high drops)
 
