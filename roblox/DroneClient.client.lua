@@ -1454,3 +1454,98 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- RPG DONKEY ADD-ON (client)
+-- When you sit on anything named "Donkey", a bar pops up at the
+-- bottom: press F to fire its side RPGs where your camera is looking.
+--------------------------------------------------------------------
+do
+	local PlayersService = game:GetService("Players")
+	local UserInput = game:GetService("UserInputService")
+	local Replicated = game:GetService("ReplicatedStorage")
+
+	local localPlayer = PlayersService.LocalPlayer
+	local donkeyFire = Replicated:WaitForChild("DroneRemotes"):WaitForChild("DonkeyFireRocket")
+
+	local riding -- the donkey model while sitting on one
+
+	local donkeyGui = Instance.new("ScreenGui")
+	donkeyGui.Name = "DonkeyGunner"
+	donkeyGui.ResetOnSpawn = false
+	donkeyGui.Enabled = false
+	donkeyGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+	local donkeyBar = Instance.new("TextLabel")
+	donkeyBar.AnchorPoint = Vector2.new(0.5, 1)
+	donkeyBar.Position = UDim2.new(0.5, 0, 1, -16)
+	donkeyBar.Size = UDim2.new(0, 460, 0, 36)
+	donkeyBar.BackgroundColor3 = Color3.fromRGB(22, 24, 18)
+	donkeyBar.BackgroundTransparency = 0.3
+	donkeyBar.TextColor3 = Color3.fromRGB(255, 200, 90)
+	donkeyBar.Font = Enum.Font.Code
+	donkeyBar.TextSize = 20
+	donkeyBar.Text = ""
+	donkeyBar.Parent = donkeyGui
+	local donkeyCorner = Instance.new("UICorner")
+	donkeyCorner.CornerRadius = UDim.new(0, 8)
+	donkeyCorner.Parent = donkeyBar
+
+	local function refreshDonkeyBar()
+		if not riding then
+			return
+		end
+		local ammo = riding:GetAttribute("Rockets") or 0
+		donkeyBar.Text = "🫏 RPG DONKEY   [F] FIRE   ROCKETS: "
+			.. string.rep("▰", ammo) .. string.rep("▱", math.max(6 - ammo, 0))
+		donkeyBar.TextColor3 = ammo > 0
+			and Color3.fromRGB(255, 200, 90)
+			or Color3.fromRGB(255, 90, 70)
+	end
+
+	local function isDonkeyModel(model)
+		return model and model.Name:lower():find("donkey") ~= nil
+	end
+
+	local function watchSeat(character)
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.Seated:Connect(function(active, seat)
+			riding = nil
+			if active and seat then
+				local model = seat:FindFirstAncestorOfClass("Model")
+				while model and not isDonkeyModel(model) do
+					model = model:FindFirstAncestorOfClass("Model")
+				end
+				riding = model
+			end
+			donkeyGui.Enabled = riding ~= nil
+			refreshDonkeyBar()
+		end)
+	end
+	if localPlayer.Character then
+		task.spawn(watchSeat, localPlayer.Character)
+	end
+	localPlayer.CharacterAdded:Connect(watchSeat)
+
+	-- keep the ammo readout fresh while riding
+	task.spawn(function()
+		while true do
+			task.wait(0.3)
+			if riding then
+				refreshDonkeyBar()
+			end
+		end
+	end)
+
+	UserInput.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed or not riding then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.F then
+			local cam = workspace.CurrentCamera
+			if cam then
+				donkeyFire:FireServer(riding, cam.CFrame.LookVector)
+			end
+		end
+	end)
+end

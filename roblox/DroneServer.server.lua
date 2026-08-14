@@ -1688,3 +1688,323 @@ do
 		lastFire[p] = nil
 	end)
 end
+
+--------------------------------------------------------------------
+-- RPG DONKEY ADD-ON (server)
+-- Any model in Workspace whose NAME contains "Donkey" and has a seat
+-- becomes a war donkey. The two RPG tubes strapped to its sides
+-- (anything inside it named rpg/rocket/launcher) get auto-welded on,
+-- and the rider presses F to fire them where the camera looks —
+-- alternating left/right. Carries 6 rockets, restocks on its own.
+--------------------------------------------------------------------
+do
+	local DONKEY_ROCKETS = 6
+	local DONKEY_RELOAD = 6 -- seconds per rocket restock
+	local DONKEY_COOLDOWN = 1.2 -- seconds between shots
+	local DONKEY_SPEED = 180
+	local DONKEY_GRAVITY = 12
+	local DONKEY_LIFETIME = 4
+	local DONKEY_BLAST_RADIUS = 13
+	local DONKEY_DESTRUCTION_RADIUS = 16
+	local DONKEY_DAMAGE_RADIUS = 14
+
+	local fireEvent = Instance.new("RemoteEvent")
+	fireEvent.Name = "DonkeyFireRocket"
+	fireEvent.Parent = remotes
+
+	local function isDonkey(model)
+		return model:IsA("Model") and model.Name:lower():find("donkey") ~= nil
+	end
+
+	local function nameMatches(inst)
+		local n = inst.Name:lower()
+		return n:find("rpg") ~= nil or n:find("rocket") ~= nil or n:find("launcher") ~= nil
+	end
+
+	local donkeyMuzzles = {} -- [donkey model] = { left tube part, right tube part, ... }
+
+	-- weld the RPG tubes to the donkey so they move with it, and remember
+	-- the biggest part of each tube as the spot rockets launch from
+	local function strapOnLaunchers(donkey, seat)
+		local muzzles = {}
+		for _, obj in donkey:GetDescendants() do
+			-- match "RPG"/"Rocket"/"Launcher" things, but not parts nested
+			-- inside an already-matched model (avoids doubles)
+			if nameMatches(obj) and not (obj.Parent ~= donkey and nameMatches(obj.Parent)) then
+				local parts = {}
+				if obj:IsA("BasePart") then
+					table.insert(parts, obj)
+				else
+					for _, p in obj:GetDescendants() do
+						if p:IsA("BasePart") then
+							table.insert(parts, p)
+						end
+					end
+				end
+				local muzzle
+				for _, p in parts do
+					if not p:FindFirstChild("DonkeyWeld") then
+						local weld = Instance.new("WeldConstraint")
+						weld.Name = "DonkeyWeld"
+						weld.Part0 = seat
+						weld.Part1 = p
+						weld.Parent = p
+						p.Anchored = false
+						p.CanCollide = false
+					end
+					if not muzzle or p.Size.Magnitude > muzzle.Size.Magnitude then
+						muzzle = p -- longest part = the tube itself
+					end
+				end
+				if muzzle then
+					table.insert(muzzles, muzzle)
+				end
+			end
+		end
+		return muzzles
+	end
+
+	local function setupDonkey(donkey)
+		if donkey:GetAttribute("DonkeyRPGReady") then
+			return
+		end
+		local seat = donkey:FindFirstChildWhichIsA("VehicleSeat", true)
+			or donkey:FindFirstChildWhichIsA("Seat", true)
+		if not seat then
+			return -- not rideable (yet)
+		end
+		donkey:SetAttribute("DonkeyRPGReady", true)
+		donkey:SetAttribute("Rockets", DONKEY_ROCKETS)
+		donkeyMuzzles[donkey] = strapOnLaunchers(donkey, seat)
+		if #donkeyMuzzles[donkey] == 0 then
+			warn("[Donkey] '" .. donkey.Name .. "' has no RPG tubes inside it "
+				.. "(name them with rpg/rocket/launcher) — firing from the saddle instead")
+		end
+
+		-- saddlebag restock: +1 rocket every DONKEY_RELOAD seconds
+		task.spawn(function()
+			while donkey.Parent do
+				task.wait(DONKEY_RELOAD)
+				local ammo = donkey:GetAttribute("Rockets") or 0
+				if ammo < DONKEY_ROCKETS then
+					donkey:SetAttribute("Rockets", ammo + 1)
+				end
+			end
+			donkeyMuzzles[donkey] = nil
+		end)
+	end
+
+	-- find donkeys now and keep checking for new ones dropped in later
+	task.spawn(function()
+		while true do
+			for _, model in workspace:GetDescendants() do
+				if isDonkey(model) then
+					setupDonkey(model)
+				end
+			end
+			task.wait(5)
+		end
+	end)
+
+	local function explodeDonkeyRocket(rocket, position, ownerId)
+		if rocket:GetAttribute("Exploded") then
+			return
+		end
+		rocket:SetAttribute("Exploded", true)
+
+		local explosion = Instance.new("Explosion")
+		explosion.Position = position
+		explosion.BlastRadius = DONKEY_BLAST_RADIUS
+		explosion.BlastPressure = 500000
+		explosion.DestroyJointRadiusPercent = 0
+		explosion.ExplosionType = Enum.ExplosionType.NoCraters
+		explosion.Parent = workspace
+
+		destroyBuildings(position, DONKEY_DESTRUCTION_RADIUS)
+		damageInBlast(position, ownerId, DONKEY_DAMAGE_RADIUS)
+
+		local xpSignal = game:GetService("ServerStorage"):FindFirstChild("XPSignal")
+		if xpSignal and ownerId then
+			xpSignal:Fire(ownerId, "demolition")
+		end
+
+		rocket:Destroy()
+	end
+
+	local lastFire = {}
+	local sideFlip = {} -- [donkey] = which tube fired last, so shots alternate
+
+	fireEvent.OnServerEvent:Connect(function(player, donkey, direction)
+		-- validate everything (server never trusts the client)
+		if typeof(donkey) ~= "Instance" or not isDonkey(donkey) or not donkey.Parent then
+			return
+		end
+		if typeof(direction) ~= "Vector3" or direction.Magnitude < 0.5
+			or direction.Magnitude > 2 or direction.X ~= direction.X then
+			return
+		end
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local seatPart = humanoid and humanoid.SeatPart
+		if not seatPart or not seatPart:IsDescendantOf(donkey) then
+			return -- only the rider can fire
+		end
+		local now = os.clock()
+		if lastFire[player] and now - lastFire[player] < DONKEY_COOLDOWN then
+			return
+		end
+		local ammo = donkey:GetAttribute("Rockets") or 0
+		if ammo <= 0 then
+			return
+		end
+		donkey:SetAttribute("Rockets", ammo - 1)
+		lastFire[player] = now
+
+		local dir = direction.Unit
+		local tubes = donkeyMuzzles[donkey]
+		local muzzle = seatPart
+		if tubes and #tubes > 0 then
+			sideFlip[donkey] = ((sideFlip[donkey] or 0) % #tubes) + 1
+			local tube = tubes[sideFlip[donkey]]
+			if tube and tube.Parent then
+				muzzle = tube
+			end
+		end
+		local spawnPos = muzzle.Position + Vector3.new(0, 0.5, 0) + dir * 3
+
+		local rocket = Instance.new("Part")
+		rocket.Name = "DonkeyRocket"
+		rocket.Size = Vector3.new(0.5, 0.5, 2.6)
+		rocket.CFrame = CFrame.lookAt(spawnPos, spawnPos + dir)
+		rocket.Color = Color3.fromRGB(60, 66, 52)
+		rocket.Material = Enum.Material.Metal
+		rocket.Anchored = true
+		rocket.CanCollide = false
+		rocket.CanQuery = false
+		rocket.CanTouch = false
+		rocket.CastShadow = false
+
+		local tail = Instance.new("Attachment")
+		tail.Position = Vector3.new(0, 0, 1.3)
+		tail.Parent = rocket
+
+		local flame = Instance.new("ParticleEmitter")
+		flame.Rate = 120
+		flame.Lifetime = NumberRange.new(0.08, 0.16)
+		flame.Speed = NumberRange.new(8, 14)
+		flame.LightEmission = 1
+		flame.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.9),
+			NumberSequenceKeypoint.new(1, 0.2),
+		})
+		flame.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130), Color3.fromRGB(255, 120, 40))
+		flame.EmissionDirection = Enum.NormalId.Back
+		flame.Parent = tail
+
+		local trail = Instance.new("ParticleEmitter")
+		trail.Rate = 90
+		trail.Lifetime = NumberRange.new(1.8, 3.2)
+		trail.Speed = NumberRange.new(1, 3)
+		trail.SpreadAngle = Vector2.new(10, 10)
+		trail.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.7),
+			NumberSequenceKeypoint.new(1, 3.2),
+		})
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.35),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.Color = ColorSequence.new(Color3.fromRGB(180, 180, 175), Color3.fromRGB(120, 120, 115))
+		trail.Parent = tail
+
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 150, 60)
+		glow.Brightness = 3
+		glow.Range = 14
+		glow.Parent = rocket
+
+		local hiss = Instance.new("Sound")
+		hiss.SoundId = MOTOR_SOUND_ID
+		hiss.PlaybackSpeed = 2.4
+		hiss.Volume = 0.5
+		hiss.Looped = true
+		hiss.RollOffMaxDistance = 300
+		hiss.Parent = rocket
+		hiss:Play()
+
+		rocket.Parent = workspace
+
+		-- launch crack + backblast puff behind the tube
+		local crack = Instance.new("Sound")
+		crack.SoundId = "rbxassetid://165969964"
+		crack.PlaybackSpeed = 1.7
+		crack.Volume = 0.7
+		crack.RollOffMaxDistance = 500
+		crack.Parent = muzzle
+		crack:Play()
+		Debris:AddItem(crack, 2)
+
+		local backblast = Instance.new("Part")
+		backblast.Size = Vector3.new(1, 1, 1)
+		backblast.CFrame = CFrame.lookAt(spawnPos - dir * 4, spawnPos)
+		backblast.Transparency = 1
+		backblast.Anchored = true
+		backblast.CanCollide = false
+		backblast.CanQuery = false
+		backblast.CanTouch = false
+		backblast.Parent = workspace
+		local puff = Instance.new("ParticleEmitter")
+		puff.Rate = 0
+		puff.Lifetime = NumberRange.new(0.5, 1.1)
+		puff.Speed = NumberRange.new(10, 22)
+		puff.SpreadAngle = Vector2.new(35, 35)
+		puff.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.5),
+			NumberSequenceKeypoint.new(1, 4.5),
+		})
+		puff.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.4),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		puff.Color = ColorSequence.new(Color3.fromRGB(150, 150, 145))
+		puff.EmissionDirection = Enum.NormalId.Back
+		puff.Parent = backblast
+		puff:Emit(25)
+		Debris:AddItem(backblast, 2)
+
+		-- stepped raycast flight so it can't tunnel through walls
+		task.spawn(function()
+			local vel = dir * DONKEY_SPEED
+			local pos = spawnPos
+			local elapsed = 0
+			local rayParams = RaycastParams.new()
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			local exclude = { donkey, rocket }
+			if character then
+				table.insert(exclude, character)
+			end
+			rayParams.FilterDescendantsInstances = exclude
+
+			while rocket.Parent and elapsed < DONKEY_LIFETIME do
+				local dt = task.wait()
+				elapsed += dt
+				vel += Vector3.new(0, -DONKEY_GRAVITY * dt, 0)
+				local newPos = pos + vel * dt
+				local hit = workspace:Raycast(pos, newPos - pos, rayParams)
+				if hit then
+					explodeDonkeyRocket(rocket, hit.Position + hit.Normal * 0.5, player.UserId)
+					return
+				end
+				pos = newPos
+				rocket.CFrame = CFrame.lookAt(pos, pos + vel)
+			end
+			if rocket.Parent then
+				explodeDonkeyRocket(rocket, pos, player.UserId)
+			end
+		end)
+	end)
+
+	Players.PlayerRemoving:Connect(function(p)
+		lastFire[p] = nil
+	end)
+end
