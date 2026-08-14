@@ -1798,7 +1798,19 @@ do
 			seat.Size = Vector3.new(2, 0.5, 2)
 			seat.Transparency = 1
 			seat.CanCollide = false
-			seat.CFrame = body.CFrame * CFrame.new(0, body.Size.Y / 2 + 0.4, 0)
+			-- find the donkey's actual back: probe straight down from above
+			-- (some models have parts with huge invisible bounding boxes)
+			local bbCF, bbSize = donkey:GetBoundingBox()
+			local topProbe = RaycastParams.new()
+			topProbe.FilterType = Enum.RaycastFilterType.Include
+			topProbe.FilterDescendantsInstances = { donkey }
+			local probeStart = Vector3.new(bbCF.X, bbCF.Y + bbSize.Y / 2 + 5, bbCF.Z)
+			local topHit = workspace:Raycast(probeStart, Vector3.new(0, -(bbSize.Y + 10), 0), topProbe)
+			local topY = topHit and topHit.Position.Y or (body.Position.Y + body.Size.Y / 2)
+			local flatLook = bbCF.LookVector * Vector3.new(1, 0, 1)
+			flatLook = flatLook.Magnitude > 0.1 and flatLook.Unit or Vector3.zAxis
+			local saddlePos = Vector3.new(bbCF.X, topY + 0.3, bbCF.Z)
+			seat.CFrame = CFrame.lookAt(saddlePos, saddlePos + flatLook)
 			seat.Anchored = not donkeyMoves
 			if donkeyMoves then
 				local weld = Instance.new("WeldConstraint")
@@ -1869,13 +1881,13 @@ do
 	local lastFire = {}
 	local sideFlip = {} -- [donkey] = which tube fired last, so shots alternate
 
-	fireEvent.OnServerEvent:Connect(function(player, donkey, direction)
+	fireEvent.OnServerEvent:Connect(function(player, donkey, aimPoint)
 		-- validate everything (server never trusts the client)
 		if typeof(donkey) ~= "Instance" or not isDonkey(donkey) or not donkey.Parent then
 			return
 		end
-		if typeof(direction) ~= "Vector3" or direction.Magnitude < 0.5
-			or direction.Magnitude > 2 or direction.X ~= direction.X then
+		if typeof(aimPoint) ~= "Vector3" or aimPoint.X ~= aimPoint.X
+			or aimPoint.Magnitude > 100000 then
 			return
 		end
 		local character = player.Character
@@ -1895,7 +1907,6 @@ do
 		donkey:SetAttribute("Rockets", ammo - 1)
 		lastFire[player] = now
 
-		local dir = direction.Unit
 		local tubes = donkeyMuzzles[donkey]
 		local muzzle = seatPart
 		if tubes and #tubes > 0 then
@@ -1905,7 +1916,14 @@ do
 				muzzle = tube
 			end
 		end
-		local spawnPos = muzzle.Position + Vector3.new(0, 0.5, 0) + dir * 3
+		-- fly straight at the exact spot the rider's crosshair is on
+		local launchBase = muzzle.Position + Vector3.new(0, 1, 0)
+		local aim = aimPoint - launchBase
+		if aim.Magnitude < 5 then
+			return -- aiming at the donkey itself
+		end
+		local dir = aim.Unit
+		local spawnPos = launchBase + dir * 3
 
 		local rocket = Instance.new("Part")
 		rocket.Name = "DonkeyRocket"

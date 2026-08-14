@@ -1544,7 +1544,20 @@ do
 		if input.KeyCode == Enum.KeyCode.F then
 			local cam = workspace.CurrentCamera
 			if cam then
-				donkeyFire:FireServer(riding, cam.CFrame.LookVector)
+				-- find the exact spot the crosshair is on and send that,
+				-- so the rocket lands where you're looking
+				local origin = cam.CFrame.Position
+				local look = cam.CFrame.LookVector
+				local rayParams = RaycastParams.new()
+				rayParams.FilterType = Enum.RaycastFilterType.Exclude
+				local exclude = { riding }
+				if localPlayer.Character then
+					table.insert(exclude, localPlayer.Character)
+				end
+				rayParams.FilterDescendantsInstances = exclude
+				local hit = workspace:Raycast(origin, look * 1000, rayParams)
+				local aimPoint = hit and hit.Position or (origin + look * 1000)
+				donkeyFire:FireServer(riding, aimPoint)
 			end
 		end
 	end)
