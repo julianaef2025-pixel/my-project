@@ -273,7 +273,7 @@ local PANEL_SHOWN = UDim2.new(0, 62, 0.5, 0)
 
 local dronePanel = Instance.new("CanvasGroup")
 dronePanel.Name = "DronePanel"
-dronePanel.Size = UDim2.new(0, 356, 0, 760)
+dronePanel.Size = UDim2.new(0, 230, 0, 366)
 dronePanel.Position = PANEL_HIDDEN
 dronePanel.AnchorPoint = Vector2.new(0, 0.5)
 dronePanel.BackgroundColor3 = COLORS.panel
@@ -285,23 +285,21 @@ stroke(dronePanel, COLORS.amber, 1.5, 0.55)
 gradient(dronePanel, Color3.fromRGB(30, 36, 30), Color3.fromRGB(16, 20, 16), 115)
 
 -- header
-local headerTitle = label(dronePanel, "DRONE ARSENAL", UDim2.new(1, -60, 0, 30), UDim2.new(0, 20, 0, 16), Vector2.new(0, 0), 24, Enum.Font.GothamBlack)
+local headerTitle = label(dronePanel, "⚡ DRONES", UDim2.new(1, -50, 0, 22), UDim2.new(0, 14, 0, 10), Vector2.new(0, 0), 17, Enum.Font.GothamBlack)
 headerTitle.TextXAlignment = Enum.TextXAlignment.Left
 gradient(headerTitle, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 160, 150), 90)
-local headerSub = label(dronePanel, "choose your loadout, pilot", UDim2.new(1, -60, 0, 16), UDim2.new(0, 20, 0, 46), Vector2.new(0, 0), 13, Enum.Font.Gotham, COLORS.dim)
-headerSub.TextXAlignment = Enum.TextXAlignment.Left
 
 local headerLine = Instance.new("Frame")
-headerLine.Size = UDim2.new(1, -40, 0, 1)
-headerLine.Position = UDim2.new(0, 20, 0, 70)
+headerLine.Size = UDim2.new(1, -28, 0, 1)
+headerLine.Position = UDim2.new(0, 14, 0, 40)
 headerLine.BackgroundColor3 = COLORS.amber
 headerLine.BackgroundTransparency = 0.7
 headerLine.BorderSizePixel = 0
 headerLine.Parent = dronePanel
 
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -14, 0, 14)
+closeButton.Size = UDim2.new(0, 24, 0, 24)
+closeButton.Position = UDim2.new(1, -10, 0, 9)
 closeButton.AnchorPoint = Vector2.new(1, 0)
 closeButton.BackgroundColor3 = COLORS.panelLight
 closeButton.Font = Enum.Font.GothamBold
@@ -318,10 +316,11 @@ local droneStatus
 local droneCards = {} -- [kind] = refs for the refresh loop
 
 local function makeDroneCard(config)
-	-- config: kind, name, icon, desc, accent, accentDark, chips, yOffset
+	-- config: kind, name, icon, accent, accentDark, yOffset
+	-- compact row: the WHOLE row is the deploy button
 	local card = Instance.new("TextButton")
 	card.Name = config.kind .. "Card"
-	card.Size = UDim2.new(1, -32, 0, 150)
+	card.Size = UDim2.new(1, -20, 0, 62)
 	card.Position = UDim2.new(0.5, 0, 0, config.yOffset)
 	card.AnchorPoint = Vector2.new(0.5, 0)
 	card.BackgroundColor3 = COLORS.panelLight
@@ -329,7 +328,7 @@ local function makeDroneCard(config)
 	card.Text = ""
 	card.AutoButtonColor = false
 	card.Parent = dronePanel
-	corner(card, 12)
+	corner(card, 10)
 	gradient(card, Color3.fromRGB(38, 44, 38), Color3.fromRGB(26, 31, 26), 100)
 	local cardStroke = stroke(card, config.accent, 1.5, 0.6)
 
@@ -338,78 +337,48 @@ local function makeDroneCard(config)
 
 	-- icon badge
 	local iconBox = Instance.new("Frame")
-	iconBox.Size = UDim2.new(0, 52, 0, 52)
-	iconBox.Position = UDim2.new(0, 14, 0, 14)
+	iconBox.Size = UDim2.new(0, 42, 0, 42)
+	iconBox.Position = UDim2.new(0, 10, 0.5, 0)
+	iconBox.AnchorPoint = Vector2.new(0, 0.5)
 	iconBox.BackgroundColor3 = config.accentDark
 	iconBox.BorderSizePixel = 0
 	iconBox.Parent = card
-	corner(iconBox, 10)
+	corner(iconBox, 9)
 	stroke(iconBox, config.accent, 1, 0.5)
-	local iconLabel = label(iconBox, config.icon, UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), Vector2.new(0.5, 0.5), 26)
+	local iconLabel = label(iconBox, config.icon, UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), Vector2.new(0.5, 0.5), 21)
 
-	-- name + stat chips
-	local nameLabel = label(card, config.name, UDim2.new(1, -160, 0, 24), UDim2.new(0, 78, 0, 14), Vector2.new(0, 0), 19, Enum.Font.GothamBlack, config.accent)
+	-- name + one tiny status line under it
+	local nameLabel = label(card, config.name, UDim2.new(1, -130, 0, 18), UDim2.new(0, 62, 0, 13), Vector2.new(0, 0), 15, Enum.Font.GothamBlack, config.accent)
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	local chipRow = Instance.new("Frame")
-	chipRow.Size = UDim2.new(1, -92, 0, 18)
-	chipRow.Position = UDim2.new(0, 78, 0, 42)
-	chipRow.BackgroundTransparency = 1
-	chipRow.Parent = card
-	local chipLayout = Instance.new("UIListLayout")
-	chipLayout.FillDirection = Enum.FillDirection.Horizontal
-	chipLayout.Padding = UDim.new(0, 6)
-	chipLayout.Parent = chipRow
-
-	for _, chipText in config.chips do
-		local chip = Instance.new("TextLabel")
-		chip.AutomaticSize = Enum.AutomaticSize.X
-		chip.Size = UDim2.new(0, 0, 1, 0)
-		chip.BackgroundColor3 = Color3.fromRGB(18, 22, 18)
-		chip.BackgroundTransparency = 0.2
-		chip.Font = Enum.Font.GothamBold
-		chip.TextSize = 10
-		chip.TextColor3 = config.accent
-		chip.Text = " " .. chipText .. " "
-		chip.BorderSizePixel = 0
-		chip.Parent = chipRow
-		corner(chip, 4)
-	end
-
-	-- description
-	local descLabel = label(card, config.desc, UDim2.new(1, -28, 0, 34), UDim2.new(0, 14, 0, 72), Vector2.new(0, 0), 12, Enum.Font.Gotham, COLORS.dim)
-	descLabel.TextXAlignment = Enum.TextXAlignment.Left
-	descLabel.TextYAlignment = Enum.TextYAlignment.Top
-	descLabel.TextWrapped = true
-
-	-- bottom row: status text left, action button right
-	local statusLabel = label(card, "", UDim2.new(1, -140, 0, 30), UDim2.new(0, 14, 1, -40), Vector2.new(0, 0), 12, Enum.Font.GothamBold, COLORS.dim)
+	local statusLabel = label(card, "", UDim2.new(1, -130, 0, 14), UDim2.new(0, 62, 0, 33), Vector2.new(0, 0), 10, Enum.Font.GothamBold, COLORS.dim)
 	statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	local deployBtn = Instance.new("TextButton")
-	deployBtn.Size = UDim2.new(0, 108, 0, 32)
-	deployBtn.Position = UDim2.new(1, -12, 1, -10)
-	deployBtn.AnchorPoint = Vector2.new(1, 1)
+	-- unlocked: a "GO ▸" chevron on the right (the whole row deploys)
+	local deployBtn = Instance.new("TextLabel")
+	deployBtn.Size = UDim2.new(0, 34, 0, 34)
+	deployBtn.Position = UDim2.new(1, -10, 0.5, 0)
+	deployBtn.AnchorPoint = Vector2.new(1, 0.5)
 	deployBtn.BackgroundColor3 = config.accent
 	deployBtn.Font = Enum.Font.GothamBlack
-	deployBtn.TextSize = 14
+	deployBtn.TextSize = 16
 	deployBtn.TextColor3 = Color3.fromRGB(15, 18, 15)
-	deployBtn.Text = "DEPLOY ▸"
+	deployBtn.Text = "▸"
 	deployBtn.BorderSizePixel = 0
 	deployBtn.Visible = false
 	deployBtn.Parent = card
-	corner(deployBtn, 8)
+	corner(deployBtn, 9)
 
-	-- compact unlock pill (bottom-right, doesn't cover the card)
+	-- locked: tiny Robux pill instead
 	local buyBtn = Instance.new("TextButton")
-	buyBtn.Size = UDim2.new(0, 108, 0, 32)
-	buyBtn.Position = UDim2.new(1, -12, 1, -10)
-	buyBtn.AnchorPoint = Vector2.new(1, 1)
+	buyBtn.Size = UDim2.new(0, 58, 0, 26)
+	buyBtn.Position = UDim2.new(1, -10, 0.5, 0)
+	buyBtn.AnchorPoint = Vector2.new(1, 0.5)
 	buyBtn.BackgroundColor3 = Color3.fromRGB(52, 165, 82)
 	buyBtn.Font = Enum.Font.GothamBlack
-	buyBtn.TextSize = 14
+	buyBtn.TextSize = 12
 	buyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	buyBtn.Text = "⚡ " .. (ROBUX_PRICES[config.kind] or "?") .. " R$"
+	buyBtn.Text = (ROBUX_PRICES[config.kind] or "?") .. " R$"
 	buyBtn.BorderSizePixel = 0
 	buyBtn.Visible = false
 	buyBtn.Parent = card
@@ -449,7 +418,8 @@ local function makeDroneCard(config)
 		deployBtn = deployBtn,
 		buyBtn = buyBtn,
 	}
-	return card, deployBtn
+	-- the whole row acts as the deploy button
+	return card, card
 end
 
 local function isUnlocked(kind)
@@ -470,14 +440,14 @@ local function refreshCards()
 			c.iconBox.BackgroundColor3 = c.accentDark
 			c.iconLabel.TextTransparency = 0
 			c.stroke.Color = c.accent
-			c.statusLabel.Text = "✓ UNLOCKED"
+			c.statusLabel.Text = "READY — CLICK TO DEPLOY"
 			c.statusLabel.TextColor3 = Color3.fromRGB(120, 210, 130)
 		else
 			c.nameLabel.TextColor3 = LOCKED_GRAY
 			c.iconBox.BackgroundColor3 = Color3.fromRGB(34, 38, 34)
 			c.iconLabel.TextTransparency = 0.45
 			c.stroke.Color = LOCKED_GRAY
-			c.statusLabel.Text = "🔒 UNLOCKS AT LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
+			c.statusLabel.Text = "🔒 LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
 			c.statusLabel.TextColor3 = LOCKED_GRAY
 		end
 	end
@@ -492,46 +462,39 @@ end)
 
 local kamikazeCard, kamikazeDeploy = makeDroneCard({
 	kind = "Kamikaze",
-	name = "FPV KAMIKAZE",
+	name = "KAMIKAZE",
 	icon = "💥",
-	desc = "One-way attack drone. Fly it straight into the target — detonates on impact.",
 	accent = COLORS.amber,
 	accentDark = Color3.fromRGB(70, 48, 18),
-	chips = { "ONE-WAY", "FAST", "IMPACT WARHEAD" },
-	yOffset = 86,
+	yOffset = 50,
 })
 local bomberCard, bomberDeploy = makeDroneCard({
 	kind = "Bomber",
 	name = "BOMBER",
 	icon = "💣",
-	desc = "Drops grenades from above. F to drop, C for bomb cam, Z to zoom. Rearm at base.",
 	accent = COLORS.green,
 	accentDark = Color3.fromRGB(30, 55, 30),
-	chips = { "3× GRENADES", "BOMB CAM", "REARMS" },
-	yOffset = 250,
+	yOffset = 118,
 })
 local reconCard, reconDeploy = makeDroneCard({
 	kind = "Recon",
 	name = "RECON",
 	icon = "🔭",
-	desc = "Eyes in the sky. C for the stabilized gimbal, Z to zoom, T marks targets, V is thermal.",
 	accent = Color3.fromRGB(120, 170, 255),
 	accentDark = Color3.fromRGB(25, 38, 70),
-	chips = { "7 MIN", "15× ZOOM", "THERMAL", "MARKS" },
-	yOffset = 414,
+	yOffset = 186,
 })
 local rpgCard, rpgDeploy = makeDroneCard({
 	kind = "RPG",
 	name = "RPG STRIKER",
 	icon = "🚀",
-	desc = "Rocket launcher on wings. F fires a rocket straight where you aim — big blast, big hole. Reload at base.",
 	accent = Color3.fromRGB(255, 110, 90),
 	accentDark = Color3.fromRGB(70, 26, 20),
-	chips = { "2× ROCKETS", "AIMED SHOT", "BIG BOOM" },
-	yOffset = 578,
+	yOffset = 254,
 })
 
-droneStatus = label(dronePanel, "", UDim2.new(1, -40, 0, 20), UDim2.new(0.5, 0, 1, -18), Vector2.new(0.5, 1), 13, Enum.Font.GothamBold, COLORS.green)
+droneStatus = label(dronePanel, "", UDim2.new(1, -20, 0, 30), UDim2.new(0.5, 0, 1, -10), Vector2.new(0.5, 1), 11, Enum.Font.GothamBold, COLORS.green)
+droneStatus.TextWrapped = true
 
 --------------------------------------------------------------------
 -- behavior
@@ -592,7 +555,7 @@ end)
 
 local function orderDrone(kind, statusText)
 	if not isUnlocked(kind) then
-		droneStatus.Text = "🔒 reach level " .. (LEVEL_REQUIREMENTS[kind] or 1) .. " or unlock with Robux"
+		droneStatus.Text = "🔒 LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1) .. " — or unlock with R$"
 		droneStatus.TextColor3 = Color3.fromRGB(255, 140, 80)
 		return
 	end
@@ -615,16 +578,16 @@ local function orderDrone(kind, statusText)
 end
 
 kamikazeDeploy.MouseButton1Click:Connect(function()
-	orderDrone("Kamikaze", "✔ kamikaze delivered right in front of you")
+	orderDrone("Kamikaze", "✔ KAMIKAZE INBOUND")
 end)
 bomberDeploy.MouseButton1Click:Connect(function()
-	orderDrone("Bomber", "✔ bomber delivered right in front of you")
+	orderDrone("Bomber", "✔ BOMBER INBOUND")
 end)
 reconDeploy.MouseButton1Click:Connect(function()
-	orderDrone("Recon", "✔ recon delivered right in front of you")
+	orderDrone("Recon", "✔ RECON INBOUND")
 end)
 rpgDeploy.MouseButton1Click:Connect(function()
-	orderDrone("RPG", "✔ rpg striker delivered right in front of you")
+	orderDrone("RPG", "✔ RPG STRIKER INBOUND")
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
