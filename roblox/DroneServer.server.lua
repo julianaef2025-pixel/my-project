@@ -1691,11 +1691,12 @@ end
 
 --------------------------------------------------------------------
 -- RPG DONKEY ADD-ON (server)
--- Any model in Workspace whose NAME contains "Donkey" and has a seat
--- becomes a war donkey. The two RPG tubes strapped to its sides
--- (anything inside it named rpg/rocket/launcher) get auto-welded on,
--- and the rider presses F to fire them where the camera looks —
--- alternating left/right. Carries 6 rockets, restocks on its own.
+-- Any model in Workspace whose NAME contains "Donkey" becomes a war
+-- donkey. No seat needed: the script puts an invisible saddle on its
+-- back automatically. Works with a still (anchored) donkey — the RPG
+-- tubes inside it (named rpg/rocket/launcher) stay put; on a moving
+-- donkey they get welded on. Rider presses F to fire where the
+-- camera looks, alternating tubes. 6 rockets, restocks on its own.
 --------------------------------------------------------------------
 do
 	local DONKEY_ROCKETS = 6
@@ -1723,9 +1724,23 @@ do
 
 	local donkeyMuzzles = {} -- [donkey model] = { left tube part, right tube part, ... }
 
-	-- weld the RPG tubes to the donkey so they move with it, and remember
-	-- the biggest part of each tube as the spot rockets launch from
-	local function strapOnLaunchers(donkey, seat)
+	-- the donkey's biggest part that is NOT an rpg tube = its body
+	local function findBody(donkey)
+		local body
+		for _, p in donkey:GetDescendants() do
+			if p:IsA("BasePart") and not nameMatches(p)
+				and not (p.Parent and nameMatches(p.Parent))
+				and (not body or p.Size.Magnitude > body.Size.Magnitude) then
+				body = p
+			end
+		end
+		return body
+	end
+
+	-- find the RPG tubes inside the donkey. If the donkey can move
+	-- (unanchored), weld them on so they follow; if it's a still prop
+	-- (anchored), leave everything exactly where it was placed.
+	local function strapOnLaunchers(donkey, weldTo, donkeyMoves)
 		local muzzles = {}
 		for _, obj in donkey:GetDescendants() do
 			-- match "RPG"/"Rocket"/"Launcher" things, but not parts nested
@@ -1743,10 +1758,10 @@ do
 				end
 				local muzzle
 				for _, p in parts do
-					if not p:FindFirstChild("DonkeyWeld") then
+					if donkeyMoves and not p:FindFirstChild("DonkeyWeld") then
 						local weld = Instance.new("WeldConstraint")
 						weld.Name = "DonkeyWeld"
-						weld.Part0 = seat
+						weld.Part0 = weldTo
 						weld.Part1 = p
 						weld.Parent = p
 						p.Anchored = false
@@ -1768,14 +1783,34 @@ do
 		if donkey:GetAttribute("DonkeyRPGReady") then
 			return
 		end
+		local body = findBody(donkey)
+		if not body then
+			return -- empty model, nothing to sit on
+		end
+		local donkeyMoves = not body.Anchored
+
+		-- no seat? put an invisible saddle on its back so it's rideable
 		local seat = donkey:FindFirstChildWhichIsA("VehicleSeat", true)
 			or donkey:FindFirstChildWhichIsA("Seat", true)
 		if not seat then
-			return -- not rideable (yet)
+			seat = Instance.new("Seat")
+			seat.Name = "DonkeySaddle"
+			seat.Size = Vector3.new(2, 0.5, 2)
+			seat.Transparency = 1
+			seat.CanCollide = false
+			seat.CFrame = body.CFrame * CFrame.new(0, body.Size.Y / 2 + 0.4, 0)
+			seat.Anchored = not donkeyMoves
+			if donkeyMoves then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = body
+				weld.Part1 = seat
+				weld.Parent = seat
+			end
+			seat.Parent = donkey
 		end
 		donkey:SetAttribute("DonkeyRPGReady", true)
 		donkey:SetAttribute("Rockets", DONKEY_ROCKETS)
-		donkeyMuzzles[donkey] = strapOnLaunchers(donkey, seat)
+		donkeyMuzzles[donkey] = strapOnLaunchers(donkey, seat, donkeyMoves)
 		if #donkeyMuzzles[donkey] == 0 then
 			warn("[Donkey] '" .. donkey.Name .. "' has no RPG tubes inside it "
 				.. "(name them with rpg/rocket/launcher) — firing from the saddle instead")
