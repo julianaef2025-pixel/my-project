@@ -66,7 +66,7 @@ local activePilots = {} -- [player] = drone model
 local dronesFolder -- assigned at the bottom of the script, needed by the destruction code
 
 local function getRoot(drone)
-	return drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart")
+	return drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart", true)
 end
 
 local function exitDrone(player)
