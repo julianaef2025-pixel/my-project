@@ -23,6 +23,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 
 local FIRE_INTERVAL = 0.09 -- min seconds between shots (~11/sec)
 local SHOT_DAMAGE = 9 -- per hit on players/NPCs
@@ -236,6 +237,42 @@ local function setupTurret(turret)
 	flash.Color = ColorSequence.new(Color3.fromRGB(255, 225, 140), Color3.fromRGB(255, 120, 40))
 	flash.Parent = tip
 
+	-- muzzle smoke puff per shot
+	local muzzleSmoke = Instance.new("ParticleEmitter")
+	muzzleSmoke.Name = "MuzzleSmoke"
+	muzzleSmoke.Rate = 0
+	muzzleSmoke.Lifetime = NumberRange.new(0.4, 0.9)
+	muzzleSmoke.Speed = NumberRange.new(3, 7)
+	muzzleSmoke.SpreadAngle = Vector2.new(25, 25)
+	muzzleSmoke.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.6),
+		NumberSequenceKeypoint.new(1, 2.2),
+	})
+	muzzleSmoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.5),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	muzzleSmoke.Color = ColorSequence.new(Color3.fromRGB(160, 160, 155))
+	muzzleSmoke.Parent = tip
+
+	-- heat shimmer smoke that pours off a hot barrel
+	local heatSmoke = Instance.new("ParticleEmitter")
+	heatSmoke.Name = "HeatSmoke"
+	heatSmoke.Rate = 14
+	heatSmoke.Enabled = false
+	heatSmoke.Lifetime = NumberRange.new(0.6, 1.2)
+	heatSmoke.Speed = NumberRange.new(1, 2)
+	heatSmoke.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(1, 1.4),
+	})
+	heatSmoke.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.6),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	heatSmoke.Color = ColorSequence.new(Color3.fromRGB(200, 200, 195))
+	heatSmoke.Parent = tip
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Man AA Turret"
 	prompt.ObjectText = turret.Name
@@ -255,6 +292,9 @@ local function setupTurret(turret)
 		prompt = prompt,
 		tip = tip,
 		flash = flash,
+		muzzleSmoke = muzzleSmoke,
+		heatSmoke = heatSmoke,
+		shots = 0,
 	}
 end
 
@@ -279,7 +319,7 @@ end)
 task.spawn(function()
 	while true do
 		task.wait(0.2)
-		for turret in turretData do
+		for turret, data in turretData do
 			local heat = turret:GetAttribute("Heat") or 0
 			if heat > 0 then
 				heat = math.max(heat - COOL_RATE * 0.2, 0)
@@ -288,6 +328,8 @@ task.spawn(function()
 					turret:SetAttribute("Overheated", nil)
 				end
 			end
+			-- a hot barrel visibly smokes
+			data.heatSmoke.Enabled = heat > 65
 		end
 	end
 end)
@@ -355,8 +397,9 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 
 	local origin = data.tip.WorldPosition
 
-	-- muzzle flash + crack for everyone nearby
+	-- muzzle flash + smoke + crack for everyone nearby
 	data.flash:Emit(6)
+	data.muzzleSmoke:Emit(3)
 	local crack = Instance.new("Sound")
 	crack.SoundId = CRACK_SOUND_ID
 	crack.PlaybackSpeed = 1.3 + math.random() * 0.2
@@ -365,6 +408,30 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 	crack.Parent = data.barrel
 	crack:Play()
 	Debris:AddItem(crack, 2)
+	-- low thump under the crack so it sounds heavy up close
+	local thump = Instance.new("Sound")
+	thump.SoundId = CRACK_SOUND_ID
+	thump.PlaybackSpeed = 0.55
+	thump.Volume = 0.35
+	thump.RollOffMaxDistance = 150
+	thump.Parent = data.barrel
+	thump:Play()
+	Debris:AddItem(thump, 3)
+
+	-- eject a brass casing out the side
+	local casing = Instance.new("Part")
+	casing.Size = Vector3.new(0.12, 0.12, 0.4)
+	casing.Color = Color3.fromRGB(190, 150, 60)
+	casing.Material = Enum.Material.Metal
+	casing.CFrame = data.barrel.CFrame * CFrame.new(0.8, -0.2, 1)
+	casing.CanCollide = true
+	casing.CanQuery = false
+	casing.CanTouch = false
+	casing.Parent = workspace
+	casing.AssemblyLinearVelocity = data.barrel.CFrame.RightVector * (6 + math.random() * 4)
+		+ Vector3.new(0, 5 + math.random() * 3, 0)
+	casing.AssemblyAngularVelocity = Vector3.new(math.random(-20, 20), math.random(-20, 20), math.random(-20, 20))
+	Debris:AddItem(casing, 4)
 
 	-- hitscan with the turret and gunner excluded
 	local rayParams = RaycastParams.new()
@@ -377,26 +444,60 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 	local hit = workspace:Raycast(origin, dir * RANGE, rayParams)
 	local endPos = hit and hit.Position or (origin + dir * RANGE)
 
-	-- glowing tracer line
+	-- tracer shells: like real AA, every 3rd round glows and you can
+	-- watch it FLY to the target (hit is still instant under the hood)
 	local distance = (endPos - origin).Magnitude
-	local tracer = Instance.new("Part")
-	tracer.Size = Vector3.new(0.12, 0.12, math.min(distance, 14))
-	tracer.CFrame = CFrame.lookAt(origin, endPos) * CFrame.new(0, 0, -math.min(distance, 14) / 2)
-	tracer.Color = Color3.fromRGB(255, 170, 60)
-	tracer.Material = Enum.Material.Neon
-	tracer.Anchored = true
-	tracer.CanCollide = false
-	tracer.CanQuery = false
-	tracer.CanTouch = false
-	tracer.CastShadow = false
-	tracer.Parent = workspace
-	Debris:AddItem(tracer, 0.1)
+	data.shots += 1
+	if data.shots % 3 == 0 then
+		local tracer = Instance.new("Part")
+		tracer.Size = Vector3.new(0.18, 0.18, 1.8)
+		tracer.CFrame = CFrame.lookAt(origin, endPos)
+		tracer.Color = Color3.fromRGB(255, 170, 60)
+		tracer.Material = Enum.Material.Neon
+		tracer.Anchored = true
+		tracer.CanCollide = false
+		tracer.CanQuery = false
+		tracer.CanTouch = false
+		tracer.CastShadow = false
+
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 170, 60)
+		glow.Brightness = 2
+		glow.Range = 10
+		glow.Parent = tracer
+
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(0, 0.1, 0)
+		a0.Parent = tracer
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(0, -0.1, 0)
+		a1.Parent = tracer
+		local streak = Instance.new("Trail")
+		streak.Attachment0 = a0
+		streak.Attachment1 = a1
+		streak.Lifetime = 0.12
+		streak.LightEmission = 1
+		streak.Color = ColorSequence.new(Color3.fromRGB(255, 190, 90))
+		streak.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		streak.WidthScale = NumberSequence.new(0.35)
+		streak.Parent = tracer
+
+		tracer.Parent = workspace
+		local flightTime = distance / 1400 -- shell speed, studs/sec
+		TweenService:Create(tracer, TweenInfo.new(flightTime, Enum.EasingStyle.Linear), {
+			CFrame = CFrame.lookAt(endPos, endPos + dir),
+		}):Play()
+		Debris:AddItem(tracer, flightTime + 0.05)
+	end
 
 	if not hit then
 		return
 	end
 
-	-- impact sparks
+	-- impact FX: sparks on hard stuff, a dirt kick on ground/terrain
 	local sparkHolder = Instance.new("Part")
 	sparkHolder.Size = Vector3.new(0.2, 0.2, 0.2)
 	sparkHolder.Position = hit.Position
@@ -406,17 +507,33 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 	sparkHolder.CanQuery = false
 	sparkHolder.CanTouch = false
 	sparkHolder.Parent = workspace
-	local sparks = Instance.new("ParticleEmitter")
-	sparks.Rate = 0
-	sparks.Lifetime = NumberRange.new(0.15, 0.4)
-	sparks.Speed = NumberRange.new(8, 20)
-	sparks.SpreadAngle = Vector2.new(60, 60)
-	sparks.LightEmission = 1
-	sparks.Size = NumberSequence.new(0.2)
-	sparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 110))
-	sparks.Parent = sparkHolder
-	sparks:Emit(8)
-	Debris:AddItem(sparkHolder, 1)
+	local hitGround = hit.Instance:IsA("Terrain") or hit.Normal.Y > 0.7
+	local impactFX = Instance.new("ParticleEmitter")
+	impactFX.Rate = 0
+	if hitGround then
+		impactFX.Lifetime = NumberRange.new(0.4, 0.9)
+		impactFX.Speed = NumberRange.new(6, 14)
+		impactFX.SpreadAngle = Vector2.new(40, 40)
+		impactFX.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(1, 1.8),
+		})
+		impactFX.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.4),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		impactFX.Color = ColorSequence.new(Color3.fromRGB(115, 90, 65))
+	else
+		impactFX.Lifetime = NumberRange.new(0.15, 0.4)
+		impactFX.Speed = NumberRange.new(8, 20)
+		impactFX.SpreadAngle = Vector2.new(60, 60)
+		impactFX.LightEmission = 1
+		impactFX.Size = NumberSequence.new(0.2)
+		impactFX.Color = ColorSequence.new(Color3.fromRGB(255, 200, 110))
+	end
+	impactFX.Parent = sparkHolder
+	impactFX:Emit(hitGround and 12 or 8)
+	Debris:AddItem(sparkHolder, 1.5)
 
 	-- 1) players / NPCs
 	local model = hit.Instance:FindFirstAncestorOfClass("Model")

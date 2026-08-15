@@ -44,38 +44,71 @@ gui.IgnoreGuiInset = true
 gui.Enabled = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- crosshair: ring + cross like a real AA reflector sight
-local ring = Instance.new("Frame")
-ring.AnchorPoint = Vector2.new(0.5, 0.5)
-ring.Position = UDim2.new(0.5, 0, 0.5, 0)
-ring.Size = UDim2.new(0, 90, 0, 90)
-ring.BackgroundTransparency = 1
-ring.Parent = gui
-local ringStroke = Instance.new("UIStroke")
-ringStroke.Color = Color3.fromRGB(255, 170, 60)
-ringStroke.Thickness = 1.5
-ringStroke.Transparency = 0.25
-ringStroke.Parent = ring
-local ringCorner = Instance.new("UICorner")
-ringCorner.CornerRadius = UDim.new(0.5, 0)
-ringCorner.Parent = ring
+-- REAL AA optic: circular scope mask + reflector reticle
+local SIGHT_COLOR = Color3.fromRGB(255, 170, 60)
 
-local function crossLine(sizeX, sizeY, posX, posY)
+-- circular black mask around the optic (the "looking through a tube" look)
+local scopeMask = Instance.new("Frame")
+scopeMask.AnchorPoint = Vector2.new(0.5, 0.5)
+scopeMask.Position = UDim2.new(0.5, 0, 0.5, 0)
+scopeMask.Size = UDim2.new(0, 700, 0, 700)
+scopeMask.BackgroundTransparency = 1
+scopeMask.Parent = gui
+local maskCorner = Instance.new("UICorner")
+maskCorner.CornerRadius = UDim.new(0.5, 0)
+maskCorner.Parent = scopeMask
+local maskStroke = Instance.new("UIStroke")
+maskStroke.Color = Color3.fromRGB(5, 5, 5)
+maskStroke.Thickness = 900
+maskStroke.Transparency = 0.35
+maskStroke.Parent = scopeMask
+
+local function sightRing(diameter, thickness, transparency)
+	local ring = Instance.new("Frame")
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.Position = UDim2.new(0.5, 0, 0.5, 0)
+	ring.Size = UDim2.new(0, diameter, 0, diameter)
+	ring.BackgroundTransparency = 1
+	ring.Parent = gui
+	local ringStroke = Instance.new("UIStroke")
+	ringStroke.Color = SIGHT_COLOR
+	ringStroke.Thickness = thickness
+	ringStroke.Transparency = transparency
+	ringStroke.Parent = ring
+	local ringCorner = Instance.new("UICorner")
+	ringCorner.CornerRadius = UDim.new(0.5, 0)
+	ringCorner.Parent = ring
+	return ring
+end
+sightRing(340, 1.5, 0.45) -- outer ring
+sightRing(150, 1.2, 0.35) -- lead ring: aim a moving drone ON this ring
+
+local function sightLine(sizeX, sizeY, posX, posY, transparency)
 	local line = Instance.new("Frame")
 	line.AnchorPoint = Vector2.new(0.5, 0.5)
 	line.Position = UDim2.new(0.5, posX, 0.5, posY)
 	line.Size = UDim2.new(0, sizeX, 0, sizeY)
-	line.BackgroundColor3 = Color3.fromRGB(255, 170, 60)
-	line.BackgroundTransparency = 0.2
+	line.BackgroundColor3 = SIGHT_COLOR
+	line.BackgroundTransparency = transparency or 0.25
 	line.BorderSizePixel = 0
 	line.Parent = gui
 	return line
 end
-crossLine(1, 26, 0, -32) -- top tick
-crossLine(1, 26, 0, 32) -- bottom tick
-crossLine(26, 1, -32, 0) -- left tick
-crossLine(26, 1, 32, 0) -- right tick
-crossLine(2, 6, 0, 0) -- center dot
+-- crosshair arms that stop short of the middle (classic reflector sight)
+sightLine(1.5, 95, 0, -123) -- top arm
+sightLine(1.5, 95, 0, 123) -- bottom arm
+sightLine(95, 1.5, -123, 0) -- left arm
+sightLine(95, 1.5, 123, 0) -- right arm
+-- fine inner ticks
+sightLine(1, 18, 0, -48, 0.15)
+sightLine(1, 18, 0, 48, 0.15)
+sightLine(18, 1, -48, 0, 0.15)
+sightLine(18, 1, 48, 0, 0.15)
+-- center pip
+local pip = sightLine(3, 3, 0, 0, 0)
+local pipCorner = Instance.new("UICorner")
+pipCorner.CornerRadius = UDim.new(0.5, 0)
+pipCorner.Parent = pip
 
 -- range to target under the crosshair
 local rangeLabel = Instance.new("TextLabel")
@@ -146,18 +179,6 @@ zoomLabel.TextXAlignment = Enum.TextXAlignment.Right
 zoomLabel.Text = "1x"
 zoomLabel.Parent = gui
 
--- dark vignette edges so it feels like you're behind a gunsight
-local function vignette(props)
-	local f = Instance.new("Frame")
-	f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	f.BackgroundTransparency = 0.35
-	f.BorderSizePixel = 0
-	f.AnchorPoint = props.anchor
-	f.Position = props.pos
-	f.Size = props.size
-	f.Parent = gui
-end
-vignette({ anchor = Vector2.new(0.5, 0), pos = UDim2.new(0.5, 0, 0, 0), size = UDim2.new(1, 0, 0, 0) })
 
 --------------------------------------------------------------------
 -- gunner mode
@@ -212,6 +233,8 @@ local function enterMode(turret, barrelPart)
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.FieldOfView = ZOOM_LEVELS[1]
 	zoomLabel.Text = "1x"
+	scopeMask.Size = UDim2.new(0, 700, 0, 700)
+	maskStroke.Transparency = 0.35
 
 	renderConn = RunService.RenderStepped:Connect(function(dt)
 		if not manning or not manning.Parent or not barrel.Parent
@@ -238,14 +261,27 @@ local function enterMode(turret, barrelPart)
 		-- recoil decays back down
 		recoil = math.max(recoil - dt * 4, 0)
 
-		local aimRotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch + recoil * 0.02, 0, 0)
+		-- tiny breathing sway so the sight never sits perfectly still
+		local t = os.clock()
+		local swayYaw = math.sin(t * 0.9) * 0.0012
+		local swayPitch = math.sin(t * 1.3) * 0.0009
+
+		local aimRotation = CFrame.Angles(0, yaw + swayYaw, 0)
+			* CFrame.Angles(pitch + swayPitch + recoil * 0.02, 0, 0)
 		local aimDir = aimRotation.LookVector
 
-		-- gunsight camera: just behind and above the barrel
+		-- optic camera: you look THROUGH the gunsight just past the
+		-- muzzle, so the turret body never blocks the view
+		local halfLength = math.max(barrel.Size.X, barrel.Size.Y, barrel.Size.Z) / 2
 		local camPos = barrel.Position
-			+ aimRotation:VectorToWorldSpace(Vector3.new(0, 1.1, 2.6))
+			+ aimDir * (halfLength + 1.2)
+			+ aimRotation.UpVector * 0.35
 		local shake = recoil > 0
-			and Vector3.new((math.random() - 0.5) * recoil * 0.12, (math.random() - 0.5) * recoil * 0.12, 0)
+			and Vector3.new(
+				(math.random() - 0.5) * recoil * 0.18,
+				(math.random() - 0.5) * recoil * 0.18,
+				0
+			)
 			or Vector3.zero
 		camera.CFrame = CFrame.lookAt(camPos + shake, camPos + shake + aimDir)
 
@@ -263,7 +299,9 @@ local function enterMode(turret, barrelPart)
 			if now - lastClientShot >= FIRE_INTERVAL then
 				lastClientShot = now
 				fireRemote:FireServer(aimDir)
-				recoil = math.min(recoil + 0.8, 3)
+				recoil = math.min(recoil + 1.1, 3.5)
+				-- the sight jumps up a hair with every round, like real recoil
+				targetPitch = math.clamp(targetPitch + 0.0035, MIN_PITCH, MAX_PITCH)
 			end
 		end
 
@@ -316,6 +354,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		zoomIndex = zoomIndex % #ZOOM_LEVELS + 1
 		camera.FieldOfView = ZOOM_LEVELS[zoomIndex]
 		zoomLabel.Text = ({ "1x", "3x", "8x" })[zoomIndex]
+		-- the optic tube closes in as you magnify, like a real scope
+		local maskSize = ({ 700, 580, 490 })[zoomIndex]
+		scopeMask.Size = UDim2.new(0, maskSize, 0, maskSize)
+		maskStroke.Transparency = ({ 0.35, 0.12, 0.03 })[zoomIndex]
 	end
 end)
 
