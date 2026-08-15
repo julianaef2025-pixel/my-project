@@ -562,6 +562,79 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 		droneModel:SetAttribute("Hull", hull)
 		if hull <= 0 and (droneModel:GetAttribute("Battery") or 0) > 0 then
 			droneModel:SetAttribute("Battery", 0) -- flight loop cuts the motors
+
+			-- small realistic airburst: sharp pop, flash, sparks — then
+			-- the drone burns and drops (the drone system handles the fall)
+			local root = droneModel.PrimaryPart
+				or droneModel:FindFirstChildWhichIsA("BasePart", true)
+			if root then
+				local pop = Instance.new("Sound")
+				pop.SoundId = CRACK_SOUND_ID
+				pop.PlaybackSpeed = 1.9
+				pop.Volume = 0.9
+				pop.RollOffMaxDistance = 450
+				pop.Parent = root
+				pop:Play()
+				Debris:AddItem(pop, 2)
+
+				local burstAttachment = Instance.new("Attachment")
+				burstAttachment.Parent = root
+
+				local burstFlash = Instance.new("ParticleEmitter")
+				burstFlash.Rate = 0
+				burstFlash.Lifetime = NumberRange.new(0.06, 0.14)
+				burstFlash.Speed = NumberRange.new(10, 20)
+				burstFlash.SpreadAngle = Vector2.new(180, 180)
+				burstFlash.LightEmission = 1
+				burstFlash.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 2.2),
+					NumberSequenceKeypoint.new(1, 0.5),
+				})
+				burstFlash.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130), Color3.fromRGB(255, 120, 40))
+				burstFlash.Parent = burstAttachment
+				burstFlash:Emit(10)
+
+				local burstSparks = Instance.new("ParticleEmitter")
+				burstSparks.Rate = 0
+				burstSparks.Lifetime = NumberRange.new(0.3, 0.7)
+				burstSparks.Speed = NumberRange.new(12, 26)
+				burstSparks.SpreadAngle = Vector2.new(180, 180)
+				burstSparks.LightEmission = 1
+				burstSparks.Size = NumberSequence.new(0.18)
+				burstSparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 110))
+				burstSparks.Parent = burstAttachment
+				burstSparks:Emit(16)
+
+				-- it burns on the way down: black smoke + flame flicker
+				local burnSmoke = Instance.new("ParticleEmitter")
+				burnSmoke.Name = "ShotDownSmoke"
+				burnSmoke.Rate = 30
+				burnSmoke.Lifetime = NumberRange.new(0.8, 1.6)
+				burnSmoke.Speed = NumberRange.new(1, 3)
+				burnSmoke.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.5),
+					NumberSequenceKeypoint.new(1, 2.4),
+				})
+				burnSmoke.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.3),
+					NumberSequenceKeypoint.new(1, 1),
+				})
+				burnSmoke.Color = ColorSequence.new(Color3.fromRGB(40, 40, 40))
+				burnSmoke.Parent = burstAttachment
+
+				local burnFlame = Instance.new("ParticleEmitter")
+				burnFlame.Name = "ShotDownFlame"
+				burnFlame.Rate = 18
+				burnFlame.Lifetime = NumberRange.new(0.15, 0.35)
+				burnFlame.Speed = NumberRange.new(1, 2)
+				burnFlame.LightEmission = 1
+				burnFlame.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.7),
+					NumberSequenceKeypoint.new(1, 0.2),
+				})
+				burnFlame.Color = ColorSequence.new(Color3.fromRGB(255, 170, 60), Color3.fromRGB(255, 90, 30))
+				burnFlame.Parent = burstAttachment
+			end
 		end
 	end
 end)

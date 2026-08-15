@@ -1562,3 +1562,80 @@ do
 		end
 	end)
 end
+
+--------------------------------------------------------------------
+-- FRIENDLY DRONE MARKERS (client)
+-- Drones flown by YOUR team get a little green dot over them (only
+-- you and your teammates see it) so AA gunners don't shoot friends.
+--------------------------------------------------------------------
+do
+	local PlayersService = game:GetService("Players")
+	local localPlayer = PlayersService.LocalPlayer
+
+	local function makeTag(root)
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "FriendlyTag"
+		tag.Size = UDim2.new(0, 60, 0, 30)
+		tag.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+		tag.AlwaysOnTop = true
+		tag.MaxDistance = 1500
+		tag.Adornee = root
+
+		local dot = Instance.new("Frame")
+		dot.AnchorPoint = Vector2.new(0.5, 0)
+		dot.Position = UDim2.new(0.5, 0, 0, 0)
+		dot.Size = UDim2.new(0, 10, 0, 10)
+		dot.BackgroundColor3 = Color3.fromRGB(80, 230, 110)
+		dot.BorderSizePixel = 0
+		dot.Parent = tag
+		local dotCorner = Instance.new("UICorner")
+		dotCorner.CornerRadius = UDim.new(0.5, 0)
+		dotCorner.Parent = dot
+		local dotStroke = Instance.new("UIStroke")
+		dotStroke.Color = Color3.fromRGB(10, 40, 15)
+		dotStroke.Thickness = 1.5
+		dotStroke.Parent = dot
+
+		local tagText = Instance.new("TextLabel")
+		tagText.AnchorPoint = Vector2.new(0.5, 0)
+		tagText.Position = UDim2.new(0.5, 0, 0, 12)
+		tagText.Size = UDim2.new(1, 0, 0, 12)
+		tagText.BackgroundTransparency = 1
+		tagText.Font = Enum.Font.Code
+		tagText.TextSize = 11
+		tagText.TextColor3 = Color3.fromRGB(80, 230, 110)
+		tagText.TextStrokeTransparency = 0.4
+		tagText.Text = "FRIENDLY"
+		tagText.Parent = tag
+
+		tag.Parent = root
+		return tag
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local folder = workspace:FindFirstChild("Drones")
+			if folder then
+				for _, drone in folder:GetChildren() do
+					if drone:IsA("Model") then
+						local pilotId = drone:GetAttribute("PilotUserId")
+						local pilot = pilotId and PlayersService:GetPlayerByUserId(pilotId)
+						local friendly = pilot ~= nil
+							and pilot ~= localPlayer
+							and localPlayer.Team ~= nil
+							and pilot.Team == localPlayer.Team
+						local root = drone.PrimaryPart
+							or drone:FindFirstChildWhichIsA("BasePart", true)
+						local tag = root and root:FindFirstChild("FriendlyTag")
+						if friendly and root and not tag then
+							makeTag(root)
+						elseif not friendly and tag then
+							tag:Destroy()
+						end
+					end
+				end
+			end
+		end
+	end)
+end
