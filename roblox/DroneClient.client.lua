@@ -1619,12 +1619,14 @@ do
 			if folder then
 				for _, drone in folder:GetChildren() do
 					if drone:IsA("Model") then
-						local pilotId = drone:GetAttribute("PilotUserId")
-						local pilot = pilotId and PlayersService:GetPlayerByUserId(pilotId)
-						local friendly = pilot ~= nil
-							and pilot ~= localPlayer
+						-- who does this drone belong to? the current pilot,
+						-- or whoever ordered it if it's parked
+						local ownerId = drone:GetAttribute("PilotUserId")
+							or drone:GetAttribute("OwnerUserId")
+						local owner = ownerId and PlayersService:GetPlayerByUserId(ownerId)
+						local friendly = owner ~= nil
 							and localPlayer.Team ~= nil
-							and pilot.Team == localPlayer.Team
+							and owner.Team == localPlayer.Team
 						local root = drone.PrimaryPart
 							or drone:FindFirstChildWhichIsA("BasePart", true)
 						local tag = root and root:FindFirstChild("FriendlyTag")

@@ -27,7 +27,6 @@ local TweenService = game:GetService("TweenService")
 
 local FIRE_INTERVAL = 0.09 -- min seconds between shots (~11/sec)
 local SHOT_DAMAGE = 9 -- per hit on players/NPCs
-local DRONE_HULL = 10 -- hits a drone can take before it drops
 local RANGE = 900 -- studs
 local HEAT_PER_SHOT = 4.5 -- heat gauge is 0..100
 local COOL_RATE = 16 -- heat lost per second while not firing
@@ -545,22 +544,16 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 		return
 	end
 
-	-- 2) drones: chip away the hull; a dead hull kills the battery
-	--    and the drone drops out of the sky (the drone system handles
-	--    the fall + explosion by itself)
+	-- 2) drones: ONE hit is a kill — the shell bursts on the drone and
+	--    it drops out of the sky (the drone system handles the fall).
+	--    No friend-or-foe check: the gun shoots whatever you point it at.
 	local dronesFolder = workspace:FindFirstChild("Drones")
 	local droneModel = model
 	while droneModel and droneModel.Parent ~= dronesFolder do
 		droneModel = droneModel:FindFirstAncestorOfClass("Model")
 	end
 	if droneModel and dronesFolder and droneModel.Parent == dronesFolder then
-		local hull = droneModel:GetAttribute("Hull")
-		if hull == nil then
-			hull = DRONE_HULL
-		end
-		hull -= 1
-		droneModel:SetAttribute("Hull", hull)
-		if hull <= 0 and (droneModel:GetAttribute("Battery") or 0) > 0 then
+		if (droneModel:GetAttribute("Battery") or 0) > 0 and not droneModel:GetAttribute("Dead") then
 			droneModel:SetAttribute("Battery", 0) -- flight loop cuts the motors
 
 			-- small realistic airburst: sharp pop, flash, sparks — then

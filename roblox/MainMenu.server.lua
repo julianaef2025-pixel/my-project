@@ -175,6 +175,7 @@ droneSelect.OnServerEvent:Connect(function(player, kind)
 
 	-- deliver the drone just in front of the player
 	local drone = template:Clone()
+	drone:SetAttribute("OwnerUserId", player.UserId) -- for friendly markers
 	drone:PivotTo(hrp.CFrame * CFrame.new(0, 1, -7))
 	drone.Parent = dronesFolder -- the drone system's ChildAdded sets it up
 	personalDrones[player] = drone
