@@ -44,8 +44,9 @@ gui.IgnoreGuiInset = true
 gui.Enabled = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- REAL AA optic: circular scope mask + reflector reticle
-local SIGHT_COLOR = Color3.fromRGB(255, 170, 60)
+-- MILITARY OPTIC: black etched reticle (like real glass) with mil
+-- ticks, a thin lead ring, and a small illuminated red center dot
+local RETICLE_COLOR = Color3.fromRGB(12, 12, 12)
 
 -- circular black mask around the optic (the "looking through a tube" look)
 local scopeMask = Instance.new("Frame")
@@ -63,52 +64,65 @@ maskStroke.Thickness = 900
 maskStroke.Transparency = 0.35
 maskStroke.Parent = scopeMask
 
-local function sightRing(diameter, thickness, transparency)
-	local ring = Instance.new("Frame")
-	ring.AnchorPoint = Vector2.new(0.5, 0.5)
-	ring.Position = UDim2.new(0.5, 0, 0.5, 0)
-	ring.Size = UDim2.new(0, diameter, 0, diameter)
-	ring.BackgroundTransparency = 1
-	ring.Parent = gui
-	local ringStroke = Instance.new("UIStroke")
-	ringStroke.Color = SIGHT_COLOR
-	ringStroke.Thickness = thickness
-	ringStroke.Transparency = transparency
-	ringStroke.Parent = ring
-	local ringCorner = Instance.new("UICorner")
-	ringCorner.CornerRadius = UDim.new(0.5, 0)
-	ringCorner.Parent = ring
-	return ring
-end
-sightRing(340, 1.5, 0.45) -- outer ring
-sightRing(150, 1.2, 0.35) -- lead ring: aim a moving drone ON this ring
-
-local function sightLine(sizeX, sizeY, posX, posY, transparency)
+local function etch(sizeX, sizeY, posX, posY, transparency)
 	local line = Instance.new("Frame")
 	line.AnchorPoint = Vector2.new(0.5, 0.5)
 	line.Position = UDim2.new(0.5, posX, 0.5, posY)
 	line.Size = UDim2.new(0, sizeX, 0, sizeY)
-	line.BackgroundColor3 = SIGHT_COLOR
-	line.BackgroundTransparency = transparency or 0.25
+	line.BackgroundColor3 = RETICLE_COLOR
+	line.BackgroundTransparency = transparency or 0.15
 	line.BorderSizePixel = 0
 	line.Parent = gui
 	return line
 end
--- crosshair arms that stop short of the middle (classic reflector sight)
-sightLine(1.5, 95, 0, -123) -- top arm
-sightLine(1.5, 95, 0, 123) -- bottom arm
-sightLine(95, 1.5, -123, 0) -- left arm
-sightLine(95, 1.5, 123, 0) -- right arm
--- fine inner ticks
-sightLine(1, 18, 0, -48, 0.15)
-sightLine(1, 18, 0, 48, 0.15)
-sightLine(18, 1, -48, 0, 0.15)
-sightLine(18, 1, 48, 0, 0.15)
--- center pip
-local pip = sightLine(3, 3, 0, 0, 0)
+
+-- main crosshair: long thin etched lines with a clear gap in the middle
+etch(2, 240, 0, -158) -- top
+etch(2, 240, 0, 158) -- bottom (bullet-drop scale lives on this one)
+etch(240, 2, -158, 0) -- left
+etch(240, 2, 158, 0) -- right
+
+-- mil ticks along both axes (every tick = a bit of lead on a mover)
+for i = 1, 4 do
+	local off = 55 + (i - 1) * 45
+	etch(1.5, i == 4 and 18 or 10, off, 0, 0.1) -- right ticks
+	etch(1.5, i == 4 and 18 or 10, -off, 0, 0.1) -- left ticks
+	etch(i == 4 and 18 or 10, 1.5, 0, off, 0.1) -- drop scale below
+	etch(i == 4 and 18 or 10, 1.5, 0, -off, 0.1) -- top ticks
+end
+
+-- thin lead ring: put a crossing drone ON this ring, not on the dot
+local leadRing = Instance.new("Frame")
+leadRing.AnchorPoint = Vector2.new(0.5, 0.5)
+leadRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+leadRing.Size = UDim2.new(0, 160, 0, 160)
+leadRing.BackgroundTransparency = 1
+leadRing.Parent = gui
+local leadStroke = Instance.new("UIStroke")
+leadStroke.Color = RETICLE_COLOR
+leadStroke.Thickness = 1.2
+leadStroke.Transparency = 0.35
+leadStroke.Parent = leadRing
+local leadCorner = Instance.new("UICorner")
+leadCorner.CornerRadius = UDim.new(0.5, 0)
+leadCorner.Parent = leadRing
+
+-- illuminated red center dot (real optics glow so you find it fast)
+local pip = Instance.new("Frame")
+pip.AnchorPoint = Vector2.new(0.5, 0.5)
+pip.Position = UDim2.new(0.5, 0, 0.5, 0)
+pip.Size = UDim2.new(0, 4, 0, 4)
+pip.BackgroundColor3 = Color3.fromRGB(255, 55, 45)
+pip.BorderSizePixel = 0
+pip.Parent = gui
 local pipCorner = Instance.new("UICorner")
 pipCorner.CornerRadius = UDim.new(0.5, 0)
 pipCorner.Parent = pip
+local pipGlow = Instance.new("UIStroke")
+pipGlow.Color = Color3.fromRGB(255, 90, 70)
+pipGlow.Thickness = 1
+pipGlow.Transparency = 0.5
+pipGlow.Parent = pip
 
 -- range to target under the crosshair
 local rangeLabel = Instance.new("TextLabel")

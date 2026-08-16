@@ -554,7 +554,48 @@ fireRemote.OnServerEvent:Connect(function(player, direction)
 	end
 	if droneModel and dronesFolder and droneModel.Parent == dronesFolder then
 		if (droneModel:GetAttribute("Battery") or 0) > 0 and not droneModel:GetAttribute("Dead") then
-			droneModel:SetAttribute("Battery", 0) -- flight loop cuts the motors
+			droneModel:SetAttribute("Battery", 0) -- flying: the flight loop cuts the motors
+
+			-- PARKED drones have no flight loop, so knock them over
+			-- ourselves and finish them with a small blast
+			task.delay(0.7, function()
+				if not droneModel.Parent or droneModel:GetAttribute("Dead") then
+					return -- it was flying; the drone system is handling it
+				end
+				droneModel:SetAttribute("DeathReason", "battery")
+				droneModel:SetAttribute("Dead", true)
+				local deadRoot = droneModel.PrimaryPart
+					or droneModel:FindFirstChildWhichIsA("BasePart", true)
+				if deadRoot then
+					local motor = deadRoot:FindFirstChild("DroneMotor")
+					if motor then motor:Stop() end
+					local lv = deadRoot:FindFirstChild("DroneLinearVelocity")
+					local ao = deadRoot:FindFirstChild("DroneAlignOrientation")
+					if lv then lv.Enabled = false end
+					if ao then ao.Enabled = false end
+					deadRoot.Anchored = false
+					-- kick it so it tips over instead of standing still
+					deadRoot.AssemblyLinearVelocity = Vector3.new(
+						math.random(-6, 6), 4, math.random(-6, 6))
+					deadRoot.AssemblyAngularVelocity = Vector3.new(
+						math.random(-6, 6), math.random(-6, 6), math.random(-6, 6))
+				end
+				-- small finishing blast after it settles
+				task.delay(2.5, function()
+					if droneModel.Parent then
+						local at = droneModel.PrimaryPart
+							or droneModel:FindFirstChildWhichIsA("BasePart", true)
+						local finish = Instance.new("Explosion")
+						finish.Position = at and at.Position or Vector3.zero
+						finish.BlastRadius = 6
+						finish.BlastPressure = 300000
+						finish.DestroyJointRadiusPercent = 0
+						finish.ExplosionType = Enum.ExplosionType.NoCraters
+						finish.Parent = workspace
+						droneModel:Destroy()
+					end
+				end)
+			end)
 
 			-- small realistic airburst: sharp pop, flash, sparks — then
 			-- the drone burns and drops (the drone system handles the fall)
