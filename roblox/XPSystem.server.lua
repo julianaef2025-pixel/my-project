@@ -21,6 +21,35 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local DataStoreService = game:GetService("DataStoreService")
 
+-- US Army ranks, lowest to highest. Your "Level" number = your rank
+-- number (1 = Private), so the drone unlock levels still work the same.
+local RANKS = {
+	{ name = "Private", abbr = "PVT" },
+	{ name = "Private Second Class", abbr = "PV2" },
+	{ name = "Private First Class", abbr = "PFC" },
+	{ name = "Specialist", abbr = "SPC" },
+	{ name = "Corporal", abbr = "CPL" },
+	{ name = "Sergeant", abbr = "SGT" },
+	{ name = "Staff Sergeant", abbr = "SSG" },
+	{ name = "Sergeant First Class", abbr = "SFC" },
+	{ name = "Master Sergeant", abbr = "MSG" },
+	{ name = "First Sergeant", abbr = "1SG" },
+	{ name = "Sergeant Major", abbr = "SGM" },
+	{ name = "Second Lieutenant", abbr = "2LT" },
+	{ name = "First Lieutenant", abbr = "1LT" },
+	{ name = "Captain", abbr = "CPT" },
+	{ name = "Major", abbr = "MAJ" },
+	{ name = "Lieutenant Colonel", abbr = "LTC" },
+	{ name = "Colonel", abbr = "COL" },
+	{ name = "Brigadier General", abbr = "BG" },
+	{ name = "Major General", abbr = "MG" },
+	{ name = "General", abbr = "GEN" },
+}
+
+-- time-served XP: just being in the game earns a trickle
+local PLAYTIME_MINUTES = 5 -- every this many minutes...
+local PLAYTIME_XP = 5 -- ...you get this much XP
+
 -- how much each event is worth
 local XP_VALUES = {
 	kill = 25, -- killed a player with a drone
@@ -33,6 +62,7 @@ local XP_VALUES = {
 	demolition = 3, -- blew a hole in something (rate limited)
 	sortie = 20, -- bomber: used all grenades, returned, fully rearmed
 	daily = 50, -- first flight of the day
+	playtime = PLAYTIME_XP, -- time served
 }
 
 -- per-player cooldowns so nothing is farmable (seconds)
@@ -52,18 +82,20 @@ local REASON_LABELS = {
 	demolition = "DEMOLITION",
 	sortie = "SORTIE COMPLETE",
 	daily = "FIRST FLIGHT OF THE DAY",
+	playtime = "TIME SERVED",
 }
 
--- XP needed to go from a level to the next one
+-- XP needed to reach the NEXT rank: each promotion costs more than
+-- the last (realistic — Private is quick, General takes a career)
 local function xpForLevel(level)
-	return 100 + (level - 1) * 75
+	return 100 + (level - 1) * 100
 end
 
--- total xp -> level + progress into that level
+-- total xp -> rank number + progress into that rank (caps at General)
 local function levelFromXP(totalXP)
 	local level = 1
 	local remaining = totalXP
-	while remaining >= xpForLevel(level) do
+	while level < #RANKS and remaining >= xpForLevel(level) do
 		remaining -= xpForLevel(level)
 		level += 1
 	end
@@ -97,8 +129,12 @@ local function sendUpdate(player, gained, reasonLabel, leveledUp)
 		return
 	end
 	local level, intoLevel, needed = levelFromXP(d.xp)
+	local rank = RANKS[math.min(level, #RANKS)]
 	player:SetAttribute("Level", level) -- other systems (drone unlocks) read this
-	xpUpdate:FireClient(player, d.xp, level, intoLevel, needed, gained or 0, reasonLabel, leveledUp or false)
+	player:SetAttribute("RankName", rank.name)
+	player:SetAttribute("RankAbbr", rank.abbr)
+	xpUpdate:FireClient(player, d.xp, level, intoLevel, needed, gained or 0, reasonLabel,
+		leveledUp or false, rank.name, rank.abbr, level >= #RANKS)
 end
 
 local function award(userId, eventType)
@@ -300,6 +336,16 @@ Players.PlayerAdded:Connect(loadPlayer)
 for _, player in Players:GetPlayers() do
 	task.spawn(loadPlayer, player)
 end
+
+-- time served: a little XP for everyone still in the game
+task.spawn(function()
+	while true do
+		task.wait(PLAYTIME_MINUTES * 60)
+		for player in data do
+			award(player.UserId, "playtime")
+		end
+	end
+end)
 
 Players.PlayerRemoving:Connect(function(player)
 	savePlayer(player)

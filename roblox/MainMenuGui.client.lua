@@ -21,6 +21,13 @@ local MarketplaceService = game:GetService("MarketplaceService")
 -- drone unlock levels + Robux early-unlock prices (display only —
 -- the real price lives on the Developer Product)
 local LEVEL_REQUIREMENTS = { Kamikaze = 2, Recon = 4, Bomber = 7, RPG = 9 }
+-- rank names shown for locks (rank number = old level number)
+local RANK_ABBRS = { "PVT", "PV2", "PFC", "SPC", "CPL", "SGT", "SSG", "SFC", "MSG", "1SG",
+	"SGM", "2LT", "1LT", "CPT", "MAJ", "LTC", "COL", "BG", "MG", "GEN" }
+local function rankFor(kind)
+	local req = LEVEL_REQUIREMENTS[kind] or 1
+	return RANK_ABBRS[req] or ("LEVEL " .. req)
+end
 local ROBUX_PRICES = { Kamikaze = 5, Recon = 10, Bomber = 15, RPG = 20 }
 
 local player = Players.LocalPlayer
@@ -447,7 +454,7 @@ local function refreshCards()
 			c.iconBox.BackgroundColor3 = Color3.fromRGB(34, 38, 34)
 			c.iconLabel.TextTransparency = 0.45
 			c.stroke.Color = LOCKED_GRAY
-			c.statusLabel.Text = "🔒 LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1)
+			c.statusLabel.Text = "🔒 RANK " .. rankFor(kind)
 			c.statusLabel.TextColor3 = LOCKED_GRAY
 		end
 	end
@@ -555,7 +562,7 @@ end)
 
 local function orderDrone(kind, statusText)
 	if not isUnlocked(kind) then
-		droneStatus.Text = "🔒 LEVEL " .. (LEVEL_REQUIREMENTS[kind] or 1) .. " — or unlock with R$"
+		droneStatus.Text = "🔒 reach rank " .. rankFor(kind) .. " — or unlock with R$"
 		droneStatus.TextColor3 = Color3.fromRGB(255, 140, 80)
 		return
 	end

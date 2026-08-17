@@ -31,7 +31,7 @@ local tab = Instance.new("Frame")
 tab.Name = "LevelTab"
 tab.AnchorPoint = Vector2.new(1, 0)
 tab.Position = UDim2.new(1, -16, 0, 66)
-tab.Size = UDim2.new(0, 150, 0, 44)
+tab.Size = UDim2.new(0, 170, 0, 58)
 tab.BackgroundColor3 = Color3.fromRGB(18, 22, 18)
 tab.BackgroundTransparency = 0.25
 tab.BorderSizePixel = 0
@@ -55,8 +55,20 @@ levelText.Font = Enum.Font.GothamBlack
 levelText.TextSize = 17
 levelText.TextColor3 = GOLD
 levelText.TextXAlignment = Enum.TextXAlignment.Left
-levelText.Text = "LV 1"
+levelText.Text = "PVT"
 levelText.Parent = tab
+
+-- full rank name in small text under the abbreviation
+local rankNameText = Instance.new("TextLabel")
+rankNameText.Size = UDim2.new(1, -16, 0, 12)
+rankNameText.Position = UDim2.new(0, 8, 0, 26)
+rankNameText.BackgroundTransparency = 1
+rankNameText.Font = Enum.Font.GothamBold
+rankNameText.TextSize = 10
+rankNameText.TextColor3 = Color3.fromRGB(170, 175, 170)
+rankNameText.TextXAlignment = Enum.TextXAlignment.Left
+rankNameText.Text = "PRIVATE"
+rankNameText.Parent = tab
 
 local xpText = Instance.new("TextLabel")
 xpText.Size = UDim2.new(0, 70, 0, 22)
@@ -123,7 +135,7 @@ local function showPopup(amount, reason)
 	end)
 end
 
-local function showLevelUp(level)
+local function showLevelUp(rankName)
 	local flash = Instance.new("TextLabel")
 	flash.AnchorPoint = Vector2.new(0.5, 0.5)
 	flash.Position = UDim2.new(0.5, 0, 0.38, 0)
@@ -133,7 +145,7 @@ local function showLevelUp(level)
 	flash.TextSize = 12
 	flash.TextColor3 = GOLD
 	flash.TextStrokeTransparency = 0.3
-	flash.Text = "⭐ LEVEL " .. level .. " ⭐"
+	flash.Text = "🎖 PROMOTED: " .. tostring(rankName):upper() .. " 🎖"
 	flash.Parent = gui
 
 	-- punch in big, hold, fade out
@@ -162,17 +174,18 @@ end
 -- receive updates
 --------------------------------------------------------------------
 
-xpUpdate.OnClientEvent:Connect(function(totalXP, level, intoLevel, needed, gained, reason, leveledUp)
-	levelText.Text = "LV " .. level
-	xpText.Text = intoLevel .. " / " .. needed
+xpUpdate.OnClientEvent:Connect(function(totalXP, level, intoLevel, needed, gained, reason, leveledUp, rankName, rankAbbr, isMaxRank)
+	levelText.Text = rankAbbr or ("LV " .. level)
+	rankNameText.Text = (rankName or ""):upper()
+	xpText.Text = isMaxRank and "MAX RANK" or (intoLevel .. " / " .. needed)
 	TweenService:Create(barFill, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = UDim2.new(math.clamp(intoLevel / needed, 0, 1), 0, 1, 0),
+		Size = UDim2.new(isMaxRank and 1 or math.clamp(intoLevel / needed, 0, 1), 0, 1, 0),
 	}):Play()
 
 	if gained and gained > 0 then
 		showPopup(gained, reason)
 	end
 	if leveledUp then
-		showLevelUp(level)
+		showLevelUp(rankName or ("LEVEL " .. level))
 	end
 end)
