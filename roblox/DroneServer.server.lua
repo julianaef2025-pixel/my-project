@@ -2061,3 +2061,164 @@ do
 		lastFire[p] = nil
 	end)
 end
+
+--------------------------------------------------------------------
+-- SHOOTABLE DRONES ADD-ON (server)
+-- Every drone gets invisible "electronics health" (a hidden
+-- Humanoid), so ANY gun that hurts players — ACS, the official kit,
+-- anything — can also shoot down drones. One bullet: small airburst
+-- pop, the motors die, and it drops burning. Explosions near a
+-- drone knock it down too.
+--------------------------------------------------------------------
+do
+	local function shootDown(drone)
+		if drone:GetAttribute("ShotDown") then
+			return
+		end
+		drone:SetAttribute("ShotDown", true)
+
+		local root = drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart", true)
+		if root then
+			-- small airburst: pop + flash + sparks, then burning fall
+			local pop = Instance.new("Sound")
+			pop.SoundId = "rbxassetid://165969964"
+			pop.PlaybackSpeed = 1.9
+			pop.Volume = 0.9
+			pop.RollOffMaxDistance = 450
+			pop.Parent = root
+			pop:Play()
+			Debris:AddItem(pop, 2)
+
+			local burstAttachment = Instance.new("Attachment")
+			burstAttachment.Parent = root
+
+			local flash = Instance.new("ParticleEmitter")
+			flash.Rate = 0
+			flash.Lifetime = NumberRange.new(0.06, 0.14)
+			flash.Speed = NumberRange.new(10, 20)
+			flash.SpreadAngle = Vector2.new(180, 180)
+			flash.LightEmission = 1
+			flash.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 2.2),
+				NumberSequenceKeypoint.new(1, 0.5),
+			})
+			flash.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130), Color3.fromRGB(255, 120, 40))
+			flash.Parent = burstAttachment
+			flash:Emit(10)
+
+			local sparks = Instance.new("ParticleEmitter")
+			sparks.Rate = 0
+			sparks.Lifetime = NumberRange.new(0.3, 0.7)
+			sparks.Speed = NumberRange.new(12, 26)
+			sparks.SpreadAngle = Vector2.new(180, 180)
+			sparks.LightEmission = 1
+			sparks.Size = NumberSequence.new(0.18)
+			sparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 110))
+			sparks.Parent = burstAttachment
+			sparks:Emit(16)
+
+			local burnSmoke = Instance.new("ParticleEmitter")
+			burnSmoke.Rate = 30
+			burnSmoke.Lifetime = NumberRange.new(0.8, 1.6)
+			burnSmoke.Speed = NumberRange.new(1, 3)
+			burnSmoke.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5),
+				NumberSequenceKeypoint.new(1, 2.4),
+			})
+			burnSmoke.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.3),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			burnSmoke.Color = ColorSequence.new(Color3.fromRGB(40, 40, 40))
+			burnSmoke.Parent = burstAttachment
+
+			local burnFlame = Instance.new("ParticleEmitter")
+			burnFlame.Rate = 18
+			burnFlame.Lifetime = NumberRange.new(0.15, 0.35)
+			burnFlame.Speed = NumberRange.new(1, 2)
+			burnFlame.LightEmission = 1
+			burnFlame.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.7),
+				NumberSequenceKeypoint.new(1, 0.2),
+			})
+			burnFlame.Color = ColorSequence.new(Color3.fromRGB(255, 170, 60), Color3.fromRGB(255, 90, 30))
+			burnFlame.Parent = burstAttachment
+		end
+
+		-- flying drones: the flight loop cuts the motors when battery dies
+		if (drone:GetAttribute("Battery") or 0) > 0 then
+			drone:SetAttribute("Battery", 0)
+		end
+
+		-- parked drones have no flight loop: knock them over + finish them
+		task.delay(0.7, function()
+			if not drone.Parent or drone:GetAttribute("Dead") then
+				return
+			end
+			drone:SetAttribute("DeathReason", "battery")
+			drone:SetAttribute("Dead", true)
+			if root then
+				local motor = root:FindFirstChild("DroneMotor")
+				if motor then motor:Stop() end
+				local lv = root:FindFirstChild("DroneLinearVelocity")
+				local ao = root:FindFirstChild("DroneAlignOrientation")
+				if lv then lv.Enabled = false end
+				if ao then ao.Enabled = false end
+				root.Anchored = false
+				root.AssemblyLinearVelocity = Vector3.new(math.random(-6, 6), 4, math.random(-6, 6))
+				root.AssemblyAngularVelocity = Vector3.new(
+					math.random(-6, 6), math.random(-6, 6), math.random(-6, 6))
+			end
+			task.delay(2.5, function()
+				if drone.Parent then
+					local at = drone.PrimaryPart or drone:FindFirstChildWhichIsA("BasePart", true)
+					local finish = Instance.new("Explosion")
+					finish.Position = at and at.Position or Vector3.zero
+					finish.BlastRadius = 6
+					finish.BlastPressure = 300000
+					finish.DestroyJointRadiusPercent = 0
+					finish.ExplosionType = Enum.ExplosionType.NoCraters
+					finish.Parent = workspace
+					drone:Destroy()
+				end
+			end)
+		end)
+	end
+
+	local function armDrone(drone)
+		if not drone:IsA("Model") then
+			return
+		end
+		-- fresh health every time (respawned clones carry stale copies)
+		local old = drone:FindFirstChildOfClass("Humanoid")
+		if old then
+			old:Destroy()
+		end
+		drone:SetAttribute("ShotDown", nil)
+
+		local electronics = Instance.new("Humanoid")
+		electronics.MaxHealth = 100
+		electronics.Health = 100
+		electronics.BreakJointsOnDeath = false -- don't shatter the welds
+		electronics.RequiresNeck = false
+		electronics.EvaluateStateMachine = false -- no walking physics, just a health bag
+		electronics.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		electronics.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+		electronics.Parent = drone
+
+		-- ANY damage from ANY weapon = instant kaboom
+		electronics.HealthChanged:Connect(function(health)
+			if health < electronics.MaxHealth then
+				shootDown(drone)
+			end
+		end)
+	end
+
+	for _, drone in dronesFolder:GetChildren() do
+		task.spawn(armDrone, drone)
+	end
+	dronesFolder.ChildAdded:Connect(function(drone)
+		task.wait(0.2) -- let the drone system set it up first
+		armDrone(drone)
+	end)
+end
