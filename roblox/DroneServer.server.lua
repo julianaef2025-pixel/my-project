@@ -484,6 +484,11 @@ local function setupDrone(drone)
 		if exploded then
 			return
 		end
+		-- takeoff grace: the warhead arms a few seconds AFTER entering,
+		-- so brushing the ground while lifting off doesn't blow you up
+		if os.clock() < (drone:GetAttribute("SafeUntil") or 0) then
+			return
+		end
 		-- only armed while someone is flying it (or after a power-loss fall)
 		local pilotId = drone:GetAttribute("PilotUserId")
 		if not pilotId and not drone:GetAttribute("Dead") then
@@ -567,6 +572,7 @@ local function setupDrone(drone)
 	prompt.Triggered:Connect(function(player)
 		enterDrone(player, drone)
 		if drone:GetAttribute("PilotUserId") == player.UserId then
+			drone:SetAttribute("SafeUntil", os.clock() + 3) -- takeoff grace
 			startFlightLoop(player)
 		end
 	end)

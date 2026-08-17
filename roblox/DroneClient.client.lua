@@ -41,7 +41,7 @@ local exitEvent = remotes:WaitForChild("DroneExit")
 -- (aim down + W = dive), snappy response, no wind or gravity sag.
 local MOVE_SPEED = 70 -- studs/sec
 local VERTICAL_SPEED = 45 -- studs/sec up/down with Space/Shift
-local RESPONSE = 8 -- higher = snappier speed changes
+local RESPONSE = 6 -- higher = snappier speed changes, lower = smoother
 local MOUSE_SENSITIVITY = 0.0035 -- radians per pixel of mouse movement
 
 -- filled in by the on-screen touch controls (bottom of this script);
@@ -694,6 +694,22 @@ do
 		end
 	end)
 
+	-- bridge so the mobile buttons can do what C and Z do
+	bombSight.toggle = function()
+		if isBomberFlying() then
+			setSight(not bombSight.active)
+		end
+	end
+	bombSight.cycleZoom = function()
+		if bombSight.active then
+			zoomIndex = zoomIndex % #ZOOM_LEVELS + 1
+			bombSight.fov = ZOOM_LEVELS[zoomIndex].fov
+			if zoomLabel then
+				zoomLabel.Text = "ZOOM " .. ZOOM_LEVELS[zoomIndex].label
+			end
+		end
+	end
+
 	-- drop back to FPV automatically when you exit or lose the drone
 	task.spawn(function()
 		while true do
@@ -1253,6 +1269,32 @@ do
 			end
 		end
 	end)
+
+	-- bridge so the mobile buttons can do what T/V/C/Z do
+	reconSight.toggle = function()
+		if isReconFlying() then
+			setGimbal(not reconSight.active)
+		end
+	end
+	reconSight.cycleZoom = function()
+		if reconSight.active then
+			zoomIndex = zoomIndex % #ZOOM_LEVELS + 1
+			reconSight.fov = ZOOM_LEVELS[zoomIndex].fov
+			if zoomLabel then
+				zoomLabel.Text = "ZOOM " .. ZOOM_LEVELS[zoomIndex].label
+			end
+		end
+	end
+	reconSight.mark = function()
+		if isReconFlying() then
+			tryMark()
+		end
+	end
+	reconSight.thermal = function()
+		if isReconFlying() then
+			setThermal(not thermalOn)
+		end
+	end
 end
 
 --------------------------------------------------------------------
@@ -1739,6 +1781,8 @@ if UserInputService.TouchEnabled then
 	end)
 
 	-- buttons -----------------------------------------------------------
+	-- everything lives on the RIGHT EDGE in a column, well away from
+	-- the gun hotbar at the bottom of the screen
 	local function makeButton(text, size, position, anchor, color)
 		local button = Instance.new("TextButton")
 		button.AnchorPoint = anchor
@@ -1747,7 +1791,7 @@ if UserInputService.TouchEnabled then
 		button.BackgroundColor3 = Color3.fromRGB(18, 20, 16)
 		button.BackgroundTransparency = 0.35
 		button.Font = Enum.Font.GothamBlack
-		button.TextSize = 16
+		button.TextSize = 14
 		button.TextColor3 = color
 		button.Text = text
 		button.BorderSizePixel = 0
@@ -1763,18 +1807,44 @@ if UserInputService.TouchEnabled then
 		return button
 	end
 
-	-- FIRE / DROP: bottom middle, far from EXIT
-	local fireButton = makeButton("💥 FIRE", UDim2.new(0, 130, 0, 56),
-		UDim2.new(0.5, 0, 1, -20), Vector2.new(0.5, 1), Color3.fromRGB(255, 150, 80))
-	local mobileLastRocket = 0
-	fireButton.MouseButton1Click:Connect(function()
+	local BTN = UDim2.new(0, 92, 0, 46)
+	local RIGHT = Vector2.new(1, 0.5)
+
+	local thermButton = makeButton("🌡 THERM", BTN, UDim2.new(1, -18, 0.5, -138), RIGHT, Color3.fromRGB(180, 140, 255))
+	local markButton = makeButton("◎ MARK", BTN, UDim2.new(1, -18, 0.5, -84), RIGHT, Color3.fromRGB(120, 200, 255))
+	local camButton = makeButton("📷 CAM", BTN, UDim2.new(1, -18, 0.5, -30), RIGHT, Color3.fromRGB(120, 255, 160))
+	local zoomButton = makeButton("🔍 ZOOM", BTN, UDim2.new(1, -18, 0.5, 24), RIGHT, Color3.fromRGB(120, 255, 160))
+	local fireButton = makeButton("💥 FIRE", UDim2.new(0, 92, 0, 56), UDim2.new(1, -18, 0.5, 86), RIGHT, Color3.fromRGB(255, 150, 80))
+
+	local exitButton = makeButton("✕ EXIT", UDim2.new(0, 84, 0, 42),
+		UDim2.new(1, -20, 0, 60), Vector2.new(1, 0), Color3.fromRGB(255, 110, 100))
+	exitButton.MouseButton1Click:Connect(function()
+		if flying then
+			stopFlying(true)
+		end
+	end)
+
+	local function droneKind()
 		if not flying then
-			return
+			return nil
 		end
 		local name = flying.Name:lower()
 		if name:find("bomber") then
-			remotes:WaitForChild("DroneDropGrenade"):FireServer(flying)
+			return "bomber"
 		elseif name:find("rpg") or name:find("rocket") then
+			return "rpg"
+		elseif name:find("recon") then
+			return "recon"
+		end
+		return "kamikaze"
+	end
+
+	local mobileLastRocket = 0
+	fireButton.MouseButton1Click:Connect(function()
+		local kind = droneKind()
+		if kind == "bomber" then
+			remotes:WaitForChild("DroneDropGrenade"):FireServer(flying)
+		elseif kind == "rpg" then
 			if os.clock() - mobileLastRocket >= 1.5 then
 				mobileLastRocket = os.clock()
 				remotes:WaitForChild("DroneFireRocket"):FireServer(flying, camera.CFrame.LookVector)
@@ -1782,12 +1852,33 @@ if UserInputService.TouchEnabled then
 		end
 	end)
 
-	-- EXIT: top right, alone
-	local exitButton = makeButton("✕ EXIT", UDim2.new(0, 84, 0, 42),
-		UDim2.new(1, -20, 0, 60), Vector2.new(1, 0), Color3.fromRGB(255, 110, 100))
-	exitButton.MouseButton1Click:Connect(function()
-		if flying then
-			stopFlying(true)
+	camButton.MouseButton1Click:Connect(function()
+		local kind = droneKind()
+		if kind == "bomber" and bombSight and bombSight.toggle then
+			bombSight.toggle()
+		elseif kind == "recon" and reconSight and reconSight.toggle then
+			reconSight.toggle()
+		end
+	end)
+
+	zoomButton.MouseButton1Click:Connect(function()
+		local kind = droneKind()
+		if kind == "bomber" and bombSight and bombSight.cycleZoom then
+			bombSight.cycleZoom()
+		elseif kind == "recon" and reconSight and reconSight.cycleZoom then
+			reconSight.cycleZoom()
+		end
+	end)
+
+	markButton.MouseButton1Click:Connect(function()
+		if reconSight and reconSight.mark then
+			reconSight.mark()
+		end
+	end)
+
+	thermButton.MouseButton1Click:Connect(function()
+		if reconSight and reconSight.thermal then
+			reconSight.thermal()
 		end
 	end)
 
@@ -1799,9 +1890,15 @@ if UserInputService.TouchEnabled then
 			mobileGui.Enabled = isFlying
 			if isFlying then
 				local name = flying.Name:lower()
-				local armed = name:find("bomber") or name:find("rpg") or name:find("rocket")
-				fireButton.Visible = armed ~= nil
-				fireButton.Text = name:find("bomber") and "💣 DROP" or "💥 FIRE"
+				local isBomber = name:find("bomber") ~= nil
+				local isRpg = name:find("rpg") ~= nil or name:find("rocket") ~= nil
+				local isRecon = name:find("recon") ~= nil
+				fireButton.Visible = isBomber or isRpg
+				fireButton.Text = isBomber and "💣 DROP" or "💥 FIRE"
+				camButton.Visible = isBomber or isRecon
+				zoomButton.Visible = isBomber or isRecon
+				markButton.Visible = isRecon
+				thermButton.Visible = isRecon
 			else
 				moveTouch = nil
 				moveOrigin = nil
