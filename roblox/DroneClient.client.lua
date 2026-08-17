@@ -1662,12 +1662,12 @@ do
 end
 
 --------------------------------------------------------------------
--- MOBILE CONTROLS ADD-ON (client) — RC TRANSMITTER STYLE
--- Phones/tablets fly like a REAL drone controller (mode 2):
---   LEFT stick:  up/down = throttle (climb/descend), left/right = turn
---   RIGHT stick: up/down = forward/back, left/right = strafe
---   plus FIRE/DROP on armed drones and a red EXIT.
--- Only appears on touch devices, only while flying. PC is untouched.
+-- MOBILE CONTROLS ADD-ON (client) — TWO-FINGER, SAME FEEL AS PC
+-- LEFT side of the screen: hold + drag = move. Drag up = fly forward
+-- (further = faster), down = backwards, sideways = strafe.
+-- RIGHT side: drag = look around, exactly like the PC mouse — so
+-- aiming down while pushing forward dives, same as PC.
+-- FIRE/DROP sits bottom-middle, EXIT top-right. Touch devices only.
 --------------------------------------------------------------------
 if UserInputService.TouchEnabled then
 	local mobileGui = Instance.new("ScreenGui")
@@ -1677,108 +1677,64 @@ if UserInputService.TouchEnabled then
 	mobileGui.Enabled = false
 	mobileGui.Parent = player:WaitForChild("PlayerGui")
 
-	-- shared joystick factory ------------------------------------------
-	local resetFns = {}
-	local function makeStick(anchorX, posX, labelText, onMove)
-		local base = Instance.new("Frame")
-		base.AnchorPoint = Vector2.new(anchorX, 1)
-		base.Position = UDim2.new(anchorX, posX, 1, -24)
-		base.Size = UDim2.new(0, 140, 0, 140)
-		base.BackgroundColor3 = Color3.fromRGB(20, 24, 20)
-		base.BackgroundTransparency = 0.5
-		base.BorderSizePixel = 0
-		base.Active = true
-		base.Parent = mobileGui
-		local baseCorner = Instance.new("UICorner")
-		baseCorner.CornerRadius = UDim.new(0.5, 0)
-		baseCorner.Parent = base
-		local baseStroke = Instance.new("UIStroke")
-		baseStroke.Color = Color3.fromRGB(120, 200, 120)
-		baseStroke.Transparency = 0.6
-		baseStroke.Parent = base
+	local DRAG_RANGE = 110 -- pixels of drag for full speed
 
-		local hint = Instance.new("TextLabel")
-		hint.Size = UDim2.new(1, 0, 0, 14)
-		hint.Position = UDim2.new(0, 0, 0, -18)
-		hint.BackgroundTransparency = 1
-		hint.Font = Enum.Font.GothamBold
-		hint.TextSize = 11
-		hint.TextColor3 = Color3.fromRGB(180, 200, 180)
-		hint.TextTransparency = 0.3
-		hint.Text = labelText
-		hint.Parent = base
+	-- faint marker so you can see where your move-finger started
+	local originRing = Instance.new("Frame")
+	originRing.AnchorPoint = Vector2.new(0.5, 0.5)
+	originRing.Size = UDim2.new(0, 34, 0, 34)
+	originRing.BackgroundTransparency = 1
+	originRing.Visible = false
+	originRing.Parent = mobileGui
+	local ringStroke = Instance.new("UIStroke")
+	ringStroke.Color = Color3.fromRGB(200, 210, 200)
+	ringStroke.Transparency = 0.55
+	ringStroke.Parent = originRing
+	local ringCorner = Instance.new("UICorner")
+	ringCorner.CornerRadius = UDim.new(0.5, 0)
+	ringCorner.Parent = originRing
 
-		local knob = Instance.new("Frame")
-		knob.AnchorPoint = Vector2.new(0.5, 0.5)
-		knob.Position = UDim2.new(0.5, 0, 0.5, 0)
-		knob.Size = UDim2.new(0, 56, 0, 56)
-		knob.BackgroundColor3 = Color3.fromRGB(120, 200, 120)
-		knob.BackgroundTransparency = 0.25
-		knob.BorderSizePixel = 0
-		knob.Parent = base
-		local knobCorner = Instance.new("UICorner")
-		knobCorner.CornerRadius = UDim.new(0.5, 0)
-		knobCorner.Parent = knob
+	local moveTouch, moveOrigin
+	local lookTouch
 
-		local activeTouch
-		local function applyMove(position)
-			local center = base.AbsolutePosition + base.AbsoluteSize / 2
-			local offset = Vector2.new(position.X, position.Y) - center
-			local radius = base.AbsoluteSize.X / 2
-			if offset.Magnitude > radius then
-				offset = offset.Unit * radius
-			end
-			knob.Position = UDim2.new(0.5, offset.X, 0.5, offset.Y)
-			onMove(offset.X / radius, offset.Y / radius)
-		end
-		local function release()
-			activeTouch = nil
-			knob.Position = UDim2.new(0.5, 0, 0.5, 0)
-			onMove(0, 0)
-		end
-		table.insert(resetFns, release)
-
-		base.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.Touch and not activeTouch then
-				activeTouch = input
-				applyMove(input.Position)
-			end
-		end)
-		UserInputService.InputChanged:Connect(function(input)
-			if input == activeTouch then
-				applyMove(input.Position)
-			end
-		end)
-		UserInputService.InputEnded:Connect(function(input)
-			if input == activeTouch then
-				release()
-			end
-		end)
-	end
-
-	-- LEFT stick: throttle + turn (like a real transmitter)
-	makeStick(0, 24, "CLIMB / TURN", function(x, y)
-		mobile.yawRate = -x -- push right = turn right
-		mobile.vertical = -y -- push up = climb
-	end)
-
-	-- RIGHT stick: forward/back + strafe. Pushing forward also noses the
-	-- camera down a touch, pulling back noses up — real FPV feel.
-	makeStick(1, -24, "FLY", function(x, y)
-		mobile.strafe = x
-		mobile.forward = -y
-		mobile.pitchRate = y * 0.55 -- forward = gentle nose-down
-	end)
-
-	-- gimbal drag: while the recon camera is up, dragging the screen
-	-- (not the sticks) slews the gimbal like on PC
-	UserInputService.TouchMoved:Connect(function(touch, gameProcessed)
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed or not flying then
 			return
 		end
-		if reconSight and reconSight.active then
-			mobile.lookX += touch.Delta.X * 1.4
-			mobile.lookY += touch.Delta.Y * 1.4
+		if input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		local screenWidth = mobileGui.AbsoluteSize.X
+		if input.Position.X < screenWidth * 0.45 and not moveTouch then
+			moveTouch = input
+			moveOrigin = Vector2.new(input.Position.X, input.Position.Y)
+			originRing.Position = UDim2.new(0, moveOrigin.X, 0, moveOrigin.Y)
+			originRing.Visible = true
+		elseif input.Position.X >= screenWidth * 0.45 and not lookTouch then
+			lookTouch = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == moveTouch and moveOrigin then
+			local offset = Vector2.new(input.Position.X, input.Position.Y) - moveOrigin
+			mobile.forward = math.clamp(-offset.Y / DRAG_RANGE, -1, 1)
+			mobile.strafe = math.clamp(offset.X / DRAG_RANGE, -1, 1)
+		elseif input == lookTouch then
+			mobile.lookX += input.Delta.X * 1.4
+			mobile.lookY += input.Delta.Y * 1.4
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input == moveTouch then
+			moveTouch = nil
+			moveOrigin = nil
+			originRing.Visible = false
+			mobile.forward = 0
+			mobile.strafe = 0
+		elseif input == lookTouch then
+			lookTouch = nil
 		end
 	end)
 
@@ -1788,8 +1744,8 @@ if UserInputService.TouchEnabled then
 		button.AnchorPoint = anchor
 		button.Position = position
 		button.Size = size
-		button.BackgroundColor3 = Color3.fromRGB(20, 24, 20)
-		button.BackgroundTransparency = 0.4
+		button.BackgroundColor3 = Color3.fromRGB(18, 20, 16)
+		button.BackgroundTransparency = 0.35
 		button.Font = Enum.Font.GothamBlack
 		button.TextSize = 16
 		button.TextColor3 = color
@@ -1798,7 +1754,7 @@ if UserInputService.TouchEnabled then
 		button.Active = true
 		button.Parent = mobileGui
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 12)
+		corner.CornerRadius = UDim.new(0, 10)
 		corner.Parent = button
 		local stroke = Instance.new("UIStroke")
 		stroke.Color = color
@@ -1807,9 +1763,9 @@ if UserInputService.TouchEnabled then
 		return button
 	end
 
-	-- FIRE / DROP sits above the right stick, easy thumb reach
-	local fireButton = makeButton("💥 FIRE", UDim2.new(0, 120, 0, 58),
-		UDim2.new(1, -34, 1, -186), Vector2.new(1, 1), Color3.fromRGB(255, 150, 80))
+	-- FIRE / DROP: bottom middle, far from EXIT
+	local fireButton = makeButton("💥 FIRE", UDim2.new(0, 130, 0, 56),
+		UDim2.new(0.5, 0, 1, -20), Vector2.new(0.5, 1), Color3.fromRGB(255, 150, 80))
 	local mobileLastRocket = 0
 	fireButton.MouseButton1Click:Connect(function()
 		if not flying then
@@ -1826,8 +1782,9 @@ if UserInputService.TouchEnabled then
 		end
 	end)
 
-	local exitButton = makeButton("✕ EXIT", UDim2.new(0, 84, 0, 44),
-		UDim2.new(1, -24, 0, 108), Vector2.new(1, 0), Color3.fromRGB(255, 110, 100))
+	-- EXIT: top right, alone
+	local exitButton = makeButton("✕ EXIT", UDim2.new(0, 84, 0, 42),
+		UDim2.new(1, -20, 0, 60), Vector2.new(1, 0), Color3.fromRGB(255, 110, 100))
 	exitButton.MouseButton1Click:Connect(function()
 		if flying then
 			stopFlying(true)
@@ -1846,14 +1803,15 @@ if UserInputService.TouchEnabled then
 				fireButton.Visible = armed ~= nil
 				fireButton.Text = name:find("bomber") and "💣 DROP" or "💥 FIRE"
 			else
+				moveTouch = nil
+				moveOrigin = nil
+				lookTouch = nil
+				originRing.Visible = false
 				mobile.forward = 0
 				mobile.strafe = 0
 				mobile.vertical = 0
 				mobile.yawRate = 0
 				mobile.pitchRate = 0
-				for _, reset in resetFns do
-					reset()
-				end
 			end
 		end
 	end)

@@ -2,9 +2,10 @@
 	ROLE GIVER UI — LocalScript (StarterPlayer > StarterPlayerScripts)
 	A separate LocalScript: don't paste into the others.
 
-	Only the owner sees this: a little crown button in the top right.
-	Click it, type a username, click a role — done. Works together
-	with the RoleSystem server script.
+	Owner-only "PERSONNEL" terminal, styled like military field gear.
+	Small tab on the right edge opens it; the panel is centered on the
+	right side of the screen so it always fits — PC and mobile.
+	Works together with the RoleSystem server script.
 ]]
 
 local Players = game:GetService("Players")
@@ -25,10 +26,16 @@ end
 
 local ROLES = string.split(rolesList.Value, "|")
 
-local ROLE_COLORS = {
-	["Member"] = Color3.fromRGB(110, 220, 130),
-	["Development Team"] = Color3.fromRGB(255, 90, 90),
-	["VIP"] = Color3.fromRGB(255, 200, 60),
+-- field-gear palette: olive drab, stencil text, hard corners
+local INK = Color3.fromRGB(214, 219, 189) -- pale stencil
+local OLIVE = Color3.fromRGB(88, 96, 58)
+local PANEL_BG = Color3.fromRGB(26, 28, 20)
+local ROW_BG = Color3.fromRGB(36, 39, 28)
+
+local ROLE_STRIPES = {
+	["Member"] = Color3.fromRGB(106, 170, 90),
+	["Development Team"] = Color3.fromRGB(196, 90, 66),
+	["VIP"] = Color3.fromRGB(203, 166, 76),
 }
 
 local gui = Instance.new("ScreenGui")
@@ -37,148 +44,181 @@ gui.ResetOnSpawn = false
 gui.DisplayOrder = 40
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- crown button, top right (sits under the LV tab)
-local crown = Instance.new("TextButton")
-crown.Size = UDim2.new(0, 44, 0, 44)
-crown.Position = UDim2.new(1, -16, 0, 116)
-crown.AnchorPoint = Vector2.new(1, 0)
-crown.BackgroundColor3 = Color3.fromRGB(24, 20, 8)
-crown.Text = "👑"
-crown.TextSize = 22
-crown.Font = Enum.Font.GothamBold
-crown.BorderSizePixel = 0
-crown.Parent = gui
-local crownCorner = Instance.new("UICorner")
-crownCorner.CornerRadius = UDim.new(0, 12)
-crownCorner.Parent = crown
-local crownStroke = Instance.new("UIStroke")
-crownStroke.Color = Color3.fromRGB(255, 200, 60)
-crownStroke.Thickness = 1.5
-crownStroke.Transparency = 0.4
-crownStroke.Parent = crown
+-- edge tab: a slim stencil tab hugging the right edge, mid-screen
+local tab = Instance.new("TextButton")
+tab.AnchorPoint = Vector2.new(1, 0.5)
+tab.Position = UDim2.new(1, 0, 0.5, -140)
+tab.Size = UDim2.new(0, 30, 0, 110)
+tab.BackgroundColor3 = PANEL_BG
+tab.Text = ""
+tab.BorderSizePixel = 0
+tab.Parent = gui
+local tabCorner = Instance.new("UICorner")
+tabCorner.CornerRadius = UDim.new(0, 6)
+tabCorner.Parent = tab
+local tabStroke = Instance.new("UIStroke")
+tabStroke.Color = OLIVE
+tabStroke.Thickness = 1
+tabStroke.Parent = tab
+local tabText = Instance.new("TextLabel")
+tabText.Size = UDim2.new(0, 100, 0, 24)
+tabText.Position = UDim2.new(0.5, 0, 0.5, 0)
+tabText.AnchorPoint = Vector2.new(0.5, 0.5)
+tabText.Rotation = 90
+tabText.BackgroundTransparency = 1
+tabText.Font = Enum.Font.Code
+tabText.TextSize = 13
+tabText.TextColor3 = INK
+tabText.Text = "PERSONNEL"
+tabText.Parent = tab
 
--- the panel
+-- the panel: vertically CENTERED on the right, so it can never hang
+-- off the bottom of any screen
+local ROW_HEIGHT = 40
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 250, 0, 118 + #ROLES * 42 + 42)
-panel.Position = UDim2.new(1, -16, 0, 170)
-panel.AnchorPoint = Vector2.new(1, 0)
-panel.BackgroundColor3 = Color3.fromRGB(18, 20, 16)
+panel.AnchorPoint = Vector2.new(1, 0.5)
+panel.Position = UDim2.new(1, -40, 0.5, 0)
+panel.Size = UDim2.new(0, 232, 0, 128 + (#ROLES + 1) * (ROW_HEIGHT + 6) + 34)
+panel.BackgroundColor3 = PANEL_BG
 panel.BorderSizePixel = 0
 panel.Visible = false
 panel.Parent = gui
 local panelCorner = Instance.new("UICorner")
-panelCorner.CornerRadius = UDim.new(0, 14)
+panelCorner.CornerRadius = UDim.new(0, 6)
 panelCorner.Parent = panel
 local panelStroke = Instance.new("UIStroke")
-panelStroke.Color = Color3.fromRGB(255, 200, 60)
+panelStroke.Color = OLIVE
 panelStroke.Thickness = 1.5
-panelStroke.Transparency = 0.5
 panelStroke.Parent = panel
-local panelGradient = Instance.new("UIGradient")
-panelGradient.Color = ColorSequence.new(Color3.fromRGB(30, 32, 24), Color3.fromRGB(14, 16, 12))
-panelGradient.Rotation = 110
-panelGradient.Parent = panel
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -24, 0, 24)
-title.Position = UDim2.new(0, 12, 0, 10)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 15
-title.TextColor3 = Color3.fromRGB(255, 210, 90)
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Text = "👑 ROLE MANAGER"
-title.Parent = panel
+-- header strip, like a stenciled crate label
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 34)
+header.BackgroundColor3 = OLIVE
+header.BorderSizePixel = 0
+header.Parent = panel
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 6)
+headerCorner.Parent = header
+local headerText = Instance.new("TextLabel")
+headerText.Size = UDim2.new(1, -16, 1, 0)
+headerText.Position = UDim2.new(0, 10, 0, 0)
+headerText.BackgroundTransparency = 1
+headerText.Font = Enum.Font.Code
+headerText.TextSize = 14
+headerText.TextColor3 = Color3.fromRGB(20, 22, 14)
+headerText.TextXAlignment = Enum.TextXAlignment.Left
+headerText.Text = "★ PERSONNEL — ROLE ORDERS"
+headerText.Parent = header
+
+local subText = Instance.new("TextLabel")
+subText.Size = UDim2.new(1, -24, 0, 14)
+subText.Position = UDim2.new(0, 12, 0, 40)
+subText.BackgroundTransparency = 1
+subText.Font = Enum.Font.Code
+subText.TextSize = 11
+subText.TextColor3 = Color3.fromRGB(130, 136, 108)
+subText.TextXAlignment = Enum.TextXAlignment.Left
+subText.Text = "SOLDIER NAME:"
+subText.Parent = panel
 
 local nameBox = Instance.new("TextBox")
 nameBox.Size = UDim2.new(1, -24, 0, 34)
-nameBox.Position = UDim2.new(0, 12, 0, 42)
-nameBox.BackgroundColor3 = Color3.fromRGB(10, 12, 10)
+nameBox.Position = UDim2.new(0, 12, 0, 56)
+nameBox.BackgroundColor3 = Color3.fromRGB(16, 17, 12)
 nameBox.Font = Enum.Font.Code
 nameBox.TextSize = 14
-nameBox.TextColor3 = Color3.fromRGB(230, 235, 225)
-nameBox.PlaceholderText = "type exact username..."
-nameBox.PlaceholderColor3 = Color3.fromRGB(110, 115, 105)
+nameBox.TextColor3 = INK
+nameBox.PlaceholderText = "username_here"
+nameBox.PlaceholderColor3 = Color3.fromRGB(94, 100, 76)
 nameBox.Text = ""
 nameBox.ClearTextOnFocus = false
 nameBox.BorderSizePixel = 0
 nameBox.Parent = panel
 local boxCorner = Instance.new("UICorner")
-boxCorner.CornerRadius = UDim.new(0, 8)
+boxCorner.CornerRadius = UDim.new(0, 4)
 boxCorner.Parent = nameBox
 local boxStroke = Instance.new("UIStroke")
-boxStroke.Color = Color3.fromRGB(90, 95, 85)
+boxStroke.Color = OLIVE
 boxStroke.Thickness = 1
-boxStroke.Transparency = 0.5
 boxStroke.Parent = nameBox
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -24, 0, 30)
-statusLabel.Position = UDim2.new(0, 12, 1, -36)
+statusLabel.Size = UDim2.new(1, -24, 0, 28)
+statusLabel.Position = UDim2.new(0, 12, 1, -32)
 statusLabel.BackgroundTransparency = 1
-statusLabel.Font = Enum.Font.GothamBold
+statusLabel.Font = Enum.Font.Code
 statusLabel.TextSize = 11
-statusLabel.TextColor3 = Color3.fromRGB(160, 165, 155)
+statusLabel.TextColor3 = Color3.fromRGB(130, 136, 108)
 statusLabel.TextWrapped = true
-statusLabel.Text = "type a name, then click a role"
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Text = "> awaiting orders"
 statusLabel.Parent = panel
 
-local function makeRoleButton(roleName, order, color)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -24, 0, 34)
-	button.Position = UDim2.new(0, 12, 0, 86 + (order - 1) * 42)
-	button.BackgroundColor3 = color
-	button.Font = Enum.Font.GothamBlack
-	button.TextSize = 13
-	button.TextColor3 = Color3.fromRGB(15, 18, 15)
-	button.Text = "GIVE " .. roleName:upper()
-	button.BorderSizePixel = 0
-	button.Parent = panel
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = button
+-- role rows: dark bars with a colored rank stripe on the left
+local function makeRoleRow(labelText, order, stripeColor, roleValue)
+	local row = Instance.new("TextButton")
+	row.Size = UDim2.new(1, -24, 0, ROW_HEIGHT)
+	row.Position = UDim2.new(0, 12, 0, 100 + (order - 1) * (ROW_HEIGHT + 6))
+	row.BackgroundColor3 = ROW_BG
+	row.Text = ""
+	row.AutoButtonColor = false
+	row.BorderSizePixel = 0
+	row.Parent = panel
+	local rowCorner = Instance.new("UICorner")
+	rowCorner.CornerRadius = UDim.new(0, 4)
+	rowCorner.Parent = row
 
-	button.MouseButton1Click:Connect(function()
-		statusLabel.Text = "working..."
-		statusLabel.TextColor3 = Color3.fromRGB(160, 165, 155)
-		assignRemote:FireServer(nameBox.Text, roleName)
+	local stripe = Instance.new("Frame")
+	stripe.Size = UDim2.new(0, 5, 1, 0)
+	stripe.BackgroundColor3 = stripeColor
+	stripe.BorderSizePixel = 0
+	stripe.Parent = row
+	local stripeCorner = Instance.new("UICorner")
+	stripeCorner.CornerRadius = UDim.new(0, 4)
+	stripeCorner.Parent = stripe
+
+	local rowText = Instance.new("TextLabel")
+	rowText.Size = UDim2.new(1, -20, 1, 0)
+	rowText.Position = UDim2.new(0, 16, 0, 0)
+	rowText.BackgroundTransparency = 1
+	rowText.Font = Enum.Font.Code
+	rowText.TextSize = 13
+	rowText.TextColor3 = INK
+	rowText.TextXAlignment = Enum.TextXAlignment.Left
+	rowText.Text = labelText
+	rowText.Parent = row
+
+	row.MouseEnter:Connect(function()
+		TweenService:Create(row, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(48, 52, 38) }):Play()
 	end)
-	return button
+	row.MouseLeave:Connect(function()
+		TweenService:Create(row, TweenInfo.new(0.1), { BackgroundColor3 = ROW_BG }):Play()
+	end)
+	row.MouseButton1Click:Connect(function()
+		statusLabel.Text = "> transmitting..."
+		statusLabel.TextColor3 = Color3.fromRGB(130, 136, 108)
+		assignRemote:FireServer(nameBox.Text, roleValue)
+	end)
+	return row
 end
 
 for order, roleName in ROLES do
-	makeRoleButton(roleName, order, ROLE_COLORS[roleName] or Color3.fromRGB(190, 195, 200))
+	makeRoleRow("ASSIGN: " .. roleName:upper(), order,
+		ROLE_STRIPES[roleName] or Color3.fromRGB(140, 145, 130), roleName)
 end
-
--- remove-role button (gray, last)
-local removeButton = Instance.new("TextButton")
-removeButton.Size = UDim2.new(1, -24, 0, 30)
-removeButton.Position = UDim2.new(0, 12, 0, 86 + #ROLES * 42)
-removeButton.BackgroundColor3 = Color3.fromRGB(60, 62, 58)
-removeButton.Font = Enum.Font.GothamBold
-removeButton.TextSize = 12
-removeButton.TextColor3 = Color3.fromRGB(220, 222, 218)
-removeButton.Text = "REMOVE ROLE"
-removeButton.BorderSizePixel = 0
-removeButton.Parent = panel
-local removeCorner = Instance.new("UICorner")
-removeCorner.CornerRadius = UDim.new(0, 8)
-removeCorner.Parent = removeButton
-removeButton.MouseButton1Click:Connect(function()
-	statusLabel.Text = "working..."
-	assignRemote:FireServer(nameBox.Text, "REMOVE")
-end)
+makeRoleRow("✕ STRIP ROLE", #ROLES + 1, Color3.fromRGB(90, 92, 86), "REMOVE")
 
 resultRemote.OnClientEvent:Connect(function(message, success)
-	statusLabel.Text = message
+	statusLabel.Text = "> " .. message
 	statusLabel.TextColor3 = success
-		and Color3.fromRGB(120, 210, 130)
-		or Color3.fromRGB(255, 130, 90)
+		and Color3.fromRGB(140, 200, 120)
+		or Color3.fromRGB(220, 130, 90)
 end)
 
-crown.MouseButton1Click:Connect(function()
+tab.MouseButton1Click:Connect(function()
 	panel.Visible = not panel.Visible
-	TweenService:Create(crownStroke, TweenInfo.new(0.15), {
-		Transparency = panel.Visible and 0 or 0.4,
+	TweenService:Create(tabStroke, TweenInfo.new(0.15), {
+		Color = panel.Visible and INK or OLIVE,
 	}):Play()
 end)
