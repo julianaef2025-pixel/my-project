@@ -2196,6 +2196,14 @@ do
 		end
 		drone:SetAttribute("ShotDown", nil)
 
+		-- guns find the health by looking at the HIT PART'S PARENT, so
+		-- pull every part out of nested groups up to the drone model
+		for _, part in drone:GetDescendants() do
+			if part:IsA("BasePart") and part.Parent ~= drone then
+				part.Parent = drone
+			end
+		end
+
 		local electronics = Instance.new("Humanoid")
 		electronics.MaxHealth = 100
 		electronics.Health = 100
