@@ -43,6 +43,10 @@ local MOVE_SPEED = 70 -- studs/sec
 local VERTICAL_SPEED = 45 -- studs/sec up/down with Space/Shift
 local RESPONSE = 8 -- higher = snappier speed changes
 local MOUSE_SENSITIVITY = 0.0035 -- radians per pixel of mouse movement
+
+-- filled in by the on-screen touch controls (bottom of this script);
+-- the flight loop adds these on top of the keyboard every frame
+local mobile = { forward = 0, strafe = 0, vertical = 0, lookX = 0, lookY = 0 }
 local MAX_PITCH = math.rad(75)
 local BANK_ANGLE = math.rad(20) -- visual roll when strafing
 local FORWARD_TILT = math.rad(10) -- visual nose-down lean when flying forward
@@ -318,28 +322,34 @@ local function startFlying(drone)
 		local throttleFrac = 0
 
 		if not dead then
-			-- steer with the mouse (unless the recon gimbal camera has the mouse)
+			-- steer with the mouse or a touch-drag (unless the recon gimbal has it)
 			local delta = UserInputService:GetMouseDelta()
+			local deltaX = delta.X + mobile.lookX
+			local deltaY = delta.Y + mobile.lookY
+			mobile.lookX, mobile.lookY = 0, 0
 			if reconSight and reconSight.active then
 				-- gimbal slew: slower when zoomed in, like a real camera operator
 				local slew = MOUSE_SENSITIVITY * (reconSight.fov / 60)
-				reconSight.yaw -= delta.X * slew
-				reconSight.pitch = math.clamp(reconSight.pitch - delta.Y * slew, -math.rad(89), math.rad(25))
+				reconSight.yaw -= deltaX * slew
+				reconSight.pitch = math.clamp(reconSight.pitch - deltaY * slew, -math.rad(89), math.rad(25))
 			else
-				yaw -= delta.X * MOUSE_SENSITIVITY
-				pitch = math.clamp(pitch - delta.Y * MOUSE_SENSITIVITY, -MAX_PITCH, MAX_PITCH)
+				yaw -= deltaX * MOUSE_SENSITIVITY
+				pitch = math.clamp(pitch - deltaY * MOUSE_SENSITIVITY, -MAX_PITCH, MAX_PITCH)
 			end
 
-			-- movement input
-			local forward = 0
-			local strafe = 0
-			local vertical = 0
+			-- movement input: keyboard + the mobile joystick/buttons
+			local forward = mobile.forward
+			local strafe = mobile.strafe
+			local vertical = mobile.vertical
 			if UserInputService:IsKeyDown(Enum.KeyCode.W) then forward += 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.S) then forward -= 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.D) then strafe += 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.A) then strafe -= 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical += 1 end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vertical -= 1 end
+			forward = math.clamp(forward, -1, 1)
+			strafe = math.clamp(strafe, -1, 1)
+			vertical = math.clamp(vertical, -1, 1)
 
 			-- === classic flight: direct velocity control ===
 			-- W flies exactly where the camera looks (aim down = dive),
@@ -1641,6 +1651,196 @@ do
 						end
 					end
 				end
+			end
+		end
+	end)
+end
+
+--------------------------------------------------------------------
+-- MOBILE CONTROLS ADD-ON (client)
+-- Touch screens get a full drone cockpit while flying:
+-- left joystick = move, drag anywhere = look, UP/DOWN = altitude,
+-- FIRE/DROP for bomber + RPG, big red EXIT. Appears only on touch
+-- devices and only while flying.
+--------------------------------------------------------------------
+if UserInputService.TouchEnabled then
+	local mobileGui = Instance.new("ScreenGui")
+	mobileGui.Name = "DroneMobile"
+	mobileGui.ResetOnSpawn = false
+	mobileGui.DisplayOrder = 60
+	mobileGui.Enabled = false
+	mobileGui.Parent = player:WaitForChild("PlayerGui")
+
+	-- drag anywhere (not on a button) to look around
+	UserInputService.TouchMoved:Connect(function(touch, gameProcessed)
+		if gameProcessed or not flying then
+			return
+		end
+		mobile.lookX += touch.Delta.X * 1.4
+		mobile.lookY += touch.Delta.Y * 1.4
+	end)
+
+	-- left joystick ---------------------------------------------------
+	local stickBase = Instance.new("Frame")
+	stickBase.AnchorPoint = Vector2.new(0, 1)
+	stickBase.Position = UDim2.new(0, 24, 1, -24)
+	stickBase.Size = UDim2.new(0, 130, 0, 130)
+	stickBase.BackgroundColor3 = Color3.fromRGB(20, 24, 20)
+	stickBase.BackgroundTransparency = 0.5
+	stickBase.BorderSizePixel = 0
+	stickBase.Active = true
+	stickBase.Parent = mobileGui
+	local baseCorner = Instance.new("UICorner")
+	baseCorner.CornerRadius = UDim.new(0.5, 0)
+	baseCorner.Parent = stickBase
+	local baseStroke = Instance.new("UIStroke")
+	baseStroke.Color = Color3.fromRGB(120, 200, 120)
+	baseStroke.Transparency = 0.6
+	baseStroke.Parent = stickBase
+
+	local knob = Instance.new("Frame")
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.new(0.5, 0, 0.5, 0)
+	knob.Size = UDim2.new(0, 52, 0, 52)
+	knob.BackgroundColor3 = Color3.fromRGB(120, 200, 120)
+	knob.BackgroundTransparency = 0.25
+	knob.BorderSizePixel = 0
+	knob.Parent = stickBase
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(0.5, 0)
+	knobCorner.Parent = knob
+
+	local stickTouch
+	local function moveStick(position)
+		local center = stickBase.AbsolutePosition + stickBase.AbsoluteSize / 2
+		local offset = Vector2.new(position.X, position.Y) - center
+		local radius = stickBase.AbsoluteSize.X / 2
+		if offset.Magnitude > radius then
+			offset = offset.Unit * radius
+		end
+		knob.Position = UDim2.new(0.5, offset.X, 0.5, offset.Y)
+		mobile.strafe = offset.X / radius
+		mobile.forward = -offset.Y / radius
+	end
+	local function releaseStick()
+		stickTouch = nil
+		knob.Position = UDim2.new(0.5, 0, 0.5, 0)
+		mobile.strafe = 0
+		mobile.forward = 0
+	end
+	stickBase.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and not stickTouch then
+			stickTouch = input
+			moveStick(input.Position)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == stickTouch then
+			moveStick(input.Position)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input == stickTouch then
+			releaseStick()
+		end
+	end)
+
+	-- buttons -----------------------------------------------------------
+	local function makeButton(text, size, position, color)
+		local button = Instance.new("TextButton")
+		button.AnchorPoint = Vector2.new(1, 1)
+		button.Position = position
+		button.Size = size
+		button.BackgroundColor3 = Color3.fromRGB(20, 24, 20)
+		button.BackgroundTransparency = 0.4
+		button.Font = Enum.Font.GothamBlack
+		button.TextSize = 16
+		button.TextColor3 = color
+		button.Text = text
+		button.BorderSizePixel = 0
+		button.Active = true
+		button.Parent = mobileGui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 12)
+		corner.Parent = button
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = color
+		stroke.Transparency = 0.5
+		stroke.Parent = button
+		return button
+	end
+
+	-- altitude: hold UP / DOWN (right side, stacked)
+	local upButton = makeButton("▲ UP", UDim2.new(0, 84, 0, 64),
+		UDim2.new(1, -24, 1, -178), Color3.fromRGB(120, 200, 255))
+	local downButton = makeButton("▼ DOWN", UDim2.new(0, 84, 0, 64),
+		UDim2.new(1, -24, 1, -104), Color3.fromRGB(120, 200, 255))
+
+	local function holdable(button, value)
+		button.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch
+				or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				mobile.vertical = value
+			end
+		end)
+		button.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch
+				or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				if mobile.vertical == value then
+					mobile.vertical = 0
+				end
+			end
+		end)
+	end
+	holdable(upButton, 1)
+	holdable(downButton, -1)
+
+	-- FIRE / DROP (only shows on bomber + rpg drones)
+	local fireButton = makeButton("💥 FIRE", UDim2.new(0, 110, 0, 64),
+		UDim2.new(1, -118, 1, -104), Color3.fromRGB(255, 150, 80))
+	local mobileLastRocket = 0
+	fireButton.MouseButton1Click:Connect(function()
+		if not flying then
+			return
+		end
+		local name = flying.Name:lower()
+		if name:find("bomber") then
+			remotes:WaitForChild("DroneDropGrenade"):FireServer(flying)
+		elseif name:find("rpg") or name:find("rocket") then
+			if os.clock() - mobileLastRocket >= 1.5 then
+				mobileLastRocket = os.clock()
+				remotes:WaitForChild("DroneFireRocket"):FireServer(flying, camera.CFrame.LookVector)
+			end
+		end
+	end)
+
+	-- EXIT (top right, red)
+	local exitButton = makeButton("✕ EXIT", UDim2.new(0, 84, 0, 44),
+		UDim2.new(1, -24, 0, 108), Color3.fromRGB(255, 110, 100))
+	exitButton.AnchorPoint = Vector2.new(1, 0)
+	exitButton.MouseButton1Click:Connect(function()
+		if flying then
+			stopFlying(true)
+		end
+	end)
+
+	-- show while flying, hide when not; FIRE only for armed drones
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local isFlying = flying ~= nil
+			mobileGui.Enabled = isFlying
+			if isFlying then
+				local name = flying.Name:lower()
+				local armed = name:find("bomber") or name:find("rpg") or name:find("rocket")
+				fireButton.Visible = armed ~= nil
+				fireButton.Text = name:find("bomber") and "💣 DROP" or "💥 FIRE"
+			else
+				-- make sure nothing sticks when we hop out
+				mobile.forward = 0
+				mobile.strafe = 0
+				mobile.vertical = 0
+				releaseStick()
 			end
 		end
 	end)
