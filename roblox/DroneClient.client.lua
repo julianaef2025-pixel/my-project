@@ -479,11 +479,14 @@ local function startFlying(drone)
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then
-		return
-	end
+	-- X exits the drone EVEN IF a gun system (ACS) grabbed the key —
+	-- while flying, leaving the drone always wins
 	if input.KeyCode == Enum.KeyCode.X and flying then
 		stopFlying(true)
+		return
+	end
+	if gameProcessed then
+		return
 	end
 end)
 
@@ -504,7 +507,8 @@ do
 	local grenadeGui = nil
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then
+		-- while flying, drone keys win even if a gun system grabbed them
+		if gameProcessed and not flying then
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.F and flying and flying.Name:lower():find("bomber") then
@@ -660,9 +664,7 @@ do
 	end
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then
-			return
-		end
+		-- while flying, drone keys win even if a gun system grabbed them
 		if not isBomberFlying() then
 			return
 		end
@@ -1218,7 +1220,8 @@ do
 	-- keys
 	----------------------------------------------------------------
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed or not isReconFlying() then
+		-- while flying, drone keys win even if a gun system grabbed them
+		if not isReconFlying() then
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.T then
@@ -1382,7 +1385,8 @@ do
 	end
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed or not isRPGFlying() then
+		-- while flying, drone keys win even if a gun system grabbed them
+		if not isRPGFlying() then
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.F then
