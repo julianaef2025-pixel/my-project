@@ -611,10 +611,80 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 --------------------------------------------------------------------
+-- 0) EARLY ACCESS NOTICE — shows before anything else
+--------------------------------------------------------------------
+
+local noticeAccepted = false
+
+local notice = Instance.new("CanvasGroup")
+notice.Name = "EarlyAccessNotice"
+notice.Size = UDim2.new(1, 0, 1, 0)
+notice.BackgroundColor3 = COLORS.bg
+notice.BorderSizePixel = 0
+notice.ZIndex = 10
+notice.Parent = gui
+
+local noteCard = Instance.new("Frame")
+noteCard.AnchorPoint = Vector2.new(0.5, 0.5)
+noteCard.Position = UDim2.new(0.5, 0, 0.5, 0)
+noteCard.Size = UDim2.new(0, 420, 0, 320)
+noteCard.BackgroundColor3 = COLORS.panel
+noteCard.BorderSizePixel = 0
+noteCard.Parent = notice
+corner(noteCard, 14)
+stroke(noteCard, COLORS.amber, 1.5, 0.4)
+gradient(noteCard, Color3.fromRGB(32, 36, 28), Color3.fromRGB(16, 18, 14), 115)
+
+local noteTitle = label(noteCard, "⚠ EARLY ACCESS", UDim2.new(1, -40, 0, 30), UDim2.new(0, 20, 0, 18), Vector2.new(0, 0), 24, Enum.Font.GothamBlack, COLORS.amber)
+noteTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local noteBody = label(noteCard,
+	"soldier — this game is BRAND NEW and still being built.\n\n"
+		.. "• expect bugs, weird physics and exploding donkeys\n"
+		.. "• new drones, guns and maps are added all the time\n"
+		.. "• your XP, rank and unlocks are SAVED between visits\n"
+		.. "• found a bug? tell the owner — it helps a lot\n\n"
+		.. "thanks for playing this early. it means a lot. 🫡",
+	UDim2.new(1, -40, 0, 190), UDim2.new(0, 20, 0, 56), Vector2.new(0, 0), 14, Enum.Font.Gotham, Color3.fromRGB(210, 215, 205))
+noteBody.TextXAlignment = Enum.TextXAlignment.Left
+noteBody.TextYAlignment = Enum.TextYAlignment.Top
+noteBody.TextWrapped = true
+
+local okButton = Instance.new("TextButton")
+okButton.AnchorPoint = Vector2.new(0.5, 1)
+okButton.Position = UDim2.new(0.5, 0, 1, -16)
+okButton.Size = UDim2.new(0, 220, 0, 40)
+okButton.BackgroundColor3 = COLORS.amber
+okButton.Font = Enum.Font.GothamBlack
+okButton.TextSize = 16
+okButton.TextColor3 = Color3.fromRGB(20, 18, 10)
+okButton.Text = "UNDERSTOOD — LET ME IN"
+okButton.BorderSizePixel = 0
+okButton.Parent = noteCard
+corner(okButton, 10)
+
+okButton.MouseButton1Click:Connect(function()
+	if noticeAccepted then
+		return
+	end
+	noticeAccepted = true
+	local fade = TweenService:Create(notice, TweenInfo.new(0.4), { GroupTransparency = 1 })
+	fade.Completed:Once(function()
+		notice:Destroy()
+	end)
+	fade:Play()
+end)
+
+--------------------------------------------------------------------
 -- run the loading sequence, then show team select
 --------------------------------------------------------------------
 
 task.spawn(function()
+	-- hold everything until they've read the early-access note
+	while not noticeAccepted do
+		task.wait(0.1)
+	end
+
 	-- cycle status lines while the bar fills
 	local barTween = TweenService:Create(barFill, TweenInfo.new(2.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 		Size = UDim2.new(1, 0, 1, 0),
