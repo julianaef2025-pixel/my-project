@@ -6,8 +6,10 @@ local MarineConfig = {}
 MarineConfig.Cooldown = 3          -- seconds between role changes
 MarineConfig.KeepPosition = true   -- respawn where you stand instead of at the spawn point
 
--- Badge: a text symbol shown in the circle above the head.
--- Optional: set BadgeImage = "rbxassetid://123456" to use a custom image instead.
+-- Badge: a text symbol shown on the card and in the circle above the head.
+-- To use your own emblem, upload an image to Roblox and add
+--   BadgeImage = "rbxassetid://123456",
+-- to a unit. It is then used on the card and above the head.
 MarineConfig.Units = {
 	{
 		Id = "Instructor",
@@ -56,6 +58,30 @@ MarineConfig.Units = {
 		Badge = "◆",
 		Color = Color3.fromRGB(150, 90, 200),
 		Ranks = { "Second Lieutenant", "First Lieutenant", "Captain" },
+	},
+	{
+		Id = "ForceRecon",
+		Name = "Force Reconnaissance",
+		Description = "Elite scouts operating behind enemy lines.",
+		Badge = "◉",
+		Color = Color3.fromRGB(220, 60, 60),
+		Ranks = { "Corporal", "Sergeant", "Staff Sergeant" },
+	},
+	{
+		Id = "SpecOps",
+		Name = "Special Operations Team",
+		Description = "Specialised raids and rapid response.",
+		Badge = "⚔",
+		Color = Color3.fromRGB(70, 110, 200),
+		Ranks = { "Sergeant", "Staff Sergeant", "Gunnery Sergeant" },
+	},
+	{
+		Id = "Ceremonial",
+		Name = "Ceremonial Guard",
+		Description = "Parades, drill and honour guard duty.",
+		Badge = "✪",
+		Color = Color3.fromRGB(255, 205, 60),
+		Ranks = { "Lance Corporal", "Corporal", "Sergeant" },
 	},
 }
 

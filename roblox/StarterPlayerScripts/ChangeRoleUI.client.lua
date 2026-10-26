@@ -11,9 +11,14 @@ local remote = ReplicatedStorage:WaitForChild("ChangeRole")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local DARK = Color3.fromRGB(24, 27, 24)
-local CARD = Color3.fromRGB(38, 43, 38)
-local ACCENT = Color3.fromRGB(120, 160, 90)
+-- Theme: dark red + gold
+local GOLD = Color3.fromRGB(255, 190, 30)
+local RED_DARK = Color3.fromRGB(58, 6, 12)
+local RED_MID = Color3.fromRGB(122, 10, 22)
+local RED_LIGHT = Color3.fromRGB(160, 20, 32)
+local WHITE = Color3.new(1, 1, 1)
+
+local ITALIC = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic)
 
 local function new(class, props, children)
 	local inst = Instance.new(class)
@@ -34,6 +39,13 @@ local function stroke(color, thickness)
 	return new("UIStroke", { Color = color, Thickness = thickness, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
 end
 
+local function redGradient()
+	return new("UIGradient", {
+		Color = ColorSequence.new(RED_MID, RED_DARK),
+		Rotation = 90,
+	})
+end
+
 local screen = new("ScreenGui", {
 	Name = "ChangeRoleGui",
 	ResetOnSpawn = false,
@@ -41,79 +53,105 @@ local screen = new("ScreenGui", {
 	Parent = playerGui,
 })
 
--- Top-right button
+-- Top-right "Change Role" button
 local openButton = new("TextButton", {
 	Name = "ChangeRoleButton",
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -16, 0, 12),
-	Size = UDim2.fromOffset(150, 42),
-	BackgroundColor3 = DARK,
+	Size = UDim2.fromOffset(150, 40),
+	BackgroundColor3 = RED_MID,
 	Text = "Change Role",
-	TextColor3 = Color3.new(1, 1, 1),
-	Font = Enum.Font.GothamBold,
+	TextColor3 = WHITE,
+	FontFace = ITALIC,
 	TextSize = 18,
 	AutoButtonColor = false,
 	Parent = screen,
-}, { corner(8), stroke(ACCENT, 2) })
+}, { redGradient(), stroke(GOLD, 2) })
 
--- Panel
+-- Main panel
 local panel = new("Frame", {
 	Name = "RolePanel",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromScale(0.6, 0.65),
-	BackgroundColor3 = DARK,
+	Position = UDim2.fromScale(0.5, 0.55),
+	Size = UDim2.fromScale(0.62, 0.62),
+	BackgroundColor3 = RED_MID,
 	Visible = false,
 	Parent = screen,
 }, {
-	corner(12),
-	stroke(ACCENT, 2),
-	new("UISizeConstraint", { MinSize = Vector2.new(320, 260), MaxSize = Vector2.new(760, 520) }),
+	redGradient(),
+	corner(10),
+	stroke(GOLD, 4),
+	new("UISizeConstraint", { MinSize = Vector2.new(340, 280), MaxSize = Vector2.new(1000, 560) }),
 })
 
-new("TextLabel", {
-	Size = UDim2.new(1, -70, 0, 44),
-	Position = UDim2.fromOffset(16, 8),
+-- Inner gold line
+new("Frame", {
+	Position = UDim2.fromOffset(10, 10),
+	Size = UDim2.new(1, -20, 1, -20),
 	BackgroundTransparency = 1,
-	Text = "SELECT YOUR UNIT",
-	TextColor3 = Color3.new(1, 1, 1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 22,
-	TextXAlignment = Enum.TextXAlignment.Left,
 	Parent = panel,
-})
+}, { corner(6), stroke(GOLD, 2) })
 
-local closeButton = new("TextButton", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, 10),
-	Size = UDim2.fromOffset(36, 36),
-	BackgroundColor3 = Color3.fromRGB(150, 50, 50),
-	Text = "X",
-	TextColor3 = Color3.new(1, 1, 1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 18,
-	Parent = panel,
-}, { corner(8) })
-
-local list = new("ScrollingFrame", {
-	Position = UDim2.fromOffset(16, 60),
-	Size = UDim2.new(1, -32, 1, -76),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ScrollBarThickness = 6,
-	CanvasSize = UDim2.new(),
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
+-- Header tab
+new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0, 0),
+	Size = UDim2.new(0.45, 0, 0, 52),
+	BackgroundColor3 = RED_DARK,
+	ZIndex = 3,
 	Parent = panel,
 }, {
-	new("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -6, 0, 96),
-		CellPadding = UDim2.fromOffset(12, 12),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}),
-	new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }),
+	corner(8),
+	stroke(GOLD, 3),
+	new("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "Role Select",
+		TextColor3 = WHITE,
+		Font = Enum.Font.Michroma,
+		TextScaled = true,
+		ZIndex = 4,
+	}, { new("UIPadding", {
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10),
+	}) }),
 })
 
--- Open / close
+-- Red X (top-right corner of the panel)
+local closeButton = new("TextButton", {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(1, 0, 0, 0),
+	Size = UDim2.fromOffset(46, 46),
+	BackgroundColor3 = Color3.fromRGB(210, 20, 20),
+	Text = "X",
+	TextColor3 = WHITE,
+	Font = Enum.Font.GothamBlack,
+	TextSize = 30,
+	ZIndex = 5,
+	Parent = panel,
+}, { stroke(Color3.fromRGB(120, 0, 0), 3) })
+
+-- Horizontal scrolling row of cards
+local list = new("ScrollingFrame", {
+	Position = UDim2.fromOffset(22, 52),
+	Size = UDim2.new(1, -44, 1, -74),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	ScrollingDirection = Enum.ScrollingDirection.X,
+	ScrollBarThickness = 8,
+	ScrollBarImageColor3 = Color3.fromRGB(230, 120, 130),
+	CanvasSize = UDim2.new(),
+	AutomaticCanvasSize = Enum.AutomaticSize.X,
+	Parent = panel,
+}, {
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 14),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+	new("UIPadding", { PaddingBottom = UDim.new(0, 16), PaddingTop = UDim.new(0, 4) }),
+})
+
 local function setOpen(open)
 	panel.Visible = open
 end
@@ -129,64 +167,93 @@ end)
 local busy = false
 
 local function makeCard(unit, order)
-	local cardStroke = stroke(unit.Color, 2)
-	local card = new("TextButton", {
-		Name = unit.Id,
-		LayoutOrder = order,
-		BackgroundColor3 = CARD,
-		Text = "",
-		AutoButtonColor = false,
-		Parent = list,
-	}, {
-		corner(10),
-		cardStroke,
-		new("Frame", {
-			Name = "Badge",
-			Position = UDim2.fromOffset(12, 18),
-			Size = UDim2.fromOffset(58, 58),
-			BackgroundColor3 = DARK,
+	local cardStroke = stroke(GOLD, 1.5)
+
+	local emblem
+	if unit.BadgeImage then
+		emblem = new("ImageLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.66),
+			Size = UDim2.fromScale(0.78, 0.78),
+			BackgroundTransparency = 1,
+			Image = unit.BadgeImage,
+			ScaleType = Enum.ScaleType.Fit,
+		}, { new("UIAspectRatioConstraint", { AspectRatio = 1 }) })
+	else
+		-- No image yet: show a big symbol in a ring
+		emblem = new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.66),
+			Size = UDim2.fromScale(0.62, 0.62),
+			BackgroundColor3 = RED_DARK,
 		}, {
-			corner(29),
-			stroke(unit.Color, 3),
+			new("UIAspectRatioConstraint", { AspectRatio = 1 }),
+			corner(999),
+			stroke(unit.Color, 4),
 			new("TextLabel", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
 				Text = unit.Badge,
 				TextColor3 = unit.Color,
 				Font = Enum.Font.GothamBold,
-				TextSize = 28,
+				TextScaled = true,
+			}, { new("UIPadding", {
+				PaddingTop = UDim.new(0.2, 0),
+				PaddingBottom = UDim.new(0.2, 0),
+				PaddingLeft = UDim.new(0.2, 0),
+				PaddingRight = UDim.new(0.2, 0),
+			}) }),
+		})
+	end
+
+	local card = new("TextButton", {
+		Name = unit.Id,
+		LayoutOrder = order,
+		Size = UDim2.new(0, 210, 1, 0),
+		BackgroundColor3 = RED_MID,
+		Text = "",
+		AutoButtonColor = false,
+		Parent = list,
+	}, {
+		redGradient(),
+		corner(6),
+		cardStroke,
+		-- Title strip
+		new("Frame", {
+			Size = UDim2.new(1, 0, 0, 78),
+			BackgroundColor3 = RED_DARK,
+			BackgroundTransparency = 0.35,
+		}, {
+			corner(6),
+			stroke(GOLD, 1.5),
+			new("TextLabel", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				Text = unit.Name,
+				TextColor3 = WHITE,
+				Font = Enum.Font.Michroma,
+				TextScaled = true,
+				TextWrapped = true,
+			}, {
+				new("UIPadding", {
+					PaddingTop = UDim.new(0, 8),
+					PaddingBottom = UDim.new(0, 8),
+					PaddingLeft = UDim.new(0, 8),
+					PaddingRight = UDim.new(0, 8),
+				}),
+				new("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 8 }),
 			}),
 		}),
-		new("TextLabel", {
-			Position = UDim2.fromOffset(82, 12),
-			Size = UDim2.new(1, -92, 0, 26),
-			BackgroundTransparency = 1,
-			Text = unit.Name,
-			TextColor3 = Color3.new(1, 1, 1),
-			Font = Enum.Font.GothamBold,
-			TextSize = 17,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-		}),
-		new("TextLabel", {
-			Position = UDim2.fromOffset(82, 40),
-			Size = UDim2.new(1, -92, 0, 44),
-			BackgroundTransparency = 1,
-			Text = unit.Description,
-			TextColor3 = Color3.fromRGB(180, 185, 180),
-			Font = Enum.Font.Gotham,
-			TextSize = 13,
-			TextWrapped = true,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextYAlignment = Enum.TextYAlignment.Top,
-		}),
+		emblem,
 	})
 
 	card.MouseEnter:Connect(function()
-		TweenService:Create(card, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(55, 62, 55) }):Play()
+		TweenService:Create(card, TweenInfo.new(0.12), { BackgroundColor3 = RED_LIGHT }):Play()
+		cardStroke.Color = WHITE
 	end)
 	card.MouseLeave:Connect(function()
-		TweenService:Create(card, TweenInfo.new(0.12), { BackgroundColor3 = CARD }):Play()
+		TweenService:Create(card, TweenInfo.new(0.12), { BackgroundColor3 = RED_MID }):Play()
+		cardStroke.Color = GOLD
 	end)
 
 	card.Activated:Connect(function()
