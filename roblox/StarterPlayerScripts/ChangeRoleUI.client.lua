@@ -48,6 +48,8 @@ end
 local screen = new("ScreenGui", {
 	Name = "ChangeRoleGui",
 	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 50,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = playerGui,
 })
@@ -56,7 +58,7 @@ local screen = new("ScreenGui", {
 local openButton = new("TextButton", {
 	Name = "ChangeRoleButton",
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -16, 0, 12),
+	Position = UDim2.new(1, -16, 0, 10),
 	Size = UDim2.fromOffset(150, 40),
 	BackgroundColor3 = RED_MID,
 	Text = "Change Role",
