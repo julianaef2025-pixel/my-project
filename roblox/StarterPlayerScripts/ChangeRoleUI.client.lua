@@ -6,7 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("MarineConfig"))
-local remote = ReplicatedStorage:WaitForChild("ChangeRole")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -258,6 +257,11 @@ local function makeCard(unit, order)
 
 	card.Activated:Connect(function()
 		if busy then
+			return
+		end
+		local remote = ReplicatedStorage:WaitForChild("ChangeRole", 5)
+		if not remote then
+			warn("ChangeRole RemoteEvent not found - is the RoleServer script in ServerScriptService and running?")
 			return
 		end
 		busy = true
